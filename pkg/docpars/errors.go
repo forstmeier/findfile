@@ -1,8 +1,8 @@
-package docparser
+package docpars
 
 import "fmt"
 
-const packageName = "docparser"
+const packageName = "docpars"
 
 // ErrorAnalyzeDocument wraps errors returned by textract.Textract.AnalyzeDocument
 // in the Convert method.

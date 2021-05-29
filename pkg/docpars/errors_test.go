@@ -1,4 +1,4 @@
-package docparser
+package docpars
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ func TestErrorAnalyzeDocument(t *testing.T) {
 	err := &ErrorAnalyzeDocument{err: errors.New("mock analyze doc error")}
 
 	recieved := err.Error()
-	expected := "docparser: analyze document: mock analyze doc error"
+	expected := "docpars: analyze document: mock analyze doc error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
