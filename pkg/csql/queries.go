@@ -2,7 +2,7 @@ package csql
 
 func newSearchQuery(input searchObject) map[string]interface{} {
 	// flipping coordinate values to map between Textract and
-	// ElasticSearch which operate with different x-y axes
+	// Elasticsearch which operate with different x-y axes
 	topLeft := input.Coordinates[1]
 	bottomRight := input.Coordinates[0]
 
