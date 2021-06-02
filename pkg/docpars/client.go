@@ -13,8 +13,8 @@ var _ Parser = &Client{}
 
 // Client implements the docparser.Parser methods using AWS Textract.
 type Client struct {
-	textractClient   textractClient
-	convertToContent func(input *textract.AnalyzeDocumentOutput) Content
+	textractClient    textractClient
+	convertToDocument func(input *textract.AnalyzeDocumentOutput) Document
 }
 
 type textractClient interface {
@@ -27,13 +27,13 @@ func New() *Client {
 	service := textract.New(newSession)
 
 	return &Client{
-		textractClient:   service,
-		convertToContent: convertToContent,
+		textractClient:    service,
+		convertToDocument: convertToDocument,
 	}
 }
 
 // Parse implements the docparser.Parser.Parse interface method.
-func (c *Client) Parse(ctx context.Context, doc []byte) (*Content, error) {
+func (c *Client) Parse(ctx context.Context, doc []byte) (*Document, error) {
 	input := &textract.AnalyzeDocumentInput{
 		Document: &textract.Document{
 			Bytes: doc,
@@ -49,52 +49,81 @@ func (c *Client) Parse(ctx context.Context, doc []byte) (*Content, error) {
 		return nil, &ErrorAnalyzeDocument{err: err}
 	}
 
-	content := c.convertToContent(output)
+	content := c.convertToDocument(output)
 
 	return &content, nil
 }
 
-func convertToContent(input *textract.AnalyzeDocumentOutput) Content {
-	content := Content{
+func convertToDocument(input *textract.AnalyzeDocumentOutput) Document {
+	document := Document{
 		ID: uuid.NewString(),
 	}
 
-	for _, block := range input.Blocks {
-		left := *block.Geometry.BoundingBox.Left
-		top := *block.Geometry.BoundingBox.Top
-		height := *block.Geometry.BoundingBox.Height
-		width := *block.Geometry.BoundingBox.Width
+	pages := map[string]*textract.Block{}
+	lines := map[string]*textract.Block{}
 
-		data := Data{
-			Text: *block.Text,
-			Coordinates: Coordinates{
-				TopLeft: Coordinate{
-					X: left,
-					Y: top,
-				},
-				TopRight: Coordinate{
-					X: left + width,
-					Y: top,
-				},
-				BottomLeft: Coordinate{
-					X: left,
-					Y: top + height,
-				},
-				BottomRight: Coordinate{
-					X: left + width,
-					Y: top + height,
-				},
-			},
+	for _, block := range input.Blocks {
+		if *block.BlockType == textract.BlockTypePage {
+			pages[*block.Id] = block
 		}
 
 		if *block.BlockType == textract.BlockTypeLine {
-			content.Lines = append(content.Lines, data)
-		}
-
-		if *block.BlockType == textract.BlockTypeWord {
-			content.Words = append(content.Lines, data)
+			lines[*block.Id] = block
 		}
 	}
 
-	return content
+	for _, pageBlock := range pages {
+		page := Page{
+			ID:         uuid.NewString(),
+			DocumentID: document.ID,
+			Lines:      []Data{},
+		}
+
+		if pageBlock.Page == nil {
+			page.PageNumber = 1
+		} else {
+			page.PageNumber = *pageBlock.Page
+		}
+
+		for _, id := range pageBlock.Relationships[0].Ids {
+			// not all child IDs are "lines" which requires an ok check
+			if lineBlock, ok := lines[*id]; ok {
+				left := *lineBlock.Geometry.BoundingBox.Left
+				top := *lineBlock.Geometry.BoundingBox.Top
+				height := *lineBlock.Geometry.BoundingBox.Height
+				width := *lineBlock.Geometry.BoundingBox.Width
+
+				data := Data{
+					ID:         uuid.NewString(),
+					DocumentID: document.ID,
+					PageNumber: page.PageNumber,
+					Text:       *lineBlock.Text,
+					Coordinates: Coordinates{
+						TopLeft: Point{
+							X: left,
+							Y: top,
+						},
+						TopRight: Point{
+							X: left + width,
+							Y: top,
+						},
+						BottomLeft: Point{
+							X: left,
+							Y: top + height,
+						},
+						BottomRight: Point{
+							X: left + width,
+							Y: top + height,
+						},
+					},
+				}
+
+				page.Lines = append(page.Lines, data)
+			}
+		}
+
+		document.Pages = append(document.Pages, page)
+	}
+
+	return document
 }
