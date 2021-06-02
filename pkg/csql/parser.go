@@ -10,12 +10,14 @@ var (
 	errorTypeNotSupported     = errors.New("search object received not supported")
 	errorTooManyAttributes    = errors.New("search object contains too many attributes")
 	errorMissingText          = errors.New("search object must contain text")
+	errorPageNumberZero       = errors.New("search object page number must not be \"0\"")
 	errorCoordinatesZero      = errors.New("search object bottom coordinates cannot include zero")
 	errorCoordinatesMisplaced = errors.New("search object bottom coordinates cannot be greater than or equal to top coordinates")
 )
 
 type searchObject struct {
 	Text        string        `json:"text"`
+	Page        int           `json:"page"`
 	Coordinates [2][2]float64 `json:"coordinates"`
 }
 
@@ -92,6 +94,10 @@ func parseJSON(input interface{}) (interface{}, error) {
 func validateSearchJSON(input searchObject) error {
 	if input.Text == "" {
 		return errorMissingText
+	}
+
+	if input.Page == 0 {
+		return errorPageNumberZero
 	}
 
 	topLeft := input.Coordinates[0]

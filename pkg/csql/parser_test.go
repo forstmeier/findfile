@@ -42,6 +42,7 @@ func Test_parseJSONObject(t *testing.T) {
 			input: map[string]interface{}{
 				"search": map[string]interface{}{
 					"text": "lookup",
+					"page": 1,
 					"coordinates": [2][2]float64{
 						{0.1, 0.2},
 						{0.3, 0.4},
@@ -73,7 +74,7 @@ func Test_parseJSONObject(t *testing.T) {
 			error: nil,
 		},
 		{
-			description: "single csql and array with child error",
+			description: "single csql \"and\" array with child error",
 			input: map[string]interface{}{
 				"and": []interface{}{
 					map[string]interface{}{
@@ -87,12 +88,13 @@ func Test_parseJSONObject(t *testing.T) {
 			error:   errorMissingText,
 		},
 		{
-			description: "successful invocation single csql and with two search objects",
+			description: "successful invocation single csql \"and\" array with two search objects",
 			input: map[string]interface{}{
 				"and": []interface{}{
 					map[string]interface{}{
 						"search": map[string]interface{}{
 							"text": "lookup",
+							"page": 1,
 							"coordinates": [2][2]float64{
 								{0.1, 0.2},
 								{0.3, 0.4},
@@ -102,6 +104,7 @@ func Test_parseJSONObject(t *testing.T) {
 					map[string]interface{}{
 						"search": map[string]interface{}{
 							"text": "another",
+							"page": 1,
 							"coordinates": [2][2]float64{
 								{0.3, 0.4},
 								{0.5, 0.6},
@@ -163,7 +166,7 @@ func Test_parseJSONObject(t *testing.T) {
 			error: nil,
 		},
 		{
-			description: "single csql or array with child error",
+			description: "single csql \"or\" array with child error",
 			input: map[string]interface{}{
 				"or": []interface{}{
 					map[string]interface{}{
@@ -177,12 +180,13 @@ func Test_parseJSONObject(t *testing.T) {
 			error:   errorMissingText,
 		},
 		{
-			description: "successful invocation single csql and with two search objects",
+			description: "successful invocation single csql \"or\" array with two search objects",
 			input: map[string]interface{}{
 				"or": []interface{}{
 					map[string]interface{}{
 						"search": map[string]interface{}{
 							"text": "lookup",
+							"page": 1,
 							"coordinates": [2][2]float64{
 								{0.1, 0.2},
 								{0.3, 0.4},
@@ -192,6 +196,7 @@ func Test_parseJSONObject(t *testing.T) {
 					map[string]interface{}{
 						"search": map[string]interface{}{
 							"text": "another",
+							"page": 1,
 							"coordinates": [2][2]float64{
 								{0.3, 0.4},
 								{0.5, 0.6},
@@ -253,7 +258,7 @@ func Test_parseJSONObject(t *testing.T) {
 			error: nil,
 		},
 		{
-			description: "single csql not array with child error",
+			description: "single csql \"not\" array with child error",
 			input: map[string]interface{}{
 				"not": []interface{}{
 					map[string]interface{}{
@@ -267,12 +272,13 @@ func Test_parseJSONObject(t *testing.T) {
 			error:   errorMissingText,
 		},
 		{
-			description: "successful invocation single csql not with two search objects",
+			description: "successful invocation single csql \"not\" array with two search objects",
 			input: map[string]interface{}{
 				"not": []interface{}{
 					map[string]interface{}{
 						"search": map[string]interface{}{
 							"text": "lookup",
+							"page": 1,
 							"coordinates": [2][2]float64{
 								{0.1, 0.2},
 								{0.3, 0.4},
@@ -282,6 +288,7 @@ func Test_parseJSONObject(t *testing.T) {
 					map[string]interface{}{
 						"search": map[string]interface{}{
 							"text": "another",
+							"page": 1,
 							"coordinates": [2][2]float64{
 								{0.3, 0.4},
 								{0.5, 0.6},
@@ -343,12 +350,13 @@ func Test_parseJSONObject(t *testing.T) {
 			error: nil,
 		},
 		{
-			description: "successful invocation single csql and with child search object and or array with two child search objects",
+			description: "successful invocation single csql \"and\" array with child search object and \"or\" array with two child search objects",
 			input: map[string]interface{}{
 				"and": []interface{}{
 					map[string]interface{}{
 						"search": map[string]interface{}{
 							"text": "lookup",
+							"page": 1,
 							"coordinates": [2][2]float64{
 								{0.1, 0.2},
 								{0.3, 0.4},
@@ -360,6 +368,7 @@ func Test_parseJSONObject(t *testing.T) {
 							map[string]interface{}{
 								"search": map[string]interface{}{
 									"text": "another",
+									"page": 1,
 									"coordinates": [2][2]float64{
 										{0.3, 0.4},
 										{0.5, 0.6},
@@ -369,6 +378,7 @@ func Test_parseJSONObject(t *testing.T) {
 							map[string]interface{}{
 								"search": map[string]interface{}{
 									"text": "alternative",
+									"page": 1,
 									"coordinates": [2][2]float64{
 										{0.3, 0.4},
 										{0.5, 0.6},
@@ -470,8 +480,6 @@ func Test_parseJSONObject(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(esQuery, test.esQuery) {
-				// esBytes, _ := json.MarshalIndent(esQuery, "", "  ") // TEMP
-				// log.Println("ES:", string(esBytes)) // TEMP
 				t.Errorf("incorrect es query, received: %v, expected: %v", esQuery, test.esQuery)
 			}
 		})
@@ -492,9 +500,18 @@ func Test_validateSearchJSON(t *testing.T) {
 			error: errorMissingText,
 		},
 		{
+			description: "empty page number field",
+			input: searchObject{
+				Text: "search value",
+				Page: 0,
+			},
+			error: errorPageNumberZero,
+		},
+		{
 			description: "bottom right coordinates equal zero",
 			input: searchObject{
 				Text: "search value",
+				Page: 1,
 				Coordinates: [2][2]float64{
 					{
 						float64(0),
@@ -512,6 +529,7 @@ func Test_validateSearchJSON(t *testing.T) {
 			description: "top left values equal bottom right values",
 			input: searchObject{
 				Text: "search value",
+				Page: 1,
 				Coordinates: [2][2]float64{
 					{
 						float64(0.3),
@@ -529,6 +547,7 @@ func Test_validateSearchJSON(t *testing.T) {
 			description: "top left values greater than bottom right values",
 			input: searchObject{
 				Text: "search value",
+				Page: 1,
 				Coordinates: [2][2]float64{
 					{
 						float64(0.3),
@@ -546,6 +565,7 @@ func Test_validateSearchJSON(t *testing.T) {
 			description: "successful invocation with correct csql query",
 			input: searchObject{
 				Text: "search value",
+				Page: 1,
 				Coordinates: [2][2]float64{
 					{
 						float64(0.1),
@@ -562,8 +582,10 @@ func Test_validateSearchJSON(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if err := validateSearchJSON(test.input); err != test.error {
-			t.Errorf("incorrect error, received: %v, expected: %v", err, test.error)
-		}
+		t.Run(test.description, func(t *testing.T) {
+			if err := validateSearchJSON(test.input); err != test.error {
+				t.Errorf("incorrect error, received: %v, expected: %v", err, test.error)
+			}
+		})
 	}
 }
