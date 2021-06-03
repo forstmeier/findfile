@@ -14,7 +14,7 @@ var _ Parser = &Client{}
 // Client implements the docparser.Parser methods using AWS Textract.
 type Client struct {
 	textractClient    textractClient
-	convertToDocument func(input *textract.AnalyzeDocumentOutput) Document
+	convertToDocument func(input *textract.AnalyzeDocumentOutput, accountID string) Document
 }
 
 type textractClient interface {
@@ -33,7 +33,7 @@ func New() *Client {
 }
 
 // Parse implements the docparser.Parser.Parse interface method.
-func (c *Client) Parse(ctx context.Context, doc []byte) (*Document, error) {
+func (c *Client) Parse(ctx context.Context, accountID string, doc []byte) (*Document, error) {
 	input := &textract.AnalyzeDocumentInput{
 		Document: &textract.Document{
 			Bytes: doc,
@@ -49,22 +49,23 @@ func (c *Client) Parse(ctx context.Context, doc []byte) (*Document, error) {
 		return nil, &ErrorAnalyzeDocument{err: err}
 	}
 
-	content := c.convertToDocument(output)
+	document := c.convertToDocument(output, accountID)
 
-	return &content, nil
+	return &document, nil
 }
 
-func convertToDocument(input *textract.AnalyzeDocumentOutput) Document {
+func convertToDocument(input *textract.AnalyzeDocumentOutput, accountID string) Document {
 	document := Document{
-		ID: uuid.NewString(),
+		ID:        uuid.NewString(),
+		AccountID: accountID,
 	}
 
-	pages := map[string]*textract.Block{}
+	pages := []*textract.Block{}
 	lines := map[string]*textract.Block{}
 
 	for _, block := range input.Blocks {
 		if *block.BlockType == textract.BlockTypePage {
-			pages[*block.Id] = block
+			pages = append(pages, block)
 		}
 
 		if *block.BlockType == textract.BlockTypeLine {

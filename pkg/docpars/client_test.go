@@ -27,6 +27,8 @@ func (m *mockTextractClient) AnalyzeDocument(input *textract.AnalyzeDocumentInpu
 }
 
 func TestParse(t *testing.T) {
+	accountID := "account_id"
+
 	tests := []struct {
 		description          string
 		textractClientOutput *textract.AnalyzeDocumentOutput
@@ -55,7 +57,8 @@ func TestParse(t *testing.T) {
 			description:          "one page and one line returned",
 			textractClientError:  nil,
 			document: Document{
-				ID: "document_0",
+				ID:        "document_0",
+				AccountID: accountID,
 				Pages: []Page{
 					{
 						Lines: []Data{
@@ -95,7 +98,8 @@ func TestParse(t *testing.T) {
 					textractClientOutput: test.textractClientOutput,
 					textractClientError:  test.textractClientError,
 				},
-				convertToDocument: func(input *textract.AnalyzeDocumentOutput) Document {
+				convertToDocument: func(input *textract.AnalyzeDocumentOutput, accountID string) Document {
+					test.document.AccountID = accountID
 					return test.document
 				},
 			}
@@ -103,7 +107,7 @@ func TestParse(t *testing.T) {
 			ctx := context.Background()
 			doc := []byte("content")
 
-			document, err := client.Parse(ctx, doc)
+			document, err := client.Parse(ctx, accountID, doc)
 
 			if err != nil {
 				switch test.error.(type) {
@@ -147,10 +151,12 @@ func TestParse(t *testing.T) {
 }
 
 func Test_convertToContent(t *testing.T) {
+	accountID := "account_id"
+
 	tests := []struct {
 		description string
 		input       *textract.AnalyzeDocumentOutput
-		output      Document
+		document    Document
 	}{
 		{
 			description: "one page and one line",
@@ -182,7 +188,8 @@ func Test_convertToContent(t *testing.T) {
 					},
 				},
 			},
-			output: Document{
+			document: Document{
+				AccountID: accountID,
 				Pages: []Page{
 					{
 						PageNumber: 1,
@@ -257,7 +264,8 @@ func Test_convertToContent(t *testing.T) {
 					},
 				},
 			},
-			output: Document{
+			document: Document{
+				AccountID: accountID,
 				Pages: []Page{
 					{
 						PageNumber: 1,
@@ -284,11 +292,6 @@ func Test_convertToContent(t *testing.T) {
 									},
 								},
 							},
-						},
-					},
-					{
-						PageNumber: 1,
-						Lines: []Data{
 							{
 								PageNumber: 1,
 								Text:       "another",
@@ -372,7 +375,8 @@ func Test_convertToContent(t *testing.T) {
 					},
 				},
 			},
-			output: Document{
+			document: Document{
+				AccountID: accountID,
 				Pages: []Page{
 					{
 						PageNumber: 1,
@@ -435,14 +439,22 @@ func Test_convertToContent(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			document := convertToDocument(test.input)
+			document := convertToDocument(test.input, accountID)
+
+			if document.AccountID != accountID {
+				t.Errorf("incorrect document account id, received: %s, expected: %s", document.AccountID, accountID)
+			}
+
+			if len(document.Pages) != len(test.document.Pages) {
+				t.Errorf("incorrect pages count, received: %d, expected: %d", len(document.Pages), len(test.document.Pages))
+			}
 
 			for i, receivedPage := range document.Pages {
 				if receivedPage.DocumentID != document.ID {
 					t.Errorf("incorrect page document id, received: %s, expected: %s", receivedPage.DocumentID, document.ID)
 				}
 
-				expectedPage := test.output.Pages[i]
+				expectedPage := test.document.Pages[i]
 				if receivedPage.PageNumber != expectedPage.PageNumber {
 					t.Errorf("incorrect page number, received: %d, expected: %d", receivedPage.PageNumber, expectedPage.PageNumber)
 				}

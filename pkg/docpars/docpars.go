@@ -4,10 +4,11 @@ import "context"
 
 // Document holds the output of parsing the provided image file.
 type Document struct {
-	ID       string `json:"id"`
-	Filename string `json:"filename"` // NOTE: maybe include/exclude
-	Filepath string `json:"filepath"` // NOTE: maybe include/exclude
-	Pages    []Page `json:"pages"`
+	ID        string `json:"id"`
+	AccountID string `json:"account_id"`
+	Filename  string `json:"filename"` // NOTE: maybe include/exclude
+	Filepath  string `json:"filepath"` // NOTE: maybe include/exclude
+	Pages     []Page `json:"pages"`
 }
 
 // Page holds the output of parsing the pages of the provided image file.
@@ -44,5 +45,5 @@ type Point struct {
 // Parser defines the method needed for converting the provided
 // doc image into database content.
 type Parser interface {
-	Parse(ctx context.Context, doc []byte) (*Document, error)
+	Parse(ctx context.Context, accountID string, doc []byte) (*Document, error)
 }
