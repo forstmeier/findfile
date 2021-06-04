@@ -9,12 +9,18 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	documentEntity = "document"
+	pageEntity     = "page"
+	lineEntity     = "line"
+)
+
 var _ Parser = &Client{}
 
 // Client implements the docparser.Parser methods using AWS Textract.
 type Client struct {
 	textractClient    textractClient
-	convertToDocument func(input *textract.AnalyzeDocumentOutput, accountID string) Document
+	convertToDocument func(input *textract.AnalyzeDocumentOutput, accountID, filename, filepath string) Document
 }
 
 type textractClient interface {
@@ -33,7 +39,7 @@ func New() *Client {
 }
 
 // Parse implements the docparser.Parser.Parse interface method.
-func (c *Client) Parse(ctx context.Context, accountID string, doc []byte) (*Document, error) {
+func (c *Client) Parse(ctx context.Context, accountID, filename, filepath string, doc []byte) (*Document, error) {
 	input := &textract.AnalyzeDocumentInput{
 		Document: &textract.Document{
 			Bytes: doc,
@@ -49,15 +55,18 @@ func (c *Client) Parse(ctx context.Context, accountID string, doc []byte) (*Docu
 		return nil, &ErrorAnalyzeDocument{err: err}
 	}
 
-	document := c.convertToDocument(output, accountID)
+	document := c.convertToDocument(output, accountID, filename, filepath)
 
 	return &document, nil
 }
 
-func convertToDocument(input *textract.AnalyzeDocumentOutput, accountID string) Document {
+func convertToDocument(input *textract.AnalyzeDocumentOutput, accountID, filename, filepath string) Document {
 	document := Document{
 		ID:        uuid.NewString(),
+		Entity:    documentEntity,
 		AccountID: accountID,
+		Filename:  filename,
+		Filepath:  filepath,
 	}
 
 	pages := []*textract.Block{}
@@ -75,9 +84,9 @@ func convertToDocument(input *textract.AnalyzeDocumentOutput, accountID string) 
 
 	for _, pageBlock := range pages {
 		page := Page{
-			ID:         uuid.NewString(),
-			DocumentID: document.ID,
-			Lines:      []Data{},
+			ID:     uuid.NewString(),
+			Entity: pageEntity,
+			Lines:  []Data{},
 		}
 
 		if pageBlock.Page == nil {
@@ -95,10 +104,9 @@ func convertToDocument(input *textract.AnalyzeDocumentOutput, accountID string) 
 				width := *lineBlock.Geometry.BoundingBox.Width
 
 				data := Data{
-					ID:         uuid.NewString(),
-					DocumentID: document.ID,
-					PageNumber: page.PageNumber,
-					Text:       *lineBlock.Text,
+					ID:     uuid.NewString(),
+					Entity: lineEntity,
+					Text:   *lineBlock.Text,
 					Coordinates: Coordinates{
 						TopLeft: Point{
 							X: left,

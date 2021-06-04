@@ -5,16 +5,17 @@ import "context"
 // Document holds the output of parsing the provided image file.
 type Document struct {
 	ID        string `json:"id"`
+	Entity    string `json:"entity"`
 	AccountID string `json:"account_id"`
-	Filename  string `json:"filename"` // NOTE: maybe include/exclude
-	Filepath  string `json:"filepath"` // NOTE: maybe include/exclude
+	Filename  string `json:"filename"`
+	Filepath  string `json:"filepath"`
 	Pages     []Page `json:"pages"`
 }
 
 // Page holds the output of parsing the pages of the provided image file.
 type Page struct {
 	ID         string `json:"id"`
-	DocumentID string `json:"document_id"` // NOTE: maybe include/exclude
+	Entity     string `json:"entity"`
 	PageNumber int64  `json:"page_number"`
 	Lines      []Data `json:"lines"`
 }
@@ -22,8 +23,7 @@ type Page struct {
 // Data holds text and location coordinates retrieved from the image file.
 type Data struct {
 	ID          string      `json:"id"`
-	DocumentID  string      `json:"document_id"` // NOTE: maybe include/exclude
-	PageNumber  int64       `json:"page_number"` // NOTE: maybe include/exclude
+	Entity      string      `json:"entity"`
 	Text        string      `json:"text"`
 	Coordinates Coordinates `json:"coordinates"`
 }
@@ -45,5 +45,5 @@ type Point struct {
 // Parser defines the method needed for converting the provided
 // doc image into database content.
 type Parser interface {
-	Parse(ctx context.Context, accountID string, doc []byte) (*Document, error)
+	Parse(ctx context.Context, accountID, filename, filepath string, doc []byte) (*Document, error)
 }

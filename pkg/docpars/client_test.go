@@ -28,6 +28,8 @@ func (m *mockTextractClient) AnalyzeDocument(input *textract.AnalyzeDocumentInpu
 
 func TestParse(t *testing.T) {
 	accountID := "account_id"
+	filename := "test.pdf"
+	filepath := "s3://bucket/path"
 
 	tests := []struct {
 		description          string
@@ -59,6 +61,8 @@ func TestParse(t *testing.T) {
 			document: Document{
 				ID:        "document_0",
 				AccountID: accountID,
+				Filename:  filename,
+				Filepath:  filepath,
 				Pages: []Page{
 					{
 						Lines: []Data{
@@ -98,8 +102,10 @@ func TestParse(t *testing.T) {
 					textractClientOutput: test.textractClientOutput,
 					textractClientError:  test.textractClientError,
 				},
-				convertToDocument: func(input *textract.AnalyzeDocumentOutput, accountID string) Document {
+				convertToDocument: func(input *textract.AnalyzeDocumentOutput, accountID, filename, filepath string) Document {
 					test.document.AccountID = accountID
+					test.document.Filename = filename
+					test.document.Filepath = filepath
 					return test.document
 				},
 			}
@@ -107,7 +113,7 @@ func TestParse(t *testing.T) {
 			ctx := context.Background()
 			doc := []byte("content")
 
-			document, err := client.Parse(ctx, accountID, doc)
+			document, err := client.Parse(ctx, accountID, filename, filepath, doc)
 
 			if err != nil {
 				switch test.error.(type) {
@@ -152,6 +158,8 @@ func TestParse(t *testing.T) {
 
 func Test_convertToContent(t *testing.T) {
 	accountID := "account_id"
+	filename := "test.pdf"
+	filepath := "s3://bucket/path"
 
 	tests := []struct {
 		description string
@@ -190,13 +198,14 @@ func Test_convertToContent(t *testing.T) {
 			},
 			document: Document{
 				AccountID: accountID,
+				Filename:  filename,
+				Filepath:  filepath,
 				Pages: []Page{
 					{
 						PageNumber: 1,
 						Lines: []Data{
 							{
-								PageNumber: 1,
-								Text:       "test words",
+								Text: "test words",
 								Coordinates: Coordinates{
 									TopLeft: Point{
 										X: 0.1,
@@ -266,13 +275,14 @@ func Test_convertToContent(t *testing.T) {
 			},
 			document: Document{
 				AccountID: accountID,
+				Filename:  filename,
+				Filepath:  filepath,
 				Pages: []Page{
 					{
 						PageNumber: 1,
 						Lines: []Data{
 							{
-								PageNumber: 1,
-								Text:       "test words",
+								Text: "test words",
 								Coordinates: Coordinates{
 									TopLeft: Point{
 										X: 0.1,
@@ -293,8 +303,7 @@ func Test_convertToContent(t *testing.T) {
 								},
 							},
 							{
-								PageNumber: 1,
-								Text:       "another",
+								Text: "another",
 								Coordinates: Coordinates{
 									TopLeft: Point{
 										X: 0.6,
@@ -377,13 +386,14 @@ func Test_convertToContent(t *testing.T) {
 			},
 			document: Document{
 				AccountID: accountID,
+				Filename:  filename,
+				Filepath:  filepath,
 				Pages: []Page{
 					{
 						PageNumber: 1,
 						Lines: []Data{
 							{
-								PageNumber: 1,
-								Text:       "test words",
+								Text: "test words",
 								Coordinates: Coordinates{
 									TopLeft: Point{
 										X: 0.1,
@@ -409,8 +419,7 @@ func Test_convertToContent(t *testing.T) {
 						PageNumber: 2,
 						Lines: []Data{
 							{
-								PageNumber: 2,
-								Text:       "another",
+								Text: "another",
 								Coordinates: Coordinates{
 									TopLeft: Point{
 										X: 0.6,
@@ -439,10 +448,18 @@ func Test_convertToContent(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			document := convertToDocument(test.input, accountID)
+			document := convertToDocument(test.input, accountID, filename, filepath)
 
 			if document.AccountID != accountID {
 				t.Errorf("incorrect document account id, received: %s, expected: %s", document.AccountID, accountID)
+			}
+
+			if document.Filename != filename {
+				t.Errorf("incorrect document filename, received: %s, expected: %s", document.Filename, filename)
+			}
+
+			if document.Filepath != filepath {
+				t.Errorf("incorrect document filepath, received: %s, expected: %s", document.Filepath, filepath)
 			}
 
 			if len(document.Pages) != len(test.document.Pages) {
@@ -450,25 +467,13 @@ func Test_convertToContent(t *testing.T) {
 			}
 
 			for i, receivedPage := range document.Pages {
-				if receivedPage.DocumentID != document.ID {
-					t.Errorf("incorrect page document id, received: %s, expected: %s", receivedPage.DocumentID, document.ID)
-				}
-
 				expectedPage := test.document.Pages[i]
 				if receivedPage.PageNumber != expectedPage.PageNumber {
 					t.Errorf("incorrect page number, received: %d, expected: %d", receivedPage.PageNumber, expectedPage.PageNumber)
 				}
 
 				for j, receivedLine := range receivedPage.Lines {
-					if receivedLine.DocumentID != document.ID {
-						t.Errorf("incorrect line document id, received: %s, expected: %s", receivedLine.DocumentID, document.ID)
-					}
-
 					expectedLine := expectedPage.Lines[j]
-					if receivedLine.PageNumber != expectedLine.PageNumber {
-						t.Errorf("incorrect line page number, received: %d, expected: %d", receivedLine.PageNumber, expectedLine.PageNumber)
-					}
-
 					if receivedLine.Text != expectedLine.Text {
 						t.Errorf("incorrect line text, received: %s, expected: %s", receivedLine.Text, expectedLine.Text)
 					}
