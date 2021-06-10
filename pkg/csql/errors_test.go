@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-func TestErrorParseCSQLJSON(t *testing.T) {
-	err := &ErrorParseCSQLJSON{err: errors.New("mock parse csql json error")}
+func TestErrorConvertCSQL(t *testing.T) {
+	err := &ErrorConvertCSQL{err: errors.New("mock convert csql error")}
 
 	recieved := err.Error()
-	expected := "csql: mock parse csql json error"
+	expected := "csql: convert csql: mock convert csql error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)

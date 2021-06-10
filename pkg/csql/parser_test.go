@@ -1,469 +1,59 @@
 package csql
 
 import (
+	"bytes"
+	"encoding/json"
 	"reflect"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func Test_parseJSONObject(t *testing.T) {
+func Test_parseCSQL(t *testing.T) {
 	tests := []struct {
 		description string
-		input       interface{}
-		esQuery     interface{}
+		input       map[string]interface{}
 		error       error
 	}{
 		{
-			description: "more than one attribute in root csql object",
+			description: "too many attributes received",
 			input: map[string]interface{}{
-				"first":  "value",
-				"second": "value",
+				"search":  search{},
+				"another": search{},
 			},
-			esQuery: nil,
-			error:   errorTooManyAttributes,
+			error: errorTooManyAttributes,
 		},
 		{
-			description: "validation error in csql object",
+			description: "incorrect search key received",
 			input: map[string]interface{}{
-				"search": map[string]interface{}{
-					"text": "",
-				},
+				"unsupported": search{},
 			},
-			esQuery: nil,
-			error:   errorMissingText,
+			error: errorKeyNotSupported,
 		},
 		{
-			description: "type received in csql not supported",
-			input:       "type_not_supported",
-			esQuery:     nil,
-			error:       errorTypeNotSupported,
+			description: "incorrect search type received",
+			input: map[string]interface{}{
+				"search": "not_search_type",
+			},
+			error: errorTypeIncorrect,
 		},
 		{
-			description: "successful invocation single csql search object",
+			description: "search object validation error",
 			input: map[string]interface{}{
-				"search": map[string]interface{}{
-					"text": "lookup",
-					"page": 1,
-					"coordinates": [2][2]float64{
-						{0.1, 0.2},
-						{0.3, 0.4},
-					},
-				},
+				"search": search{},
 			},
-			esQuery: map[string]interface{}{
-				"bool": map[string]interface{}{
-					"filter": map[string]interface{}{
-						"geo_shape": map[string]interface{}{
-							"coordinates": map[string]interface{}{
-								"shape": map[string]interface{}{
-									"type": "envelope",
-									"coordinates": [2][2]float64{
-										{0.3, 0.4},
-										{0.1, 0.2},
-									},
-								},
-							},
-						},
-					},
-					"must": map[string]interface{}{
-						"match": map[string]interface{}{
-							"text": "lookup",
-						},
-					},
-				},
-			},
-			error: nil,
+			error: errorMissingText,
 		},
 		{
-			description: "single csql \"and\" array with child error",
+			description: "successfull parse invocation",
 			input: map[string]interface{}{
-				"and": []interface{}{
-					map[string]interface{}{
-						"search": map[string]interface{}{
-							"text": "",
-						},
-					},
-				},
-			},
-			esQuery: nil,
-			error:   errorMissingText,
-		},
-		{
-			description: "successful invocation single csql \"and\" array with two search objects",
-			input: map[string]interface{}{
-				"and": []interface{}{
-					map[string]interface{}{
-						"search": map[string]interface{}{
-							"text": "lookup",
-							"page": 1,
-							"coordinates": [2][2]float64{
-								{0.1, 0.2},
-								{0.3, 0.4},
-							},
-						},
-					},
-					map[string]interface{}{
-						"search": map[string]interface{}{
-							"text": "another",
-							"page": 1,
-							"coordinates": [2][2]float64{
-								{0.3, 0.4},
-								{0.5, 0.6},
-							},
-						},
-					},
-				},
-			},
-			esQuery: map[string]interface{}{
-				"bool": map[string]interface{}{
-					"must": []interface{}{
-						map[string]interface{}{
-							"bool": map[string]interface{}{
-								"filter": map[string]interface{}{
-									"geo_shape": map[string]interface{}{
-										"coordinates": map[string]interface{}{
-											"shape": map[string]interface{}{
-												"type": "envelope",
-												"coordinates": [2][2]float64{
-													{0.3, 0.4},
-													{0.1, 0.2},
-												},
-											},
-										},
-									},
-								},
-								"must": map[string]interface{}{
-									"match": map[string]interface{}{
-										"text": "lookup",
-									},
-								},
-							},
-						},
-						map[string]interface{}{
-							"bool": map[string]interface{}{
-								"filter": map[string]interface{}{
-									"geo_shape": map[string]interface{}{
-										"coordinates": map[string]interface{}{
-											"shape": map[string]interface{}{
-												"type": "envelope",
-												"coordinates": [2][2]float64{
-													{0.5, 0.6},
-													{0.3, 0.4},
-												},
-											},
-										},
-									},
-								},
-								"must": map[string]interface{}{
-									"match": map[string]interface{}{
-										"text": "another",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			error: nil,
-		},
-		{
-			description: "single csql \"or\" array with child error",
-			input: map[string]interface{}{
-				"or": []interface{}{
-					map[string]interface{}{
-						"search": map[string]interface{}{
-							"text": "",
-						},
-					},
-				},
-			},
-			esQuery: nil,
-			error:   errorMissingText,
-		},
-		{
-			description: "successful invocation single csql \"or\" array with two search objects",
-			input: map[string]interface{}{
-				"or": []interface{}{
-					map[string]interface{}{
-						"search": map[string]interface{}{
-							"text": "lookup",
-							"page": 1,
-							"coordinates": [2][2]float64{
-								{0.1, 0.2},
-								{0.3, 0.4},
-							},
-						},
-					},
-					map[string]interface{}{
-						"search": map[string]interface{}{
-							"text": "another",
-							"page": 1,
-							"coordinates": [2][2]float64{
-								{0.3, 0.4},
-								{0.5, 0.6},
-							},
-						},
-					},
-				},
-			},
-			esQuery: map[string]interface{}{
-				"bool": map[string]interface{}{
-					"should": []interface{}{
-						map[string]interface{}{
-							"bool": map[string]interface{}{
-								"filter": map[string]interface{}{
-									"geo_shape": map[string]interface{}{
-										"coordinates": map[string]interface{}{
-											"shape": map[string]interface{}{
-												"type": "envelope",
-												"coordinates": [2][2]float64{
-													{0.3, 0.4},
-													{0.1, 0.2},
-												},
-											},
-										},
-									},
-								},
-								"must": map[string]interface{}{
-									"match": map[string]interface{}{
-										"text": "lookup",
-									},
-								},
-							},
-						},
-						map[string]interface{}{
-							"bool": map[string]interface{}{
-								"filter": map[string]interface{}{
-									"geo_shape": map[string]interface{}{
-										"coordinates": map[string]interface{}{
-											"shape": map[string]interface{}{
-												"type": "envelope",
-												"coordinates": [2][2]float64{
-													{0.5, 0.6},
-													{0.3, 0.4},
-												},
-											},
-										},
-									},
-								},
-								"must": map[string]interface{}{
-									"match": map[string]interface{}{
-										"text": "another",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			error: nil,
-		},
-		{
-			description: "single csql \"not\" array with child error",
-			input: map[string]interface{}{
-				"not": []interface{}{
-					map[string]interface{}{
-						"search": map[string]interface{}{
-							"text": "",
-						},
-					},
-				},
-			},
-			esQuery: nil,
-			error:   errorMissingText,
-		},
-		{
-			description: "successful invocation single csql \"not\" array with two search objects",
-			input: map[string]interface{}{
-				"not": []interface{}{
-					map[string]interface{}{
-						"search": map[string]interface{}{
-							"text": "lookup",
-							"page": 1,
-							"coordinates": [2][2]float64{
-								{0.1, 0.2},
-								{0.3, 0.4},
-							},
-						},
-					},
-					map[string]interface{}{
-						"search": map[string]interface{}{
-							"text": "another",
-							"page": 1,
-							"coordinates": [2][2]float64{
-								{0.3, 0.4},
-								{0.5, 0.6},
-							},
-						},
-					},
-				},
-			},
-			esQuery: map[string]interface{}{
-				"bool": map[string]interface{}{
-					"must_not": []interface{}{
-						map[string]interface{}{
-							"bool": map[string]interface{}{
-								"filter": map[string]interface{}{
-									"geo_shape": map[string]interface{}{
-										"coordinates": map[string]interface{}{
-											"shape": map[string]interface{}{
-												"type": "envelope",
-												"coordinates": [2][2]float64{
-													{0.3, 0.4},
-													{0.1, 0.2},
-												},
-											},
-										},
-									},
-								},
-								"must": map[string]interface{}{
-									"match": map[string]interface{}{
-										"text": "lookup",
-									},
-								},
-							},
-						},
-						map[string]interface{}{
-							"bool": map[string]interface{}{
-								"filter": map[string]interface{}{
-									"geo_shape": map[string]interface{}{
-										"coordinates": map[string]interface{}{
-											"shape": map[string]interface{}{
-												"type": "envelope",
-												"coordinates": [2][2]float64{
-													{0.5, 0.6},
-													{0.3, 0.4},
-												},
-											},
-										},
-									},
-								},
-								"must": map[string]interface{}{
-									"match": map[string]interface{}{
-										"text": "another",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			error: nil,
-		},
-		{
-			description: "successful invocation single csql \"and\" array with child search object and \"or\" array with two child search objects",
-			input: map[string]interface{}{
-				"and": []interface{}{
-					map[string]interface{}{
-						"search": map[string]interface{}{
-							"text": "lookup",
-							"page": 1,
-							"coordinates": [2][2]float64{
-								{0.1, 0.2},
-								{0.3, 0.4},
-							},
-						},
-					},
-					map[string]interface{}{
-						"or": []interface{}{
-							map[string]interface{}{
-								"search": map[string]interface{}{
-									"text": "another",
-									"page": 1,
-									"coordinates": [2][2]float64{
-										{0.3, 0.4},
-										{0.5, 0.6},
-									},
-								},
-							},
-							map[string]interface{}{
-								"search": map[string]interface{}{
-									"text": "alternative",
-									"page": 1,
-									"coordinates": [2][2]float64{
-										{0.3, 0.4},
-										{0.5, 0.6},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			esQuery: map[string]interface{}{
-				"bool": map[string]interface{}{
-					"must": []interface{}{
-						map[string]interface{}{
-							"bool": map[string]interface{}{
-								"filter": map[string]interface{}{
-									"geo_shape": map[string]interface{}{
-										"coordinates": map[string]interface{}{
-											"shape": map[string]interface{}{
-												"type": "envelope",
-												"coordinates": [2][2]float64{
-													{0.3, 0.4},
-													{0.1, 0.2},
-												},
-											},
-										},
-									},
-								},
-								"must": map[string]interface{}{
-									"match": map[string]interface{}{
-										"text": "lookup",
-									},
-								},
-							},
-						},
-						map[string]interface{}{
-							"bool": map[string]interface{}{
-								"should": []interface{}{
-									map[string]interface{}{
-										"bool": map[string]interface{}{
-											"filter": map[string]interface{}{
-												"geo_shape": map[string]interface{}{
-													"coordinates": map[string]interface{}{
-														"shape": map[string]interface{}{
-															"type": "envelope",
-															"coordinates": [2][2]float64{
-																{0.5, 0.6},
-																{0.3, 0.4},
-															},
-														},
-													},
-												},
-											},
-											"must": map[string]interface{}{
-												"match": map[string]interface{}{
-													"text": "another",
-												},
-											},
-										},
-									},
-									map[string]interface{}{
-										"bool": map[string]interface{}{
-											"filter": map[string]interface{}{
-												"geo_shape": map[string]interface{}{
-													"coordinates": map[string]interface{}{
-														"shape": map[string]interface{}{
-															"type": "envelope",
-															"coordinates": [2][2]float64{
-																{0.5, 0.6},
-																{0.3, 0.4},
-															},
-														},
-													},
-												},
-											},
-											"must": map[string]interface{}{
-												"match": map[string]interface{}{
-													"text": "alternative",
-												},
-											},
-										},
-									},
-								},
-							},
-						},
+				"search": search{
+					Text:       "lookup text",
+					PageNumber: 1,
+					Coordinates: [2][2]float64{
+						{0.1, 0.1},
+						{0.5, 0.5},
 					},
 				},
 			},
@@ -473,45 +63,135 @@ func Test_parseJSONObject(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			esQuery, err := parseJSON(test.input)
+			received, err := parseCSQL(test.input)
 
-			if err != test.error {
-				t.Errorf("incorrect error, received: %v, expected: %v", err, test.error)
-			}
+			if err != nil {
+				if err != test.error {
+					t.Errorf("incorrect error, received: %s, expected: %s", err.Error(), test.error.Error())
+				}
+			} else {
+				coordinates := [2][2]float64{
+					{0.1, 0.1},
+					{0.5, 0.5},
+				}
 
-			if !reflect.DeepEqual(esQuery, test.esQuery) {
-				t.Errorf("incorrect es query, received: %v, expected: %v", esQuery, test.esQuery)
+				bsonQuery := newBSONQuery(1, "lookup text", coordinates)
+				expected, err := json.Marshal(bsonQuery)
+				if err != nil {
+					t.Fatalf("error creating expected bson query: %s", err.Error())
+				}
+
+				if bytes.Compare(received, expected) != 0 {
+					t.Errorf("incorrect byptes, received: %v, expected: %v", received, expected)
+				}
 			}
 		})
+	}
+}
+
+func Test_newBSONQuery(t *testing.T) {
+	pageNumber := int64(1)
+	text := "lookup text"
+	coordinates := [2][2]float64{
+		{0.1, 0.1},
+		{0.5, 0.5},
+	}
+
+	received := newBSONQuery(pageNumber, text, coordinates)
+
+	expected := bson.D{
+		primitive.E{
+			Key: "pages",
+			Value: bson.D{
+				primitive.E{
+					Key:   "page_number",
+					Value: pageNumber,
+				},
+				primitive.E{
+					Key: "lines",
+					Value: bson.D{
+						primitive.E{
+							Key: "$text",
+							Value: bson.D{
+								primitive.E{
+									Key:   "$search",
+									Value: text,
+								},
+							},
+						},
+						primitive.E{
+							Key: "coordinates.top_left.x",
+							Value: bson.D{
+								primitive.E{
+									Key:   "$lte",
+									Value: coordinates[1][0],
+								},
+							},
+						},
+						primitive.E{
+							Key: "coordinates.bottom_right.x",
+							Value: bson.D{
+								primitive.E{
+									Key:   "$gte",
+									Value: coordinates[0][0],
+								},
+							},
+						},
+						primitive.E{
+							Key: "coordinates.top_right.y",
+							Value: bson.D{
+								primitive.E{
+									Key:   "$gte",
+									Value: coordinates[1][1],
+								},
+							},
+						},
+						primitive.E{
+							Key: "coordinates.bottom_left.y",
+							Value: bson.D{
+								primitive.E{
+									Key:   "$lte",
+									Value: coordinates[0][1],
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(received, expected) {
+		t.Errorf("incorrect query, received: %+v, expected: %+v", received, expected)
 	}
 }
 
 func Test_validateSearchJSON(t *testing.T) {
 	tests := []struct {
 		description string
-		input       searchObject
+		input       search
 		error       error
 	}{
 		{
 			description: "empty text field",
-			input: searchObject{
+			input: search{
 				Text: "",
 			},
 			error: errorMissingText,
 		},
 		{
 			description: "empty page number field",
-			input: searchObject{
-				Text: "search value",
-				Page: 0,
+			input: search{
+				Text:       "search value",
+				PageNumber: 0,
 			},
 			error: errorPageNumberZero,
 		},
 		{
 			description: "bottom right coordinates equal zero",
-			input: searchObject{
-				Text: "search value",
-				Page: 1,
+			input: search{
+				Text:       "search value",
+				PageNumber: 1,
 				Coordinates: [2][2]float64{
 					{
 						float64(0),
@@ -527,9 +207,9 @@ func Test_validateSearchJSON(t *testing.T) {
 		},
 		{
 			description: "top left values equal bottom right values",
-			input: searchObject{
-				Text: "search value",
-				Page: 1,
+			input: search{
+				Text:       "search value",
+				PageNumber: 1,
 				Coordinates: [2][2]float64{
 					{
 						float64(0.3),
@@ -545,9 +225,9 @@ func Test_validateSearchJSON(t *testing.T) {
 		},
 		{
 			description: "top left values greater than bottom right values",
-			input: searchObject{
-				Text: "search value",
-				Page: 1,
+			input: search{
+				Text:       "search value",
+				PageNumber: 1,
 				Coordinates: [2][2]float64{
 					{
 						float64(0.3),
@@ -563,9 +243,9 @@ func Test_validateSearchJSON(t *testing.T) {
 		},
 		{
 			description: "successful invocation with correct csql query",
-			input: searchObject{
-				Text: "search value",
-				Page: 1,
+			input: search{
+				Text:       "search value",
+				PageNumber: 1,
 				Coordinates: [2][2]float64{
 					{
 						float64(0.1),

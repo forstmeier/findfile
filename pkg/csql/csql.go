@@ -1,7 +1,8 @@
 package csql
 
-// CSQLer defines the methods for manipulating and interacting
-// with CSQL and Elasticsearch queries.
+// CSQLer defines the method for converting CSQL queries
+// into database implementation-compatible queries as
+// a byte array.
 type CSQLer interface {
-	CSQLToES(csqlQuery map[string]interface{}) (map[string]interface{}, error)
+	ConvertCSQL(csqlQuery map[string]interface{}) ([]byte, error)
 }

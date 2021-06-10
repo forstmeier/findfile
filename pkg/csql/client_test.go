@@ -1,77 +1,67 @@
 package csql
 
 import (
+	"bytes"
 	"errors"
-	"reflect"
 	"testing"
 )
 
 func TestNew(t *testing.T) {
 	client := New()
+
 	if client == nil {
 		t.Error("error creating parser client")
 	}
 }
 
-func TestCSQLToES(t *testing.T) {
+func TestConvertCSQL(t *testing.T) {
 	tests := []struct {
-		description     string
-		parseJSONOutput interface{}
-		parseJSONError  error
-		output          map[string]interface{}
-		error           error
+		description string
+		input       map[string]interface{}
+		parseOutput []byte
+		parseError  error
+		error       error
 	}{
 		{
-			description:     "error parsing csql json",
-			parseJSONOutput: nil,
-			parseJSONError:  errors.New("mock parsing error"),
-			output:          nil,
-			error:           &ErrorParseCSQLJSON{err: errors.New("mock parsing error")},
+			description: "error from parse csql helper function",
+			input:       map[string]interface{}{},
+			parseOutput: nil,
+			parseError:  errors.New("mock parse csql error"),
+			error:       &ErrorConvertCSQL{},
 		},
 		{
-			description: "successful invocation for csql to es",
-			parseJSONOutput: map[string]interface{}{
-				"search": map[string]interface{}{
-					"text": "lookup",
-					"coordinates": [2][2]float64{
-						{0.1, 0.2},
-						{0.3, 0.4},
-					},
-				},
-			},
-			parseJSONError: nil,
-			output: map[string]interface{}{
-				"search": map[string]interface{}{
-					"text": "lookup",
-					"coordinates": [2][2]float64{
-						{0.1, 0.2},
-						{0.3, 0.4},
-					},
-				},
-			},
+			description: "successful convert csql invocation",
+			input:       map[string]interface{}{},
+			parseOutput: []byte("test byte output"),
+			error:       nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			mockParseJSON := func(input interface{}) (interface{}, error) {
-				return test.parseJSONOutput, test.parseJSONError
+			c := &Client{
+				parseCSQL: func(csqlQuery map[string]interface{}) ([]byte, error) {
+					return test.parseOutput, test.parseError
+				},
 			}
 
-			client := Client{
-				parseJSON: mockParseJSON,
-			}
-
-			output, err := client.CSQLToES(map[string]interface{}{})
+			received, err := c.ConvertCSQL(test.input)
 
 			if err != nil {
-				var testError *ErrorParseCSQLJSON
-				if !errors.As(err, &testError) {
-					t.Errorf("incorrect error, received: %v, expected: %v", err, test.error)
+				switch test.error.(type) {
+				case *ErrorConvertCSQL:
+					var testError *ErrorConvertCSQL
+					if !errors.As(err, &testError) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					}
+				default:
+					t.Fatalf("unexpected error type: %v", err)
 				}
+
 			} else {
-				if !reflect.DeepEqual(output, test.output) {
-					t.Errorf("incorrect output, received: %v, expected: %v", output, test.output)
+				expected := []byte("test byte output")
+				if bytes.Compare(received, expected) != 0 {
+					t.Errorf("incorrect byptes, received: %v, expected: %v", received, expected)
 				}
 			}
 		})

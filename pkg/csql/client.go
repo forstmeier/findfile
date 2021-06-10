@@ -2,24 +2,25 @@ package csql
 
 var _ CSQLer = &Client{}
 
-// Client implements the csql.CSQLer methods.
+// Client implements the csql.CSQLer methods using DocumentDB.
 type Client struct {
-	parseJSON func(input interface{}) (interface{}, error)
+	parseCSQL func(csqlQuery map[string]interface{}) ([]byte, error)
 }
 
-// New generates a Client pointer instance.
+// New generates a csql.Client pointer instance for a DocumentDB
+// backend implementation.
 func New() *Client {
 	return &Client{
-		parseJSON: parseJSON,
+		parseCSQL: parseCSQL,
 	}
 }
 
-// CSQLToES implements the csql.CSQLer.CSQLToES interface method.
-func (c *Client) CSQLToES(csqlJSON map[string]interface{}) (map[string]interface{}, error) {
-	esJSON, err := c.parseJSON(csqlJSON)
+// ConvertCSQL implements the csql.CSQLer.ConvertCSQL method.
+func (c *Client) ConvertCSQL(csqlQuery map[string]interface{}) ([]byte, error) {
+	bsonQuery, err := c.parseCSQL(csqlQuery)
 	if err != nil {
-		return nil, &ErrorParseCSQLJSON{err: err}
+		return nil, &ErrorConvertCSQL{err: err}
 	}
 
-	return esJSON.(map[string]interface{}), nil
+	return bsonQuery, nil
 }

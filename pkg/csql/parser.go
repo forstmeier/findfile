@@ -3,100 +3,132 @@ package csql
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var (
-	errorTypeNotSupported     = errors.New("search object received not supported")
+	errorKeyNotSupported      = errors.New("search object key received not supported")
 	errorTooManyAttributes    = errors.New("search object contains too many attributes")
+	errorTypeIncorrect        = errors.New("search object must be search object type")
 	errorMissingText          = errors.New("search object must contain text")
 	errorPageNumberZero       = errors.New("search object page number must not be \"0\"")
 	errorCoordinatesZero      = errors.New("search object bottom coordinates cannot include zero")
 	errorCoordinatesMisplaced = errors.New("search object bottom coordinates cannot be greater than or equal to top coordinates")
 )
 
-type searchObject struct {
+type search struct {
 	Text        string        `json:"text"`
-	Page        int           `json:"page"`
+	PageNumber  int64         `json:"page_number"`
 	Coordinates [2][2]float64 `json:"coordinates"`
 }
 
-func parseJSON(input interface{}) (interface{}, error) {
-	switch inputJSON := input.(type) {
-	case map[string]interface{}:
-		if len(inputJSON) != 1 {
-			return nil, errorTooManyAttributes
+func parseCSQL(csqlQuery map[string]interface{}) ([]byte, error) {
+	var output []byte
+
+	if len(csqlQuery) > 1 {
+		return nil, errorTooManyAttributes
+	}
+	if searchValue, searchOK := csqlQuery["search"]; searchOK {
+		searchJSON, typeOK := searchValue.(search)
+		if !typeOK {
+			return nil, errorTypeIncorrect
 		}
 
-		if searchValue, ok := inputJSON["search"]; ok {
-			searchBytes, err := json.Marshal(searchValue)
-			if err != nil {
-				return nil, err
-			}
-
-			searchJSON := searchObject{}
-			if err := json.Unmarshal(searchBytes, &searchJSON); err != nil {
-				return nil, err
-			}
-
-			if err := validateSearchJSON(searchJSON); err != nil {
-				return nil, err
-			}
-
-			return newSearchQuery(searchJSON), nil
-		} else if andValue, ok := inputJSON["and"]; ok {
-			andJSON, err := parseJSON(andValue)
-			if err != nil {
-				return nil, err
-			}
-
-			return newOperatorQuery(andJSON, "must"), nil
-		} else if orValue, ok := inputJSON["or"]; ok {
-			orJSON, err := parseJSON(orValue)
-			if err != nil {
-				return nil, err
-			}
-
-			return newOperatorQuery(orJSON, "should"), nil
-		} else if notValue, ok := inputJSON["not"]; ok {
-			notJSON, err := parseJSON(notValue)
-			if err != nil {
-				return nil, err
-			}
-
-			return newOperatorQuery(notJSON, "must_not"), nil
-		} else {
-			key := ""
-			for k := range inputJSON {
-				key = k
-			}
-
-			return nil, fmt.Errorf("key \"%s\" not supported", key)
-		}
-	case []interface{}:
-		objectArray := make([]interface{}, len(inputJSON))
-
-		for i, jsonObject := range inputJSON {
-			subObject, err := parseJSON(jsonObject)
-			if err != nil {
-				return nil, err
-			}
-
-			objectArray[i] = subObject
+		if err := validateSearchJSON(searchJSON); err != nil {
+			return nil, err
 		}
 
-		return objectArray, nil
+		bsonQuery := newBSONQuery(
+			searchJSON.PageNumber,
+			searchJSON.Text,
+			searchJSON.Coordinates,
+		)
+
+		var err error
+		output, err = json.Marshal(bsonQuery)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		return nil, errorKeyNotSupported
 	}
 
-	return nil, errorTypeNotSupported
+	return output, nil
 }
 
-func validateSearchJSON(input searchObject) error {
+func newBSONQuery(pageNumber int64, text string, coordinates [2][2]float64) bson.D {
+	return bson.D{
+		primitive.E{
+			Key: "pages",
+			Value: bson.D{
+				primitive.E{
+					Key:   "page_number",
+					Value: pageNumber,
+				},
+				primitive.E{
+					Key: "lines",
+					Value: bson.D{
+						primitive.E{
+							Key: "$text",
+							Value: bson.D{
+								primitive.E{
+									Key:   "$search",
+									Value: text,
+								},
+							},
+						},
+						primitive.E{
+							Key: "coordinates.top_left.x",
+							Value: bson.D{
+								primitive.E{
+									Key:   "$lte",
+									Value: coordinates[1][0],
+								},
+							},
+						},
+						primitive.E{
+							Key: "coordinates.bottom_right.x",
+							Value: bson.D{
+								primitive.E{
+									Key:   "$gte",
+									Value: coordinates[0][0],
+								},
+							},
+						},
+						primitive.E{
+							Key: "coordinates.top_right.y",
+							Value: bson.D{
+								primitive.E{
+									Key:   "$gte",
+									Value: coordinates[1][1],
+								},
+							},
+						},
+						primitive.E{
+							Key: "coordinates.bottom_left.y",
+							Value: bson.D{
+								primitive.E{
+									Key:   "$lte",
+									Value: coordinates[0][1],
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func validateSearchJSON(input search) error {
 	if input.Text == "" {
 		return errorMissingText
 	}
 
-	if input.Page == 0 {
+	if input.PageNumber == 0 {
 		return errorPageNumberZero
 	}
 
