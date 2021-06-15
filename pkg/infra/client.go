@@ -48,6 +48,9 @@ func New() *Client {
 func (c *Client) CreateFilesystem(ctx context.Context, accountID string) error {
 	input := &s3.CreateBucketInput{
 		Bucket: aws.String(entityName("bucket", accountID)),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: aws.String("us-east-1"),
+		},
 	}
 
 	_, err := c.s3Client.CreateBucket(input)
