@@ -23,3 +23,13 @@ type ErrorPresignURL struct {
 func (e *ErrorPresignURL) Error() string {
 	return fmt.Sprintf("%s: presign: %s", packageName, e.err.Error())
 }
+
+// ErrorDeleteObjects wraps errors returned by s3.S3.DeleteObjects
+// in the DeleteFiles method.
+type ErrorDeleteObjects struct {
+	err error
+}
+
+func (e *ErrorDeleteObjects) Error() string {
+	return fmt.Sprintf("%s: delete files: %s", packageName, e.err.Error())
+}
