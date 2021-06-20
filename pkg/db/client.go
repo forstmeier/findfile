@@ -37,8 +37,8 @@ func New(databaseName, collectionName string) (*Client, error) {
 	}, nil
 }
 
-// Create implements the db.Databaser.Create method.
-func (c *Client) Create(ctx context.Context, documents []docpars.Document) error {
+// CreateDocuments implements the db.Databaser.CreateDocuments method.
+func (c *Client) CreateDocuments(ctx context.Context, documents []docpars.Document) error {
 	input := make([]interface{}, len(documents))
 	for i, document := range documents {
 		input[i] = document
@@ -52,8 +52,8 @@ func (c *Client) Create(ctx context.Context, documents []docpars.Document) error
 	return nil
 }
 
-// Update implements the db.Databaser.Update method.
-func (c *Client) Update(ctx context.Context, documents []docpars.Document) error {
+// UpdateDocuments implements the db.Databaser.UpdateDocuments method.
+func (c *Client) UpdateDocuments(ctx context.Context, documents []docpars.Document) error {
 	for _, document := range documents {
 		filter := bson.D{
 			primitive.E{
@@ -75,8 +75,8 @@ func (c *Client) Update(ctx context.Context, documents []docpars.Document) error
 	return nil
 }
 
-// Delete implements the db.Databaser.Delete method.
-func (c *Client) Delete(ctx context.Context, documentsInfo []DocumentInfo) error {
+// DeleteDocuments implements the db.Databaser.DeleteDocuments method.
+func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentInfo) error {
 	for _, documentInfo := range documentsInfo {
 		filter := bson.D{
 			primitive.E{
@@ -98,8 +98,8 @@ func (c *Client) Delete(ctx context.Context, documentsInfo []DocumentInfo) error
 	return nil
 }
 
-// Query implements the db.Databaser.Query method.
-func (c *Client) Query(ctx context.Context, query []byte) ([]docpars.Document, error) {
+// QueryDocuments implements the db.Databaser.QueryDocuments method.
+func (c *Client) QueryDocuments(ctx context.Context, query []byte) ([]docpars.Document, error) {
 	cursor, err := c.documentDBClient.Find(ctx, query)
 	if err != nil {
 		return nil, &ErrorQueryDocuments{err: err}

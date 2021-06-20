@@ -46,7 +46,7 @@ func (m *mockDocumentDBClient) Find(ctx context.Context, filter interface{}, opt
 	return m.findOutput, m.findError
 }
 
-func TestCreate(t *testing.T) {
+func TestCreateDocuments(t *testing.T) {
 	tests := []struct {
 		description     string
 		insertManyError error
@@ -72,7 +72,7 @@ func TestCreate(t *testing.T) {
 				},
 			}
 
-			err := client.Create(context.Background(), []docpars.Document{{}})
+			err := client.CreateDocuments(context.Background(), []docpars.Document{{}})
 
 			if err != nil {
 				switch test.error.(type) {
@@ -93,7 +93,7 @@ func TestCreate(t *testing.T) {
 	}
 }
 
-func TestUpdate(t *testing.T) {
+func TestUpdateDocuments(t *testing.T) {
 	tests := []struct {
 		description             string
 		findOneAndReplaceOutput *mongo.SingleResult
@@ -114,7 +114,7 @@ func TestUpdate(t *testing.T) {
 				},
 			}
 
-			err := client.Update(context.Background(), []docpars.Document{{}})
+			err := client.UpdateDocuments(context.Background(), []docpars.Document{{}})
 
 			if err != nil {
 				switch test.error.(type) {
@@ -135,7 +135,7 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
-func TestDelete(t *testing.T) {
+func TestDeleteDocuments(t *testing.T) {
 	tests := []struct {
 		description    string
 		deleteOneError error
@@ -161,7 +161,7 @@ func TestDelete(t *testing.T) {
 				},
 			}
 
-			err := client.Delete(context.Background(), []DocumentInfo{
+			err := client.DeleteDocuments(context.Background(), []DocumentInfo{
 				{
 					Filename: "filename",
 					Filepath: "filepath",
@@ -187,7 +187,7 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-func TestQuery(t *testing.T) {
+func TestQueryDocuments(t *testing.T) {
 	tests := []struct {
 		description string
 		findOutput  *mongo.Cursor
@@ -211,7 +211,7 @@ func TestQuery(t *testing.T) {
 				},
 			}
 
-			documents, err := client.Query(context.Background(), []byte("query"))
+			documents, err := client.QueryDocuments(context.Background(), []byte("query"))
 
 			if err != nil {
 				switch test.error.(type) {
