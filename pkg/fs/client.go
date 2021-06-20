@@ -1,7 +1,6 @@
 package fs
 
 import (
-	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -16,7 +15,7 @@ type Client struct {
 }
 
 type s3Client interface {
-	GetObjectRequest(input *s3.GetObjectInput) (req *request.Request, output *s3.GetObjectOutput)
+	PutObjectRequest(input *s3.PutObjectInput) (req *request.Request, output *s3.PutObjectOutput)
 }
 
 // New generates a Client pointer instance with an AWS S3 client.
@@ -35,14 +34,13 @@ func New() (*Client, error) {
 // GenerateUploadURL implements the fs.Filesystemer.GenerateUploadURL method
 // using presigned S3 URLs.
 func (c *Client) GenerateUploadURL(filename string) (string, error) {
-	getRequest, _ := c.s3Client.GetObjectRequest(&s3.GetObjectInput{
+	putRequest, _ := c.s3Client.PutObjectRequest(&s3.PutObjectInput{
 		Bucket: aws.String(mainBucket),
 		Key:    aws.String(filename),
 	})
 
-	urlString, err := getRequest.Presign(15 * time.Minute)
+	urlString, err := putRequest.Presign(15 * time.Minute)
 	if err != nil {
-		log.Println("ERROR:", err)
 		return "", &ErrorPresignURL{err: err}
 	}
 

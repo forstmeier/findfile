@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
@@ -21,14 +20,6 @@ func TestNew(t *testing.T) {
 	if client == nil {
 		t.Error("error creating filesystem client")
 	}
-}
-
-type mockS3Client struct{}
-
-func (c *mockS3Client) GetObjectRequest(input *s3.GetObjectInput) (req *request.Request, output *s3.GetObjectOutput) {
-	return &request.Request{
-		Operation: &request.Operation{},
-	}, nil
 }
 
 func TestGenerateUploadURL(t *testing.T) {
