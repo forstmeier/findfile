@@ -111,9 +111,8 @@ func TestParse(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			doc := []byte("content")
 
-			document, err := client.Parse(ctx, accountID, filename, filepath, doc)
+			document, err := client.Parse(ctx, accountID, filename, filepath, nil)
 
 			if err != nil {
 				switch test.error.(type) {

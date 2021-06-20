@@ -39,10 +39,18 @@ func New() *Client {
 }
 
 // Parse implements the docparser.Parser.Parse interface method.
+//
+// Arguments filename and filepath are overloaded with the AWS Textract
+// implementation to represent S3 object key and S3 bucket name
+// respectively; the doc argument is ignored since the target file
+// is being directly referenced.
 func (c *Client) Parse(ctx context.Context, accountID, filename, filepath string, doc []byte) (*Document, error) {
 	input := &textract.AnalyzeDocumentInput{
 		Document: &textract.Document{
-			Bytes: doc,
+			S3Object: &textract.S3Object{
+				Bucket: aws.String(filepath),
+				Name:   aws.String(filename),
+			},
 		},
 		FeatureTypes: []*string{
 			aws.String(textract.FeatureTypeTables),
