@@ -5,9 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/cheesesteakio/api/pkg/docpars"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/cheesesteakio/api/pkg/docpars"
 )
 
 func TestNew(t *testing.T) {
@@ -23,19 +24,14 @@ func TestNew(t *testing.T) {
 }
 
 type mockDocumentDBClient struct {
-	insertManyError         error
-	findOneAndReplaceOutput *mongo.SingleResult
-	deleteOneError          error
-	findOutput              *mongo.Cursor
-	findError               error
+	updateOneError error
+	deleteOneError error
+	findOutput     *mongo.Cursor
+	findError      error
 }
 
-func (m *mockDocumentDBClient) InsertMany(ctx context.Context, documents []interface{}, opts ...*options.InsertManyOptions) (*mongo.InsertManyResult, error) {
-	return nil, m.insertManyError
-}
-
-func (m *mockDocumentDBClient) FindOneAndReplace(ctx context.Context, filter interface{}, replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *mongo.SingleResult {
-	return m.findOneAndReplaceOutput
+func (m *mockDocumentDBClient) UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
+	return nil, m.updateOneError
 }
 
 func (m *mockDocumentDBClient) DeleteOne(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
@@ -46,21 +42,21 @@ func (m *mockDocumentDBClient) Find(ctx context.Context, filter interface{}, opt
 	return m.findOutput, m.findError
 }
 
-func TestCreateDocuments(t *testing.T) {
+func TestCreateOrUpdateDocuments(t *testing.T) {
 	tests := []struct {
-		description     string
-		insertManyError error
-		error           error
+		description    string
+		updateOneError error
+		error          error
 	}{
 		{
-			description:     "error inserting documents into database",
-			insertManyError: errors.New("mock insert error"),
-			error:           &ErrorCreateDocuments{},
+			description:    "error inserting documents into database",
+			updateOneError: errors.New("mock update error"),
+			error:          &ErrorUpdateDocument{},
 		},
 		{
-			description:     "successful create documents invocation",
-			insertManyError: nil,
-			error:           nil,
+			description:    "successful create documents invocation",
+			updateOneError: nil,
+			error:          nil,
 		},
 	}
 
@@ -68,58 +64,16 @@ func TestCreateDocuments(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			client := &Client{
 				documentDBClient: &mockDocumentDBClient{
-					insertManyError: test.insertManyError,
+					updateOneError: test.updateOneError,
 				},
 			}
 
-			err := client.CreateDocuments(context.Background(), []docpars.Document{{}})
+			err := client.CreateOrUpdateDocuments(context.Background(), []docpars.Document{{}})
 
 			if err != nil {
 				switch test.error.(type) {
-				case *ErrorCreateDocuments:
-					var testError *ErrorCreateDocuments
-					if !errors.As(err, &testError) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
-					}
-				default:
-					t.Fatalf("unexpected error type: %v", err)
-				}
-			} else {
-				if err != test.error {
-					t.Errorf("incorrect error, received: %v, expected: %v", err, test.error)
-				}
-			}
-		})
-	}
-}
-
-func TestUpdateDocuments(t *testing.T) {
-	tests := []struct {
-		description             string
-		findOneAndReplaceOutput *mongo.SingleResult
-		error                   error
-	}{
-		{
-			description:             "error updating documents in database",
-			findOneAndReplaceOutput: &mongo.SingleResult{},
-			error:                   &ErrorUpdateDocuments{},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			client := &Client{
-				documentDBClient: &mockDocumentDBClient{
-					findOneAndReplaceOutput: test.findOneAndReplaceOutput,
-				},
-			}
-
-			err := client.UpdateDocuments(context.Background(), []docpars.Document{{}})
-
-			if err != nil {
-				switch test.error.(type) {
-				case *ErrorUpdateDocuments:
-					var testError *ErrorUpdateDocuments
+				case *ErrorUpdateDocument:
+					var testError *ErrorUpdateDocument
 					if !errors.As(err, &testError) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
 					}

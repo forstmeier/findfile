@@ -19,8 +19,7 @@ type Client struct {
 }
 
 type documentDBClient interface {
-	InsertMany(ctx context.Context, documents []interface{}, opts ...*options.InsertManyOptions) (*mongo.InsertManyResult, error)
-	FindOneAndReplace(ctx context.Context, filter interface{}, replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *mongo.SingleResult
+	UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error)
 	DeleteOne(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) (*mongo.DeleteResult, error)
 	Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (*mongo.Cursor, error)
 }
@@ -37,23 +36,9 @@ func New(databaseName, collectionName string) (*Client, error) {
 	}, nil
 }
 
-// CreateDocuments implements the db.Databaser.CreateDocuments method.
-func (c *Client) CreateDocuments(ctx context.Context, documents []docpars.Document) error {
-	input := make([]interface{}, len(documents))
-	for i, document := range documents {
-		input[i] = document
-	}
-
-	_, err := c.documentDBClient.InsertMany(ctx, input)
-	if err != nil {
-		return &ErrorCreateDocuments{err: err}
-	}
-
-	return nil
-}
-
-// UpdateDocuments implements the db.Databaser.UpdateDocuments method.
-func (c *Client) UpdateDocuments(ctx context.Context, documents []docpars.Document) error {
+// CreateOrUpdateDocuments implements the db.Databaser.CreateOrUpdateDocuments
+// method.
+func (c *Client) CreateOrUpdateDocuments(ctx context.Context, documents []docpars.Document) error {
 	for _, document := range documents {
 		filter := bson.D{
 			primitive.E{
@@ -66,9 +51,14 @@ func (c *Client) UpdateDocuments(ctx context.Context, documents []docpars.Docume
 			},
 		}
 
-		err := c.documentDBClient.FindOneAndReplace(ctx, filter, document).Err()
-		if err != nil || err != mongo.ErrNoDocuments {
-			return &ErrorUpdateDocuments{err: err}
+		upsert := true
+		option := &options.UpdateOptions{
+			Upsert: &upsert,
+		}
+
+		_, err := c.documentDBClient.UpdateOne(ctx, filter, document, option)
+		if err != nil {
+			return &ErrorUpdateDocument{err: err}
 		}
 	}
 

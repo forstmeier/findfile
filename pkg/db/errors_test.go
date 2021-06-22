@@ -16,22 +16,11 @@ func TestErrorNewClient(t *testing.T) {
 	}
 }
 
-func TestErrorCreateDocuments(t *testing.T) {
-	err := &ErrorCreateDocuments{err: errors.New("mock create documents error")}
+func TestErrorUpdateDocument(t *testing.T) {
+	err := &ErrorUpdateDocument{err: errors.New("mock create/update documents error")}
 
 	recieved := err.Error()
-	expected := "db: create: mock create documents error"
-
-	if recieved != expected {
-		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
-	}
-}
-
-func TestErrorUpdateDocuments(t *testing.T) {
-	err := &ErrorUpdateDocuments{err: errors.New("mock update documents error")}
-
-	recieved := err.Error()
-	expected := "db: update: mock update documents error"
+	expected := "db: create or update: mock create/update documents error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)

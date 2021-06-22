@@ -14,24 +14,14 @@ func (e *ErrorNewClient) Error() string {
 	return fmt.Sprintf("%s: new client: %s", packageName, e.err.Error())
 }
 
-// ErrorCreateDocuments wraps errors returned by mongo.Client.InsertMany
-// in the db.Databaser.Create method.
-type ErrorCreateDocuments struct {
+// ErrorUpdateDocument wraps errors returned by mongo.Client.UpdateOne
+// in the db.Databaser.CreateOrUpdateDocuments method.
+type ErrorUpdateDocument struct {
 	err error
 }
 
-func (e *ErrorCreateDocuments) Error() string {
-	return fmt.Sprintf("%s: create: %s", packageName, e.err.Error())
-}
-
-// ErrorUpdateDocuments wraps errors returned by mongo.Client.FindOneAndReplace
-// in the db.Databaser.Update method.
-type ErrorUpdateDocuments struct {
-	err error
-}
-
-func (e *ErrorUpdateDocuments) Error() string {
-	return fmt.Sprintf("%s: update: %s", packageName, e.err.Error())
+func (e *ErrorUpdateDocument) Error() string {
+	return fmt.Sprintf("%s: create or update: %s", packageName, e.err.Error())
 }
 
 // ErrorDeleteDocuments wraps errors returned by mongo.Client.DeleteOne

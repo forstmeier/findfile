@@ -102,7 +102,7 @@ func handler(fsClient fs.Filesystemer, acctClient acct.Accounter) func(ctx conte
 func main() {
 	fsClient, err := fs.New()
 	if err != nil {
-		log.Fatalf("error creating filesystem client: %s", err.Error())
+		log.Fatalf("error creating fs client: %s", err.Error())
 	}
 
 	acctClient := acct.New()
