@@ -20,6 +20,7 @@ type Client struct {
 
 type s3Client interface {
 	PutObjectRequest(input *s3.PutObjectInput) (req *request.Request, output *s3.PutObjectOutput)
+	GetObjectRequest(input *s3.GetObjectInput) (req *request.Request, output *s3.GetObjectOutput)
 	DeleteObjects(input *s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
 }
 
@@ -38,7 +39,7 @@ func New() (*Client, error) {
 
 // GenerateUploadURL implements the fs.Filesystemer.GenerateUploadURL method
 // using presigned S3 URLs.
-func (c *Client) GenerateUploadURL(ctx context.Context, accountID string, filename string) (string, error) {
+func (c *Client) GenerateUploadURL(ctx context.Context, accountID, filename string) (string, error) {
 	putRequest, _ := c.s3Client.PutObjectRequest(&s3.PutObjectInput{
 		Bucket: aws.String(mainBucket),
 		Key:    aws.String(fmt.Sprintf("%s/%s", accountID, filename)),
@@ -46,7 +47,29 @@ func (c *Client) GenerateUploadURL(ctx context.Context, accountID string, filena
 
 	urlString, err := putRequest.Presign(15 * time.Minute)
 	if err != nil {
-		return "", &ErrorPresignURL{err: err}
+		return "", &ErrorPresignURL{
+			err:    err,
+			action: "upload",
+		}
+	}
+
+	return urlString, nil
+}
+
+// GenerateDownloadURL implements the fs.Filesystemer.GenerateDownloadURL method
+// using presigned S3 URLs.
+func (c *Client) GenerateDownloadURL(ctx context.Context, accountID, filename string) (string, error) {
+	getRequest, _ := c.s3Client.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(mainBucket),
+		Key:    aws.String(fmt.Sprintf("%s/%s", accountID, filename)),
+	})
+
+	urlString, err := getRequest.Presign(15 * time.Minute)
+	if err != nil {
+		return "", &ErrorPresignURL{
+			err:    err,
+			action: "download",
+		}
 	}
 
 	return urlString, nil

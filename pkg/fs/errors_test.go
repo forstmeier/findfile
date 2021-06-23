@@ -17,10 +17,13 @@ func TestErrorNewClient(t *testing.T) {
 }
 
 func TestErrorPresignURL(t *testing.T) {
-	err := &ErrorPresignURL{err: errors.New("mock presign url error")}
+	err := &ErrorPresignURL{
+		err:    errors.New("mock presign url error"),
+		action: "action",
+	}
 
 	recieved := err.Error()
-	expected := "fs: presign: mock presign url error"
+	expected := "fs: presign action: mock presign url error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)

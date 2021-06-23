@@ -71,11 +71,62 @@ func TestGenerateUploadURL(t *testing.T) {
 	}
 }
 
+func TestGenerateDownloadURL(t *testing.T) {
+	tests := []struct {
+		description string
+		s3Client    *s3.S3
+		error       error
+	}{
+		{
+			description: "error presigning url",
+			s3Client:    s3.New(session.Must(session.NewSession())),
+			error:       &ErrorPresignURL{},
+		},
+		{
+			description: "successful generate presigned url invocation",
+			s3Client: s3.New(session.New(&aws.Config{
+				Region: aws.String("us-east-1"),
+			})),
+			error: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			client := &Client{
+				s3Client: test.s3Client,
+			}
+
+			presignedURL, err := client.GenerateDownloadURL(context.Background(), "account_id", "file.jpg")
+
+			if err != nil {
+				switch test.error.(type) {
+				case *ErrorPresignURL:
+					var testError *ErrorPresignURL
+					if !errors.As(err, &testError) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					}
+				default:
+					t.Fatalf("unexpected error type: %v", err)
+				}
+			} else {
+				if !strings.Contains(presignedURL, "https://cheesesteakstorage-main.s3.amazonaws.com/account_id/file.jpg") {
+					t.Errorf("incorrect presigned url, received: %s", presignedURL)
+				}
+			}
+		})
+	}
+}
+
 type mockS3Client struct {
 	deleteObjectsError error
 }
 
 func (m *mockS3Client) PutObjectRequest(input *s3.PutObjectInput) (req *request.Request, output *s3.PutObjectOutput) {
+	return nil, nil
+}
+
+func (m *mockS3Client) GetObjectRequest(input *s3.GetObjectInput) (req *request.Request, output *s3.GetObjectOutput) {
 	return nil, nil
 }
 

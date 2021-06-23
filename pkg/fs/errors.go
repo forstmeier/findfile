@@ -17,11 +17,12 @@ func (e *ErrorNewClient) Error() string {
 // ErrorPresignURL wraps errors returned by request.Request.Presign
 // in the GenerateUploadURL method.
 type ErrorPresignURL struct {
-	err error
+	err    error
+	action string
 }
 
 func (e *ErrorPresignURL) Error() string {
-	return fmt.Sprintf("%s: presign: %s", packageName, e.err.Error())
+	return fmt.Sprintf("%s: presign %s: %s", packageName, e.action, e.err.Error())
 }
 
 // ErrorDeleteObjects wraps errors returned by s3.S3.DeleteObjects

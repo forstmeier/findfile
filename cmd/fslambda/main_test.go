@@ -21,6 +21,10 @@ func (m *mockFSClient) GenerateUploadURL(ctx context.Context, accountID string, 
 	return m.mockGeneratePresignedURLOutput, m.mockGeneratePresignedURLError
 }
 
+func (m *mockFSClient) GenerateDownloadURL(ctx context.Context, accountID string, filename string) (string, error) {
+	return "", nil
+}
+
 func (m *mockFSClient) DeleteFiles(ctx context.Context, accountID string, filenames []string) error {
 	return m.mockDeleteFilesError
 }
