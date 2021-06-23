@@ -207,18 +207,18 @@ func Test_handler(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
+			acctClient := &mockAcctClient{
+				mockReadAccountOutput: test.mockReadAccountOutput,
+				mockReadAccountError:  test.mockReadAccountError,
+			}
+
 			fsClient := &mockFSClient{
 				mockGeneratePresignedURLOutput: test.mockGeneratePresignedURLOutput,
 				mockGeneratePresignedURLError:  test.mockGeneratePresignedURLError,
 				mockDeleteFilesError:           test.mockDeleteFilesError,
 			}
 
-			acctClient := &mockAcctClient{
-				mockReadAccountOutput: test.mockReadAccountOutput,
-				mockReadAccountError:  test.mockReadAccountError,
-			}
-
-			handlerFunc := handler(fsClient, acctClient)
+			handlerFunc := handler(acctClient, fsClient)
 
 			response, _ := handlerFunc(context.Background(), test.request)
 

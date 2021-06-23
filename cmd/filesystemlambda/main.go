@@ -16,7 +16,7 @@ import (
 
 const accountIDHeader = "x-cheesesteakstorage-account-id"
 
-func handler(fsClient fs.Filesystemer, acctClient acct.Accounter) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		accountID, ok := request.Headers[accountIDHeader]
 		if !ok {
@@ -100,12 +100,12 @@ func handler(fsClient fs.Filesystemer, acctClient acct.Accounter) func(ctx conte
 }
 
 func main() {
+	acctClient := acct.New()
+
 	fsClient, err := fs.New()
 	if err != nil {
 		log.Fatalf("error creating fs client: %s", err.Error())
 	}
 
-	acctClient := acct.New()
-
-	lambda.Start(handler(fsClient, acctClient))
+	lambda.Start(handler(acctClient, fsClient))
 }
