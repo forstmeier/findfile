@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -15,6 +16,8 @@ import (
 )
 
 const accountIDHeader = "x-cheesesteakstorage-account-id"
+
+var demoAccountID = os.Getenv("DEMO_ACCOUNT_ID")
 
 func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -26,20 +29,29 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 			}, nil
 		}
 
-		account, err := acctClient.ReadAccount(ctx, accountID)
+		isDemo := accountID == demoAccountID
 
-		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "error getting account values"}`,
-			}, nil
+		bucketName := fs.DemoBucket
+		if !isDemo {
+			bucketName = fs.MainBucket
 		}
 
-		if account == nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Body:       fmt.Sprintf(`{"error": "account [%s] not found}`, accountID),
-			}, nil
+		if !isDemo {
+			account, err := acctClient.ReadAccount(ctx, accountID)
+
+			if err != nil {
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       `{"error": "error getting account values"}`,
+				}, nil
+			}
+
+			if account == nil {
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       fmt.Sprintf(`{"error": "account [%s] not found}`, accountID),
+				}, nil
+			}
 		}
 
 		filenames := []string{}
@@ -56,7 +68,7 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 		case http.MethodPost:
 			presignedURLs := make([]string, len(filenames))
 			for i, fileName := range filenames {
-				presignedURL, err := fsClient.GenerateUploadURL(ctx, accountID, fileName)
+				presignedURL, err := fsClient.GenerateUploadURL(ctx, bucketName, accountID, fileName)
 				if err != nil {
 					return events.APIGatewayProxyResponse{
 						StatusCode: http.StatusInternalServerError,
@@ -77,7 +89,7 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 
 			body = fmt.Sprintf(`{"message": "success", "urls": %s}`, presignedURLsBytes)
 		case http.MethodDelete:
-			if err := fsClient.DeleteFiles(ctx, accountID, filenames); err != nil {
+			if err := fsClient.DeleteFiles(ctx, bucketName, accountID, filenames); err != nil {
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error deleting files"}`,

@@ -17,15 +17,15 @@ type mockFSClient struct {
 	mockDeleteFilesError           error
 }
 
-func (m *mockFSClient) GenerateUploadURL(ctx context.Context, accountID string, filename string) (string, error) {
+func (m *mockFSClient) GenerateUploadURL(ctx context.Context, bucketName, accountID string, filename string) (string, error) {
 	return m.mockGeneratePresignedURLOutput, m.mockGeneratePresignedURLError
 }
 
-func (m *mockFSClient) GenerateDownloadURL(ctx context.Context, accountID string, filename string) (string, error) {
+func (m *mockFSClient) GenerateDownloadURL(ctx context.Context, bucketName, accountID string, filename string) (string, error) {
 	return "", nil
 }
 
-func (m *mockFSClient) DeleteFiles(ctx context.Context, accountID string, filenames []string) error {
+func (m *mockFSClient) DeleteFiles(ctx context.Context, bucketName, accountID string, filenames []string) error {
 	return m.mockDeleteFilesError
 }
 
