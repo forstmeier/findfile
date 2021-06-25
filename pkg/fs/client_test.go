@@ -50,7 +50,7 @@ func TestGenerateUploadURL(t *testing.T) {
 				s3Client: test.s3Client,
 			}
 
-			presignedURL, err := client.GenerateUploadURL(context.Background(), "account_id", "file.jpg")
+			presignedURL, err := client.GenerateUploadURL(context.Background(), "bucket", "account_id", "file.jpg")
 
 			if err != nil {
 				switch test.error.(type) {
@@ -63,7 +63,7 @@ func TestGenerateUploadURL(t *testing.T) {
 					t.Fatalf("unexpected error type: %v", err)
 				}
 			} else {
-				if !strings.Contains(presignedURL, "https://cheesesteakstorage-main.s3.amazonaws.com/account_id/file.jpg") {
+				if !strings.Contains(presignedURL, "https://bucket.s3.amazonaws.com/account_id/file.jpg") {
 					t.Errorf("incorrect presigned url, received: %s", presignedURL)
 				}
 			}
@@ -97,7 +97,7 @@ func TestGenerateDownloadURL(t *testing.T) {
 				s3Client: test.s3Client,
 			}
 
-			presignedURL, err := client.GenerateDownloadURL(context.Background(), "account_id", "file.jpg")
+			presignedURL, err := client.GenerateDownloadURL(context.Background(), "bucket", "account_id", "file.jpg")
 
 			if err != nil {
 				switch test.error.(type) {
@@ -110,7 +110,7 @@ func TestGenerateDownloadURL(t *testing.T) {
 					t.Fatalf("unexpected error type: %v", err)
 				}
 			} else {
-				if !strings.Contains(presignedURL, "https://cheesesteakstorage-main.s3.amazonaws.com/account_id/file.jpg") {
+				if !strings.Contains(presignedURL, "https://bucket.s3.amazonaws.com/account_id/file.jpg") {
 					t.Errorf("incorrect presigned url, received: %s", presignedURL)
 				}
 			}
@@ -160,7 +160,7 @@ func TestDeleteFiles(t *testing.T) {
 				},
 			}
 
-			err := client.DeleteFiles(context.Background(), "account_id", []string{"filename.jpg"})
+			err := client.DeleteFiles(context.Background(), "bucket", "account_id", []string{"filename.jpg"})
 
 			if err != nil {
 				switch test.error.(type) {

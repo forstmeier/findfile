@@ -39,9 +39,9 @@ func New() (*Client, error) {
 
 // GenerateUploadURL implements the fs.Filesystemer.GenerateUploadURL method
 // using presigned S3 URLs.
-func (c *Client) GenerateUploadURL(ctx context.Context, accountID, filename string) (string, error) {
+func (c *Client) GenerateUploadURL(ctx context.Context, bucketName, accountID, filename string) (string, error) {
 	putRequest, _ := c.s3Client.PutObjectRequest(&s3.PutObjectInput{
-		Bucket: aws.String(mainBucket),
+		Bucket: aws.String(bucketName),
 		Key:    aws.String(fmt.Sprintf("%s/%s", accountID, filename)),
 	})
 
@@ -58,9 +58,9 @@ func (c *Client) GenerateUploadURL(ctx context.Context, accountID, filename stri
 
 // GenerateDownloadURL implements the fs.Filesystemer.GenerateDownloadURL method
 // using presigned S3 URLs.
-func (c *Client) GenerateDownloadURL(ctx context.Context, accountID, filename string) (string, error) {
+func (c *Client) GenerateDownloadURL(ctx context.Context, bucketName, accountID, filename string) (string, error) {
 	getRequest, _ := c.s3Client.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: aws.String(mainBucket),
+		Bucket: aws.String(bucketName),
 		Key:    aws.String(fmt.Sprintf("%s/%s", accountID, filename)),
 	})
 
@@ -76,7 +76,7 @@ func (c *Client) GenerateDownloadURL(ctx context.Context, accountID, filename st
 }
 
 // DeleteFiles implements the fs.Filesystemer.DeleteFiles method.
-func (c *Client) DeleteFiles(ctx context.Context, accountID string, filenames []string) error {
+func (c *Client) DeleteFiles(ctx context.Context, bucketName, accountID string, filenames []string) error {
 	objects := make([]*s3.ObjectIdentifier, len(filenames))
 	for i, filename := range filenames {
 		objects[i] = &s3.ObjectIdentifier{
@@ -85,7 +85,7 @@ func (c *Client) DeleteFiles(ctx context.Context, accountID string, filenames []
 	}
 
 	input := &s3.DeleteObjectsInput{
-		Bucket: aws.String(mainBucket),
+		Bucket: aws.String(bucketName),
 		Delete: &s3.Delete{
 			Objects: objects,
 		},
