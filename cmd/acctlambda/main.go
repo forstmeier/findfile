@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/google/uuid"
 
 	"github.com/cheesesteakio/api/pkg/acct"
@@ -98,7 +99,7 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber) func(ctx
 }
 
 func main() {
-	acctClient := acct.New()
+	acctClient := acct.New(session.New())
 
 	subscrClient := subscr.New()
 

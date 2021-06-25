@@ -13,7 +13,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	client, err := New()
+	client, err := New(session.New())
 
 	if err != nil {
 		t.Errorf("error received creating filesystem client, %s:", err.Error())

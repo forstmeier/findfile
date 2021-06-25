@@ -12,7 +12,12 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	client, err := New("databaseName", "collectionName")
+	ddb, err := mongo.NewClient(nil)
+	if err != nil {
+		t.Fatalf("error creating test session: %s", err.Error())
+	}
+
+	client, err := New(ddb, "databaseName", "collectionName")
 
 	if err != nil {
 		t.Errorf("error received creating database client, %s:", err.Error())

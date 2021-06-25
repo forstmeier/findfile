@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/cheesesteakio/api/pkg/acct"
 	"github.com/cheesesteakio/api/pkg/fs"
@@ -112,9 +113,11 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 }
 
 func main() {
-	acctClient := acct.New()
+	newSession := session.New()
 
-	fsClient, err := fs.New()
+	acctClient := acct.New(newSession)
+
+	fsClient, err := fs.New(newSession)
 	if err != nil {
 		log.Fatalf("error creating fs client: %s", err.Error())
 	}

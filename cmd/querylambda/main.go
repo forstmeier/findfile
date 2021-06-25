@@ -10,6 +10,8 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/cheesesteakio/api/pkg/acct"
 	"github.com/cheesesteakio/api/pkg/csql"
@@ -123,16 +125,23 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 }
 
 func main() {
-	acctClient := acct.New()
+	newSession := session.New()
+
+	ddb, err := mongo.NewClient(nil)
+	if err != nil {
+		log.Fatalf("error creating mongo db client: %s", err.Error())
+	}
+
+	acctClient := acct.New(newSession)
 
 	csqlClient := csql.New()
 
-	dbClient, err := db.New("main", "documents")
+	dbClient, err := db.New(ddb, "main", "documents")
 	if err != nil {
 		log.Fatalf("error creating db client: %s", err.Error())
 	}
 
-	fsClient, err := fs.New()
+	fsClient, err := fs.New(newSession)
 	if err != nil {
 		log.Fatalf("error creating fs client: %s", err.Error())
 	}

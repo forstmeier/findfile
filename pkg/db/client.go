@@ -25,12 +25,7 @@ type documentDBClient interface {
 }
 
 // New generates a db.Client pointer instance with a DocumentDB client.
-func New(databaseName, collectionName string) (*Client, error) {
-	ddb, err := mongo.NewClient(nil)
-	if err != nil {
-		return nil, &ErrorNewClient{err: err}
-	}
-
+func New(ddb *mongo.Client, databaseName, collectionName string) (*Client, error) {
 	return &Client{
 		documentDBClient: ddb.Database(databaseName).Collection(collectionName),
 	}, nil

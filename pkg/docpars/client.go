@@ -28,8 +28,7 @@ type textractClient interface {
 }
 
 // New generates a Client pointer instance with an AWS Textract client.
-func New() *Client {
-	newSession := session.Must(session.NewSession())
+func New(newSession *session.Session) *Client {
 	service := textract.New(newSession)
 
 	return &Client{

@@ -33,8 +33,7 @@ type dynamoDBClient interface {
 }
 
 // New generates a acct.Client pointer instance with a DynamoDB client.
-func New() *Client {
-	newSession := session.New()
+func New(newSession *session.Session) *Client {
 	dynamoDBClient := dynamodb.New(newSession)
 
 	return &Client{

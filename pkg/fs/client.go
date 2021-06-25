@@ -25,11 +25,7 @@ type s3Client interface {
 }
 
 // New generates a Client pointer instance with an AWS S3 client.
-func New() (*Client, error) {
-	newSession, err := session.NewSession()
-	if err != nil {
-		return nil, &ErrorNewClient{err: err}
-	}
+func New(newSession *session.Session) (*Client, error) {
 	s3Client := s3.New(newSession)
 
 	return &Client{

@@ -8,6 +8,8 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/cheesesteakio/api/pkg/db"
 	"github.com/cheesesteakio/api/pkg/docpars"
@@ -70,9 +72,14 @@ func handler(docparsClient docpars.Parser, dbClient db.Databaser) func(ctx conte
 }
 
 func main() {
-	docparsClient := docpars.New()
+	ddb, err := mongo.NewClient(nil)
+	if err != nil {
+		log.Fatalf("error creating mongo db client: %s", err.Error())
+	}
 
-	dbClient, err := db.New("main", "documents")
+	docparsClient := docpars.New(session.New())
+
+	dbClient, err := db.New(ddb, "main", "documents")
 	if err != nil {
 		log.Fatalf("error creating db client: %s", err.Error())
 	}
