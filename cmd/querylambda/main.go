@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -18,6 +19,8 @@ import (
 
 const accountIDHeader = "x-cheesesteakstorage-account-id"
 
+var demoAccountID = os.Getenv("DEMO_ACCOUNT_ID")
+
 func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Databaser, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		accountID, ok := request.Headers[accountIDHeader]
@@ -28,20 +31,29 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 			}, nil
 		}
 
-		account, err := acctClient.ReadAccount(ctx, accountID)
+		isDemo := accountID == demoAccountID
 
-		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "error getting account values"}`,
-			}, nil
+		bucketName := fs.DemoBucket
+		if !isDemo {
+			bucketName = fs.MainBucket
 		}
 
-		if account == nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Body:       fmt.Sprintf(`{"error": "account [%s] not found}`, accountID),
-			}, nil
+		if !isDemo {
+			account, err := acctClient.ReadAccount(ctx, accountID)
+
+			if err != nil {
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       `{"error": "error getting account values"}`,
+				}, nil
+			}
+
+			if account == nil {
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       fmt.Sprintf(`{"error": "account [%s] not found}`, accountID),
+				}, nil
+			}
 		}
 
 		query := map[string]interface{}{}
@@ -75,7 +87,7 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 		for i, document := range documents {
 			filenames[i] = document.Filename
 
-			presignedURL, err := fsClient.GenerateDownloadURL(ctx, accountID, document.Filename)
+			presignedURL, err := fsClient.GenerateDownloadURL(ctx, bucketName, accountID, document.Filename)
 			if err != nil {
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,

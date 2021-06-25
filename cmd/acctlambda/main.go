@@ -97,13 +97,6 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber) func(ctx
 	}
 }
 
-// outline:
-// [ ] "cleanup" function
-// - [ ] calls "delete" methods
-// - - [ ] account
-// - - [ ] subscription
-// - [ ] called on err != nil
-
 func main() {
 	acctClient := acct.New()
 
