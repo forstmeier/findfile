@@ -20,11 +20,11 @@ var _ Parser = &Client{}
 // Client implements the docparser.Parser methods using AWS Textract.
 type Client struct {
 	textractClient    textractClient
-	convertToDocument func(input *textract.AnalyzeDocumentOutput, accountID, filename, filepath string) Document
+	convertToDocument func(input *textract.DetectDocumentTextOutput, accountID, filename, filepath string) Document
 }
 
 type textractClient interface {
-	AnalyzeDocument(input *textract.AnalyzeDocumentInput) (*textract.AnalyzeDocumentOutput, error)
+	DetectDocumentText(input *textract.DetectDocumentTextInput) (*textract.DetectDocumentTextOutput, error)
 }
 
 // New generates a Client pointer instance with an AWS Textract client.
@@ -44,20 +44,16 @@ func New(newSession *session.Session) *Client {
 // respectively; the doc argument is ignored since the target file
 // is being directly referenced.
 func (c *Client) Parse(ctx context.Context, accountID, filename, filepath string, doc []byte) (*Document, error) {
-	input := &textract.AnalyzeDocumentInput{
+	input := &textract.DetectDocumentTextInput{
 		Document: &textract.Document{
 			S3Object: &textract.S3Object{
 				Bucket: aws.String(filepath),
 				Name:   aws.String(filename),
 			},
 		},
-		FeatureTypes: []*string{
-			aws.String(textract.FeatureTypeTables),
-			aws.String(textract.FeatureTypeForms),
-		},
 	}
 
-	output, err := c.textractClient.AnalyzeDocument(input)
+	output, err := c.textractClient.DetectDocumentText(input)
 	if err != nil {
 		return nil, &ErrorAnalyzeDocument{err: err}
 	}
@@ -67,7 +63,7 @@ func (c *Client) Parse(ctx context.Context, accountID, filename, filepath string
 	return &document, nil
 }
 
-func convertToDocument(input *textract.AnalyzeDocumentOutput, accountID, filename, filepath string) Document {
+func convertToDocument(input *textract.DetectDocumentTextOutput, accountID, filename, filepath string) Document {
 	document := Document{
 		ID:        uuid.NewString(),
 		Entity:    documentEntity,

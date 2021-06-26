@@ -19,11 +19,11 @@ func TestNew(t *testing.T) {
 }
 
 type mockTextractClient struct {
-	textractClientOutput *textract.AnalyzeDocumentOutput
+	textractClientOutput *textract.DetectDocumentTextOutput
 	textractClientError  error
 }
 
-func (m *mockTextractClient) AnalyzeDocument(input *textract.AnalyzeDocumentInput) (*textract.AnalyzeDocumentOutput, error) {
+func (m *mockTextractClient) DetectDocumentText(input *textract.DetectDocumentTextInput) (*textract.DetectDocumentTextOutput, error) {
 	return m.textractClientOutput, m.textractClientError
 }
 
@@ -34,7 +34,7 @@ func TestParse(t *testing.T) {
 
 	tests := []struct {
 		description          string
-		textractClientOutput *textract.AnalyzeDocumentOutput
+		textractClientOutput *textract.DetectDocumentTextOutput
 		textractClientError  error
 		document             Document
 		error                error
@@ -47,7 +47,7 @@ func TestParse(t *testing.T) {
 			error:                &ErrorAnalyzeDocument{},
 		},
 		{
-			textractClientOutput: &textract.AnalyzeDocumentOutput{},
+			textractClientOutput: &textract.DetectDocumentTextOutput{},
 			description:          "no pages/lines returned",
 			textractClientError:  nil,
 			document: Document{
@@ -56,7 +56,7 @@ func TestParse(t *testing.T) {
 			error: nil,
 		},
 		{
-			textractClientOutput: &textract.AnalyzeDocumentOutput{},
+			textractClientOutput: &textract.DetectDocumentTextOutput{},
 			description:          "one page and one line returned",
 			textractClientError:  nil,
 			document: Document{
@@ -103,7 +103,7 @@ func TestParse(t *testing.T) {
 					textractClientOutput: test.textractClientOutput,
 					textractClientError:  test.textractClientError,
 				},
-				convertToDocument: func(input *textract.AnalyzeDocumentOutput, accountID, filename, filepath string) Document {
+				convertToDocument: func(input *textract.DetectDocumentTextOutput, accountID, filename, filepath string) Document {
 					test.document.AccountID = accountID
 					test.document.Filename = filename
 					test.document.Filepath = filepath
@@ -163,12 +163,12 @@ func Test_convertToContent(t *testing.T) {
 
 	tests := []struct {
 		description string
-		input       *textract.AnalyzeDocumentOutput
+		input       *textract.DetectDocumentTextOutput
 		document    Document
 	}{
 		{
 			description: "one page and one line",
-			input: &textract.AnalyzeDocumentOutput{
+			input: &textract.DetectDocumentTextOutput{
 				Blocks: []*textract.Block{
 					{
 						Id:        aws.String("page_0"),
@@ -232,7 +232,7 @@ func Test_convertToContent(t *testing.T) {
 		},
 		{
 			description: "one page and two lines",
-			input: &textract.AnalyzeDocumentOutput{
+			input: &textract.DetectDocumentTextOutput{
 				Blocks: []*textract.Block{
 					{
 						Id:        aws.String("page_0"),
@@ -330,7 +330,7 @@ func Test_convertToContent(t *testing.T) {
 		},
 		{
 			description: "two pages and two lines",
-			input: &textract.AnalyzeDocumentOutput{
+			input: &textract.DetectDocumentTextOutput{
 				Blocks: []*textract.Block{
 					{
 						Id:        aws.String("page_0"),
