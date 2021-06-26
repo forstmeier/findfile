@@ -68,12 +68,17 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 		switch request.HTTPMethod {
 		case http.MethodPost:
 			presignedURLs := make([]string, len(filenames))
-			for i, fileName := range filenames {
-				presignedURL, err := fsClient.GenerateUploadURL(ctx, bucketName, accountID, fileName)
+			for i, fileame := range filenames {
+				fileInfo := fs.FileInfo{
+					Filepath: bucketName,
+					Filename: fileame,
+				}
+
+				presignedURL, err := fsClient.GenerateUploadURL(ctx, accountID, fileInfo)
 				if err != nil {
 					return events.APIGatewayProxyResponse{
 						StatusCode: http.StatusInternalServerError,
-						Body:       fmt.Sprintf(`{"error": "error generating [%s] presigned url"}`, fileName),
+						Body:       fmt.Sprintf(`{"error": "error generating [%s] presigned url"}`, fileame),
 					}, nil
 				}
 
@@ -90,7 +95,15 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 
 			body = fmt.Sprintf(`{"message": "success", "urls": %s}`, presignedURLsBytes)
 		case http.MethodDelete:
-			if err := fsClient.DeleteFiles(ctx, bucketName, accountID, filenames); err != nil {
+			filesInfo := make([]fs.FileInfo, len(filenames))
+			for i, filename := range filenames {
+				filesInfo[i] = fs.FileInfo{
+					Filepath: bucketName,
+					Filename: filename,
+				}
+			}
+
+			if err := fsClient.DeleteFiles(ctx, accountID, filesInfo); err != nil {
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error deleting files"}`,

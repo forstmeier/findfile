@@ -35,10 +35,10 @@ func New(newSession *session.Session) (*Client, error) {
 
 // GenerateUploadURL implements the fs.Filesystemer.GenerateUploadURL method
 // using presigned S3 URLs.
-func (c *Client) GenerateUploadURL(ctx context.Context, bucketName, accountID, filename string) (string, error) {
+func (c *Client) GenerateUploadURL(ctx context.Context, accountID string, fileInfo FileInfo) (string, error) {
 	putRequest, _ := c.s3Client.PutObjectRequest(&s3.PutObjectInput{
-		Bucket: aws.String(bucketName),
-		Key:    aws.String(fmt.Sprintf("%s/%s", accountID, filename)),
+		Bucket: aws.String(fileInfo.Filepath),
+		Key:    aws.String(fmt.Sprintf("%s/%s", accountID, fileInfo.Filename)),
 	})
 
 	urlString, err := putRequest.Presign(15 * time.Minute)
@@ -54,10 +54,10 @@ func (c *Client) GenerateUploadURL(ctx context.Context, bucketName, accountID, f
 
 // GenerateDownloadURL implements the fs.Filesystemer.GenerateDownloadURL method
 // using presigned S3 URLs.
-func (c *Client) GenerateDownloadURL(ctx context.Context, bucketName, accountID, filename string) (string, error) {
+func (c *Client) GenerateDownloadURL(ctx context.Context, accountID string, fileInfo FileInfo) (string, error) {
 	getRequest, _ := c.s3Client.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: aws.String(bucketName),
-		Key:    aws.String(fmt.Sprintf("%s/%s", accountID, filename)),
+		Bucket: aws.String(fileInfo.Filepath),
+		Key:    aws.String(fmt.Sprintf("%s/%s", accountID, fileInfo.Filename)),
 	})
 
 	urlString, err := getRequest.Presign(15 * time.Minute)
@@ -72,16 +72,16 @@ func (c *Client) GenerateDownloadURL(ctx context.Context, bucketName, accountID,
 }
 
 // DeleteFiles implements the fs.Filesystemer.DeleteFiles method.
-func (c *Client) DeleteFiles(ctx context.Context, bucketName, accountID string, filenames []string) error {
-	objects := make([]*s3.ObjectIdentifier, len(filenames))
-	for i, filename := range filenames {
+func (c *Client) DeleteFiles(ctx context.Context, accountID string, filesInfo []FileInfo) error {
+	objects := make([]*s3.ObjectIdentifier, len(filesInfo))
+	for i, fileInfo := range filesInfo {
 		objects[i] = &s3.ObjectIdentifier{
-			Key: aws.String(fmt.Sprintf("%s/%s", accountID, filename)),
+			Key: aws.String(fmt.Sprintf("%s/%s", accountID, fileInfo.Filename)),
 		}
 	}
 
 	input := &s3.DeleteObjectsInput{
-		Bucket: aws.String(bucketName),
+		Bucket: aws.String(filesInfo[0].Filepath),
 		Delete: &s3.Delete{
 			Objects: objects,
 		},

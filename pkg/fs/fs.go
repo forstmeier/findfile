@@ -11,7 +11,13 @@ const (
 // Filesystemer defines the methods for interacting with the
 // target filesystem.
 type Filesystemer interface {
-	GenerateUploadURL(ctx context.Context, bucketName, accountID, filename string) (string, error)
-	GenerateDownloadURL(ctx context.Context, bucketName, accountID, filename string) (string, error)
-	DeleteFiles(ctx context.Context, bucketName, accountID string, filenames []string) error
+	GenerateUploadURL(ctx context.Context, accountID string, fileInfo FileInfo) (string, error)
+	GenerateDownloadURL(ctx context.Context, accountID string, fileInfo FileInfo) (string, error)
+	DeleteFiles(ctx context.Context, accountID string, filesInfo []FileInfo) error
+}
+
+// FileInfo holds data related to a file.
+type FileInfo struct {
+	Filename string
+	Filepath string
 }

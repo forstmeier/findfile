@@ -50,7 +50,12 @@ func TestGenerateUploadURL(t *testing.T) {
 				s3Client: test.s3Client,
 			}
 
-			presignedURL, err := client.GenerateUploadURL(context.Background(), "bucket", "account_id", "file.jpg")
+			fileInfo := FileInfo{
+				Filepath: "bucket",
+				Filename: "file.jpg",
+			}
+
+			presignedURL, err := client.GenerateUploadURL(context.Background(), "account_id", fileInfo)
 
 			if err != nil {
 				switch test.error.(type) {
@@ -97,7 +102,12 @@ func TestGenerateDownloadURL(t *testing.T) {
 				s3Client: test.s3Client,
 			}
 
-			presignedURL, err := client.GenerateDownloadURL(context.Background(), "bucket", "account_id", "file.jpg")
+			fileInfo := FileInfo{
+				Filepath: "bucket",
+				Filename: "file.jpg",
+			}
+
+			presignedURL, err := client.GenerateDownloadURL(context.Background(), "account_id", fileInfo)
 
 			if err != nil {
 				switch test.error.(type) {
@@ -160,7 +170,14 @@ func TestDeleteFiles(t *testing.T) {
 				},
 			}
 
-			err := client.DeleteFiles(context.Background(), "bucket", "account_id", []string{"filename.jpg"})
+			filesInfo := []FileInfo{
+				{
+					Filepath: "bucket",
+					Filename: "file.jpg",
+				},
+			}
+
+			err := client.DeleteFiles(context.Background(), "account_id", filesInfo)
 
 			if err != nil {
 				switch test.error.(type) {

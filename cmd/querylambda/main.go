@@ -89,7 +89,12 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 		for i, document := range documents {
 			filenames[i] = document.Filename
 
-			presignedURL, err := fsClient.GenerateDownloadURL(ctx, bucketName, accountID, document.Filename)
+			fileInfo := fs.FileInfo{
+				Filepath: bucketName,
+				Filename: document.Filename,
+			}
+
+			presignedURL, err := fsClient.GenerateDownloadURL(ctx, accountID, fileInfo)
 			if err != nil {
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,

@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 
 	"github.com/cheesesteakio/api/pkg/acct"
+	"github.com/cheesesteakio/api/pkg/fs"
 )
 
 type mockFSClient struct {
@@ -17,15 +18,15 @@ type mockFSClient struct {
 	mockDeleteFilesError           error
 }
 
-func (m *mockFSClient) GenerateUploadURL(ctx context.Context, bucketName, accountID string, filename string) (string, error) {
+func (m *mockFSClient) GenerateUploadURL(ctx context.Context, accountID string, fileInfo fs.FileInfo) (string, error) {
 	return m.mockGeneratePresignedURLOutput, m.mockGeneratePresignedURLError
 }
 
-func (m *mockFSClient) GenerateDownloadURL(ctx context.Context, bucketName, accountID string, filename string) (string, error) {
+func (m *mockFSClient) GenerateDownloadURL(ctx context.Context, accountID string, fileInfo fs.FileInfo) (string, error) {
 	return "", nil
 }
 
-func (m *mockFSClient) DeleteFiles(ctx context.Context, bucketName, accountID string, filenames []string) error {
+func (m *mockFSClient) DeleteFiles(ctx context.Context, accountID string, filesInfo []fs.FileInfo) error {
 	return m.mockDeleteFilesError
 }
 
