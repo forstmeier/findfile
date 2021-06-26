@@ -41,12 +41,12 @@ func TestConvertCSQL(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			c := &Client{
-				parseCSQL: func(csqlQuery map[string]interface{}) ([]byte, error) {
+				parseCSQL: func(accountID string, csqlQuery map[string]interface{}) ([]byte, error) {
 					return test.parseOutput, test.parseError
 				},
 			}
 
-			received, err := c.ConvertCSQL(context.Background(), test.input)
+			received, err := c.ConvertCSQL(context.Background(), "account_id", test.input)
 
 			if err != nil {
 				switch test.error.(type) {

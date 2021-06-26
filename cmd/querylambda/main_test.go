@@ -40,7 +40,7 @@ type mockCSQLClient struct {
 	mockConvertCSQLError  error
 }
 
-func (m *mockCSQLClient) ConvertCSQL(ctx context.Context, csqlQuery map[string]interface{}) ([]byte, error) {
+func (m *mockCSQLClient) ConvertCSQL(ctx context.Context, accountID string, csqlQuery map[string]interface{}) ([]byte, error) {
 	return m.mockConvertCSQLOutput, m.mockConvertCSQLError
 }
 

@@ -6,5 +6,5 @@ import "context"
 // into database implementation-compatible queries as
 // a byte array.
 type CSQLer interface {
-	ConvertCSQL(ctx context.Context, csqlQuery map[string]interface{}) ([]byte, error)
+	ConvertCSQL(ctx context.Context, accountID string, csqlQuery map[string]interface{}) ([]byte, error)
 }

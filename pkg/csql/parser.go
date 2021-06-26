@@ -24,7 +24,7 @@ type search struct {
 	Coordinates [2][2]float64 `json:"coordinates"`
 }
 
-func parseCSQL(csqlQuery map[string]interface{}) ([]byte, error) {
+func parseCSQL(accountID string, csqlQuery map[string]interface{}) ([]byte, error) {
 	var output []byte
 
 	if len(csqlQuery) > 1 {
@@ -41,6 +41,7 @@ func parseCSQL(csqlQuery map[string]interface{}) ([]byte, error) {
 		}
 
 		bsonQuery := newBSONQuery(
+			accountID,
 			searchJSON.PageNumber,
 			searchJSON.Text,
 			searchJSON.Coordinates,
@@ -59,8 +60,12 @@ func parseCSQL(csqlQuery map[string]interface{}) ([]byte, error) {
 	return output, nil
 }
 
-func newBSONQuery(pageNumber int64, text string, coordinates [2][2]float64) bson.D {
+func newBSONQuery(accountID string, pageNumber int64, text string, coordinates [2][2]float64) bson.D {
 	return bson.D{
+		primitive.E{
+			Key:   "account_id",
+			Value: accountID,
+		},
 		primitive.E{
 			Key: "pages",
 			Value: bson.D{

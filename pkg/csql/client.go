@@ -6,7 +6,7 @@ var _ CSQLer = &Client{}
 
 // Client implements the csql.CSQLer methods using DocumentDB.
 type Client struct {
-	parseCSQL func(csqlQuery map[string]interface{}) ([]byte, error)
+	parseCSQL func(accountID string, csqlQuery map[string]interface{}) ([]byte, error)
 }
 
 // New generates a csql.Client pointer instance for a DocumentDB
@@ -18,8 +18,8 @@ func New() *Client {
 }
 
 // ConvertCSQL implements the csql.CSQLer.ConvertCSQL method.
-func (c *Client) ConvertCSQL(ctx context.Context, csqlQuery map[string]interface{}) ([]byte, error) {
-	bsonQuery, err := c.parseCSQL(csqlQuery)
+func (c *Client) ConvertCSQL(ctx context.Context, accountID string, csqlQuery map[string]interface{}) ([]byte, error) {
+	bsonQuery, err := c.parseCSQL(accountID, csqlQuery)
 	if err != nil {
 		return nil, &ErrorConvertCSQL{err: err}
 	}

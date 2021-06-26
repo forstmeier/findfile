@@ -66,9 +66,7 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 			}, nil
 		}
 
-		query["account_id"] = accountID
-
-		csqlQuery, err := csqlClient.ConvertCSQL(ctx, query)
+		csqlQuery, err := csqlClient.ConvertCSQL(ctx, accountID, query)
 		if err != nil {
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,

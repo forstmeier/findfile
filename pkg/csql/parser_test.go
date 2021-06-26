@@ -63,7 +63,7 @@ func Test_parseCSQL(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			received, err := parseCSQL(test.input)
+			received, err := parseCSQL("account_id", test.input)
 
 			if err != nil {
 				if err != test.error {
@@ -75,7 +75,7 @@ func Test_parseCSQL(t *testing.T) {
 					{0.5, 0.5},
 				}
 
-				bsonQuery := newBSONQuery(1, "lookup text", coordinates)
+				bsonQuery := newBSONQuery("account_id", 1, "lookup text", coordinates)
 				expected, err := json.Marshal(bsonQuery)
 				if err != nil {
 					t.Fatalf("error creating expected bson query: %s", err.Error())
@@ -97,9 +97,13 @@ func Test_newBSONQuery(t *testing.T) {
 		{0.5, 0.5},
 	}
 
-	received := newBSONQuery(pageNumber, text, coordinates)
+	received := newBSONQuery("account_id", pageNumber, text, coordinates)
 
 	expected := bson.D{
+		primitive.E{
+			Key:   "account_id",
+			Value: "account_id",
+		},
 		primitive.E{
 			Key: "pages",
 			Value: bson.D{
