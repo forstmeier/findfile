@@ -33,6 +33,13 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 			}, nil
 		}
 
+		if request.HTTPMethod != http.MethodPost {
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusBadRequest,
+				Body:       fmt.Sprintf(`{"error": "http method [%s] not supported"}`, request.HTTPMethod),
+			}, nil
+		}
+
 		isDemo := accountID == demoAccountID
 
 		bucketName := fs.DemoBucket

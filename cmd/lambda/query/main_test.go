@@ -107,7 +107,25 @@ func Test_handler(t *testing.T) {
 			statusCode:                     http.StatusBadRequest,
 			body:                           `{"error": "account id not provided"}`,
 		},
-
+		{
+			description: "unsupported http method",
+			request: events.APIGatewayProxyRequest{
+				Headers: map[string]string{
+					accountIDHeader: "account_id",
+				},
+				HTTPMethod: http.MethodGet,
+			},
+			mockReadAccountOutput:          nil,
+			mockReadAccountError:           nil,
+			mockConvertCSQLOutput:          nil,
+			mockConvertCSQLError:           nil,
+			mockQueryDocumentsOutput:       nil,
+			mockQueryDocumentsError:        nil,
+			mockGeneratePresignedURLOutput: "",
+			mockGeneratePresignedURLError:  nil,
+			statusCode:                     http.StatusBadRequest,
+			body:                           `{"error": "http method [GET] not supported"}`,
+		},
 		{
 			description: "dynamodb client error reading account from database",
 			request: events.APIGatewayProxyRequest{
