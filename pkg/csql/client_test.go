@@ -2,6 +2,7 @@ package csql
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"testing"
 )
@@ -45,7 +46,7 @@ func TestConvertCSQL(t *testing.T) {
 				},
 			}
 
-			received, err := c.ConvertCSQL(test.input)
+			received, err := c.ConvertCSQL(context.Background(), test.input)
 
 			if err != nil {
 				switch test.error.(type) {

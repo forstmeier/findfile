@@ -1,5 +1,7 @@
 package csql
 
+import "context"
+
 var _ CSQLer = &Client{}
 
 // Client implements the csql.CSQLer methods using DocumentDB.
@@ -16,7 +18,7 @@ func New() *Client {
 }
 
 // ConvertCSQL implements the csql.CSQLer.ConvertCSQL method.
-func (c *Client) ConvertCSQL(csqlQuery map[string]interface{}) ([]byte, error) {
+func (c *Client) ConvertCSQL(ctx context.Context, csqlQuery map[string]interface{}) ([]byte, error) {
 	bsonQuery, err := c.parseCSQL(csqlQuery)
 	if err != nil {
 		return nil, &ErrorConvertCSQL{err: err}
