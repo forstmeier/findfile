@@ -41,11 +41,26 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber) func(ctx
 				}, nil
 			}
 
-			_, err := subscrClient.CreateSubscription(ctx, subscriberInfo)
+			subscription, err := subscrClient.CreateSubscription(ctx, subscriberInfo)
 			if err != nil {
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error creating user subscription"}`,
+				}, nil
+			}
+
+			subscriptionValues := map[string]string{
+				acct.SubscriptionIDKey:           subscription.ID,
+				acct.StripePaymentMethodIDKey:    subscription.StripePaymentMethodID,
+				acct.StripeCustomerIDKey:         subscription.StripeCustomerID,
+				acct.StripeSubscriptionIDKey:     subscription.StripeSubscriptionID,
+				acct.StripeSubscriptionItemIDKey: subscription.StripeSubscriptionItemID,
+			}
+
+			if err := acctClient.UpdateAccount(ctx, accountID, subscriptionValues); err != nil {
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       `{"error": "error adding subscription to user account"}`,
 				}, nil
 			}
 

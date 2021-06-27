@@ -109,7 +109,7 @@ func TestReadAccount(t *testing.T) {
 			description: "successful read account invocation",
 			getItemOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{
-					accountIDKey: {
+					AccountIDKey: {
 						S: aws.String("account_id"),
 					},
 				},
@@ -174,7 +174,7 @@ func TestUpdateAccount(t *testing.T) {
 		{
 			description: "dynamodb client update item error",
 			values: map[string]string{
-				accountIDKey: "account_id",
+				AccountIDKey: "account_id",
 			},
 			updateItemError: errors.New("mock update item error"),
 			error:           &ErrorUpdateItem{},
@@ -182,7 +182,7 @@ func TestUpdateAccount(t *testing.T) {
 		{
 			description: "successful update account invocation",
 			values: map[string]string{
-				accountIDKey: "account_id",
+				AccountIDKey: "account_id",
 			},
 			updateItemError: nil,
 			error:           nil,

@@ -8,14 +8,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
+// DynamoDB-specific attribute keys for subscription values.
 const (
-	tableName                   = "accounts"
-	accountIDKey                = "id"
-	subscriptionIDKey           = "subscription_id"
-	stripePaymentMethodIDKey    = "stripe_payment_method_id"
-	stripeCustomerIDKey         = "stripe_customer_id"
-	stripeSubscriptionIDKey     = "stripe_subscription_id"
-	stripeSubscriptionItemIDKey = "stripe_subscription_item_id"
+	TableName                   = "accounts"
+	AccountIDKey                = "id"
+	SubscriptionIDKey           = "subscription_id"
+	StripePaymentMethodIDKey    = "stripe_payment_method_id"
+	StripeCustomerIDKey         = "stripe_customer_id"
+	StripeSubscriptionIDKey     = "stripe_subscription_id"
+	StripeSubscriptionItemIDKey = "stripe_subscription_item_id"
 )
 
 var _ Accounter = &Client{}
@@ -45,11 +46,11 @@ func New(newSession *session.Session) *Client {
 func (c *Client) CreateAccount(ctx context.Context, accountID string) error {
 	input := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
-			accountIDKey: {
+			AccountIDKey: {
 				S: aws.String(accountID),
 			},
 		},
-		TableName: aws.String(tableName),
+		TableName: aws.String(TableName),
 	}
 
 	_, err := c.dynamoDBClient.PutItem(input)
@@ -64,11 +65,11 @@ func (c *Client) CreateAccount(ctx context.Context, accountID string) error {
 func (c *Client) ReadAccount(ctx context.Context, accountID string) (*Account, error) {
 	input := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
-			accountIDKey: {
+			AccountIDKey: {
 				S: aws.String(accountID),
 			},
 		},
-		TableName: aws.String(tableName),
+		TableName: aws.String(TableName),
 	}
 
 	output, err := c.dynamoDBClient.GetItem(input)
@@ -89,9 +90,9 @@ func (c *Client) UpdateAccount(ctx context.Context, accountID string, values map
 	expression, attributes := generateExpressionAndAttributes(values)
 
 	input := &dynamodb.UpdateItemInput{
-		TableName: aws.String(tableName),
+		TableName: aws.String(TableName),
 		Key: map[string]*dynamodb.AttributeValue{
-			accountIDKey: {
+			AccountIDKey: {
 				S: aws.String(accountID),
 			},
 		},
@@ -112,11 +113,11 @@ func (c *Client) UpdateAccount(ctx context.Context, accountID string, values map
 func (c *Client) DeleteAccount(ctx context.Context, accountID string) error {
 	input := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
-			accountIDKey: {
+			AccountIDKey: {
 				S: aws.String(accountID),
 			},
 		},
-		TableName: aws.String(tableName),
+		TableName: aws.String(TableName),
 	}
 
 	_, err := c.dynamoDBClient.DeleteItem(input)

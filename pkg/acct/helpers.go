@@ -11,27 +11,27 @@ import (
 func itemToAccountObject(items map[string]*dynamodb.AttributeValue) *Account {
 	account := &Account{}
 
-	if attribute, ok := items[accountIDKey]; ok {
+	if attribute, ok := items[AccountIDKey]; ok {
 		account.ID = *attribute.S
 	}
 
-	if attribute, ok := items[subscriptionIDKey]; ok {
+	if attribute, ok := items[SubscriptionIDKey]; ok {
 		account.SubscriptionID = *attribute.S
 	}
 
-	if attribute, ok := items[stripePaymentMethodIDKey]; ok {
+	if attribute, ok := items[StripePaymentMethodIDKey]; ok {
 		account.StripePaymentMethodID = *attribute.S
 	}
 
-	if attribute, ok := items[stripeCustomerIDKey]; ok {
+	if attribute, ok := items[StripeCustomerIDKey]; ok {
 		account.StripeCustomerID = *attribute.S
 	}
 
-	if attribute, ok := items[stripeSubscriptionIDKey]; ok {
+	if attribute, ok := items[StripeSubscriptionIDKey]; ok {
 		account.StripeSubscriptionID = *attribute.S
 	}
 
-	if attribute, ok := items[stripeSubscriptionItemIDKey]; ok {
+	if attribute, ok := items[StripeSubscriptionItemIDKey]; ok {
 		account.StripeSubscriptionItemID = *attribute.S
 	}
 
@@ -40,12 +40,12 @@ func itemToAccountObject(items map[string]*dynamodb.AttributeValue) *Account {
 
 func checkValues(values map[string]string) (bool, string) {
 	supportedKeys := map[string]struct{}{
-		accountIDKey:                {},
-		subscriptionIDKey:           {},
-		stripePaymentMethodIDKey:    {},
-		stripeCustomerIDKey:         {},
-		stripeSubscriptionIDKey:     {},
-		stripeSubscriptionItemIDKey: {},
+		AccountIDKey:                {},
+		SubscriptionIDKey:           {},
+		StripePaymentMethodIDKey:    {},
+		StripeCustomerIDKey:         {},
+		StripeSubscriptionIDKey:     {},
+		StripeSubscriptionItemIDKey: {},
 	}
 
 	for key := range values {

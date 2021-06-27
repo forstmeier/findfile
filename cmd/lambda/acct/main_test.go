@@ -14,6 +14,7 @@ import (
 
 type mockAcctClient struct {
 	mockCreateAccountError error
+	mockUpdateAccountError error
 	mockReadAccountOutput  *acct.Account
 	mockReadAccountError   error
 	mockDeleteAccountError error
@@ -28,7 +29,7 @@ func (m *mockAcctClient) ReadAccount(ctx context.Context, accountID string) (*ac
 }
 
 func (m *mockAcctClient) UpdateAccount(ctx context.Context, accountID string, values map[string]string) error {
-	return nil
+	return m.mockUpdateAccountError
 }
 
 func (m *mockAcctClient) DeleteAccount(ctx context.Context, accountID string) error {
@@ -58,6 +59,7 @@ func Test_handler(t *testing.T) {
 		description                  string
 		request                      events.APIGatewayProxyRequest
 		mockCreateAccountError       error
+		mockUpdateAccountError       error
 		mockReadAccountOutput        *acct.Account
 		mockReadAccountError         error
 		mockDeleteAccountError       error
@@ -73,6 +75,7 @@ func Test_handler(t *testing.T) {
 				HTTPMethod: http.MethodGet,
 			},
 			mockCreateAccountError:       nil,
+			mockUpdateAccountError:       nil,
 			mockReadAccountOutput:        nil,
 			mockReadAccountError:         nil,
 			mockDeleteAccountError:       nil,
@@ -89,6 +92,7 @@ func Test_handler(t *testing.T) {
 				Body:       "---------",
 			},
 			mockCreateAccountError:       nil,
+			mockUpdateAccountError:       nil,
 			mockReadAccountOutput:        nil,
 			mockReadAccountError:         nil,
 			mockDeleteAccountError:       nil,
@@ -105,6 +109,7 @@ func Test_handler(t *testing.T) {
 				Body:       `{"email": "test@email.com"}`,
 			},
 			mockCreateAccountError:       errors.New("mock create account error"),
+			mockUpdateAccountError:       nil,
 			mockReadAccountOutput:        nil,
 			mockReadAccountError:         nil,
 			mockDeleteAccountError:       nil,
@@ -121,6 +126,7 @@ func Test_handler(t *testing.T) {
 				Body:       `{"email": "test@email.com"}`,
 			},
 			mockCreateAccountError:       nil,
+			mockUpdateAccountError:       nil,
 			mockReadAccountOutput:        nil,
 			mockReadAccountError:         nil,
 			mockDeleteAccountError:       nil,
@@ -131,20 +137,50 @@ func Test_handler(t *testing.T) {
 			body:                         `{"error": "error creating user subscription"}`,
 		},
 		{
+			description: "error update user account with subscription",
+			request: events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodPost,
+				Body:       `{"email": "test@email.com"}`,
+			},
+			mockCreateAccountError: nil,
+			mockUpdateAccountError: errors.New("mock update account error"),
+			mockReadAccountOutput:  nil,
+			mockReadAccountError:   nil,
+			mockDeleteAccountError: nil,
+			mockCreateSubscriptionOutput: &subscr.Subscription{
+				ID:                       "test_subscription_id",
+				StripePaymentMethodID:    "test_stripe_payment_method_id",
+				StripeCustomerID:         "test_stripe_customer_id",
+				StripeSubscriptionID:     "test_stripe_subscription_id",
+				StripeSubscriptionItemID: "test_stripe_subscription_item_id",
+			},
+			mockCreateSubscriptionError: nil,
+			mockRemoveSubscriptionError: nil,
+			statusCode:                  http.StatusInternalServerError,
+			body:                        `{"error": "error adding subscription to user account"}`,
+		},
+		{
 			description: "successful handler create invocation",
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodPost,
 				Body:       `{"email": "test@email.com"}`,
 			},
-			mockCreateAccountError:       nil,
-			mockReadAccountOutput:        nil,
-			mockReadAccountError:         nil,
-			mockDeleteAccountError:       nil,
-			mockCreateSubscriptionOutput: nil,
-			mockCreateSubscriptionError:  nil,
-			mockRemoveSubscriptionError:  nil,
-			statusCode:                   http.StatusOK,
-			body:                         `{"message": "success", "account_id": ".*"}`,
+			mockCreateAccountError: nil,
+			mockUpdateAccountError: nil,
+			mockReadAccountOutput:  nil,
+			mockReadAccountError:   nil,
+			mockDeleteAccountError: nil,
+			mockCreateSubscriptionOutput: &subscr.Subscription{
+				ID:                       "test_subscription_id",
+				StripePaymentMethodID:    "test_stripe_payment_method_id",
+				StripeCustomerID:         "test_stripe_customer_id",
+				StripeSubscriptionID:     "test_stripe_subscription_id",
+				StripeSubscriptionItemID: "test_stripe_subscription_item_id",
+			},
+			mockCreateSubscriptionError: nil,
+			mockRemoveSubscriptionError: nil,
+			statusCode:                  http.StatusOK,
+			body:                        `{"message": "success", "account_id": ".*"}`,
 		},
 		{
 			description: "account id not provided in request header",
@@ -152,6 +188,7 @@ func Test_handler(t *testing.T) {
 				HTTPMethod: http.MethodDelete,
 			},
 			mockCreateAccountError:       nil,
+			mockUpdateAccountError:       nil,
 			mockReadAccountOutput:        nil,
 			mockReadAccountError:         nil,
 			mockDeleteAccountError:       nil,
@@ -170,6 +207,7 @@ func Test_handler(t *testing.T) {
 				},
 			},
 			mockCreateAccountError:       nil,
+			mockUpdateAccountError:       nil,
 			mockReadAccountOutput:        nil,
 			mockReadAccountError:         errors.New("mock read account error"),
 			mockDeleteAccountError:       nil,
@@ -188,6 +226,7 @@ func Test_handler(t *testing.T) {
 				},
 			},
 			mockCreateAccountError: nil,
+			mockUpdateAccountError: nil,
 			mockReadAccountOutput: &acct.Account{
 				StripeCustomerID: "stripe_customer_id",
 			},
@@ -208,6 +247,7 @@ func Test_handler(t *testing.T) {
 				},
 			},
 			mockCreateAccountError: nil,
+			mockUpdateAccountError: nil,
 			mockReadAccountOutput: &acct.Account{
 				StripeCustomerID: "stripe_customer_id",
 			},
@@ -228,6 +268,7 @@ func Test_handler(t *testing.T) {
 				},
 			},
 			mockCreateAccountError: nil,
+			mockUpdateAccountError: nil,
 			mockReadAccountOutput: &acct.Account{
 				StripeCustomerID: "stripe_customer_id",
 			},
@@ -245,6 +286,7 @@ func Test_handler(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			acctClient := &mockAcctClient{
 				mockCreateAccountError: test.mockCreateAccountError,
+				mockUpdateAccountError: test.mockUpdateAccountError,
 				mockReadAccountOutput:  test.mockReadAccountOutput,
 				mockReadAccountError:   test.mockReadAccountError,
 				mockDeleteAccountError: test.mockDeleteAccountError,

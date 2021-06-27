@@ -18,22 +18,22 @@ func Test_itemToAccountObject(t *testing.T) {
 	stripeSubscriptionItemID := "test_stripe_subscription_item_id"
 
 	input := map[string]*dynamodb.AttributeValue{
-		accountIDKey: {
+		AccountIDKey: {
 			S: aws.String(accountID),
 		},
-		subscriptionIDKey: {
+		SubscriptionIDKey: {
 			S: aws.String(subscriptionID),
 		},
-		stripePaymentMethodIDKey: {
+		StripePaymentMethodIDKey: {
 			S: aws.String(stripePaymentMethodID),
 		},
-		stripeCustomerIDKey: {
+		StripeCustomerIDKey: {
 			S: aws.String(stripeCustomerID),
 		},
-		stripeSubscriptionIDKey: {
+		StripeSubscriptionIDKey: {
 			S: aws.String(stripeSubscriptionID),
 		},
-		stripeSubscriptionItemIDKey: {
+		StripeSubscriptionItemIDKey: {
 			S: aws.String(stripeSubscriptionItemID),
 		},
 	}
@@ -83,7 +83,7 @@ func Test_checkValues(t *testing.T) {
 		{
 			description: "all values keys supported",
 			values: map[string]string{
-				accountIDKey: "account_id",
+				AccountIDKey: "account_id",
 			},
 			key: "",
 			ok:  true,
@@ -107,8 +107,8 @@ func Test_checkValues(t *testing.T) {
 
 func Test_generateExpressionAndAttributes(t *testing.T) {
 	values := map[string]string{
-		subscriptionIDKey:       "subscription_id_value",
-		stripeSubscriptionIDKey: "stripe_subscription_id_value",
+		SubscriptionIDKey:       "subscription_id_value",
+		StripeSubscriptionIDKey: "stripe_subscription_id_value",
 	}
 
 	expression, attributes := generateExpressionAndAttributes(values)
@@ -120,10 +120,10 @@ func Test_generateExpressionAndAttributes(t *testing.T) {
 	}
 
 	expectedAttributes := map[string]*dynamodb.AttributeValue{
-		":" + subscriptionIDKey: {
+		":" + SubscriptionIDKey: {
 			S: aws.String("subscription_id_value"),
 		},
-		":" + stripeSubscriptionIDKey: {
+		":" + StripeSubscriptionIDKey: {
 			S: aws.String(("stripe_subscription_id_value")),
 		},
 	}
