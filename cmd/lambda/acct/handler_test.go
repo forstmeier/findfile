@@ -42,11 +42,11 @@ type mockSubscrClient struct {
 	mockRemoveSubscriptionError  error
 }
 
-func (m *mockSubscrClient) CreateSubscription(ctx context.Context, info subscr.SubscriberInfo) (*subscr.Subscription, error) {
+func (m *mockSubscrClient) CreateSubscription(ctx context.Context, accountID string, info subscr.SubscriberInfo) (*subscr.Subscription, error) {
 	return m.mockCreateSubscriptionOutput, m.mockCreateSubscriptionError
 }
 
-func (m *mockSubscrClient) RemoveSubscription(ctx context.Context, id string) error {
+func (m *mockSubscrClient) RemoveSubscription(ctx context.Context, subscription subscr.Subscription) error {
 	return m.mockRemoveSubscriptionError
 }
 
@@ -148,11 +148,10 @@ func Test_handler(t *testing.T) {
 			mockReadAccountError:   nil,
 			mockDeleteAccountError: nil,
 			mockCreateSubscriptionOutput: &subscr.Subscription{
-				ID:                       "test_subscription_id",
-				StripePaymentMethodID:    "test_stripe_payment_method_id",
-				StripeCustomerID:         "test_stripe_customer_id",
-				StripeSubscriptionID:     "test_stripe_subscription_id",
-				StripeSubscriptionItemID: "test_stripe_subscription_item_id",
+				ID:                    "test_subscription_id",
+				StripePaymentMethodID: "test_stripe_payment_method_id",
+				StripeCustomerID:      "test_stripe_customer_id",
+				StripeSubscriptionID:  "test_stripe_subscription_id",
 			},
 			mockCreateSubscriptionError: nil,
 			mockRemoveSubscriptionError: nil,
@@ -171,11 +170,10 @@ func Test_handler(t *testing.T) {
 			mockReadAccountError:   nil,
 			mockDeleteAccountError: nil,
 			mockCreateSubscriptionOutput: &subscr.Subscription{
-				ID:                       "test_subscription_id",
-				StripePaymentMethodID:    "test_stripe_payment_method_id",
-				StripeCustomerID:         "test_stripe_customer_id",
-				StripeSubscriptionID:     "test_stripe_subscription_id",
-				StripeSubscriptionItemID: "test_stripe_subscription_item_id",
+				ID:                    "test_subscription_id",
+				StripePaymentMethodID: "test_stripe_payment_method_id",
+				StripeCustomerID:      "test_stripe_customer_id",
+				StripeSubscriptionID:  "test_stripe_subscription_id",
 			},
 			mockCreateSubscriptionError: nil,
 			mockRemoveSubscriptionError: nil,

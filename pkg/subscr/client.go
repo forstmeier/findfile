@@ -26,8 +26,8 @@ type Client struct {
 
 // New generates a Client pointer instance with a Stripe
 // session client.
-func New() *Client {
-	stripe.Key = os.Getenv("STRIPE_API_KEY")
+func New(stripeAPIKey string) *Client {
+	stripe.Key = stripeAPIKey
 
 	return &Client{
 		newPaymentMethod: paymentmethod.New,
@@ -38,10 +38,10 @@ func New() *Client {
 	}
 }
 
-// CreateSubscription implements the Subscriber.AddSubscription
+// CreateSubscription implements the Subscriber.CreateSubscription
 // method and adds the required customer, subscription, and
 // payment information to Stripe.
-func (c *Client) CreateSubscription(ctx context.Context, info SubscriberInfo) (*Subscription, error) {
+func (c *Client) CreateSubscription(ctx context.Context, accountID string, info SubscriberInfo) (*Subscription, error) {
 	fields := checkInfoFields(info)
 	if len(fields) > 0 {
 		return nil, &ErrorMissingFields{fields: fields}
@@ -55,6 +55,11 @@ func (c *Client) CreateSubscription(ctx context.Context, info SubscriberInfo) (*
 			CVC:      &info.CardSecurityCode,
 		},
 		Type: stripe.String("card"),
+		Params: stripe.Params{
+			Metadata: map[string]string{
+				"account_id": accountID,
+			},
+		},
 	}
 	newPaymentMethod, err := c.newPaymentMethod(paymentParams)
 	if err != nil {
@@ -66,6 +71,11 @@ func (c *Client) CreateSubscription(ctx context.Context, info SubscriberInfo) (*
 		Email:         &info.Email,
 		Address: &stripe.AddressParams{
 			PostalCode: &info.ZIP,
+		},
+		Params: stripe.Params{
+			Metadata: map[string]string{
+				"account_id": accountID,
+			},
 		},
 	}
 	newCustomer, err := c.newCustomer(customerParams)
@@ -83,6 +93,11 @@ func (c *Client) CreateSubscription(ctx context.Context, info SubscriberInfo) (*
 				Price: stripe.String(os.Getenv("STRIPE_VARIABLE_PRICE_ID")),
 			},
 		},
+		Params: stripe.Params{
+			Metadata: map[string]string{
+				"account_id": accountID,
+			},
+		},
 	}
 	newSubscription, err := c.newSubscription(subscriptionParams)
 	if err != nil {
@@ -94,12 +109,6 @@ func (c *Client) CreateSubscription(ctx context.Context, info SubscriberInfo) (*
 		StripePaymentMethodID: newPaymentMethod.ID,
 		StripeCustomerID:      newCustomer.ID,
 		StripeSubscriptionID:  newSubscription.ID,
-	}
-
-	for _, item := range newSubscription.Items.Data {
-		if item.Price.ID == os.Getenv("STRIPE_VARIABLE_PRICE_ID") {
-			subscription.StripeSubscriptionItemID = item.ID
-		}
 	}
 
 	return subscription, nil
@@ -135,8 +144,8 @@ func checkInfoFields(info SubscriberInfo) []string {
 
 // RemoveSubscription implements the Subscriber.RemoveSubscription
 // and removes the customer and cancels the subscription in Stripe.
-func (c *Client) RemoveSubscription(ctx context.Context, id string) error {
-	_, err := c.deleteCustomer(id, nil)
+func (c *Client) RemoveSubscription(ctx context.Context, subscription Subscription) error {
+	_, err := c.deleteCustomer(subscription.StripeCustomerID, nil)
 	if err != nil {
 		return &ErrorDeleteCustomer{err: err}
 	}

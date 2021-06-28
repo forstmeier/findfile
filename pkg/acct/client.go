@@ -10,13 +10,12 @@ import (
 
 // DynamoDB-specific attribute keys for subscription values.
 const (
-	TableName                   = "accounts"
-	AccountIDKey                = "id"
-	SubscriptionIDKey           = "subscription_id"
-	StripePaymentMethodIDKey    = "stripe_payment_method_id"
-	StripeCustomerIDKey         = "stripe_customer_id"
-	StripeSubscriptionIDKey     = "stripe_subscription_id"
-	StripeSubscriptionItemIDKey = "stripe_subscription_item_id"
+	TableName                = "accounts"
+	AccountIDKey             = "id"
+	SubscriptionIDKey        = "subscription_id"
+	StripePaymentMethodIDKey = "stripe_payment_method_id"
+	StripeCustomerIDKey      = "stripe_customer_id"
+	StripeSubscriptionIDKey  = "stripe_subscription_id"
 )
 
 var _ Accounter = &Client{}

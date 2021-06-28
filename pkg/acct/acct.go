@@ -13,10 +13,9 @@ type Accounter interface {
 
 // Account represents the user information stored in the application.
 type Account struct {
-	ID                       string
-	SubscriptionID           string
-	StripePaymentMethodID    string
-	StripeCustomerID         string
-	StripeSubscriptionID     string
-	StripeSubscriptionItemID string
+	ID                    string
+	SubscriptionID        string
+	StripePaymentMethodID string
+	StripeCustomerID      string
+	StripeSubscriptionID  string
 }

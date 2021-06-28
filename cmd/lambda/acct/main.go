@@ -3,6 +3,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
 
@@ -11,9 +13,11 @@ import (
 )
 
 func main() {
+	stripeAPIKey := os.Getenv("STRIPE_API_KEY")
+
 	acctClient := acct.New(session.New())
 
-	subscrClient := subscr.New()
+	subscrClient := subscr.New(stripeAPIKey)
 
 	lambda.Start(handler(acctClient, subscrClient))
 }

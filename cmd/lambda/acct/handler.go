@@ -39,7 +39,7 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber) func(ctx
 				}, nil
 			}
 
-			subscription, err := subscrClient.CreateSubscription(ctx, subscriberInfo)
+			subscription, err := subscrClient.CreateSubscription(ctx, accountID, subscriberInfo)
 			if err != nil {
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
@@ -48,11 +48,10 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber) func(ctx
 			}
 
 			subscriptionValues := map[string]string{
-				acct.SubscriptionIDKey:           subscription.ID,
-				acct.StripePaymentMethodIDKey:    subscription.StripePaymentMethodID,
-				acct.StripeCustomerIDKey:         subscription.StripeCustomerID,
-				acct.StripeSubscriptionIDKey:     subscription.StripeSubscriptionID,
-				acct.StripeSubscriptionItemIDKey: subscription.StripeSubscriptionItemID,
+				acct.SubscriptionIDKey:        subscription.ID,
+				acct.StripePaymentMethodIDKey: subscription.StripePaymentMethodID,
+				acct.StripeCustomerIDKey:      subscription.StripeCustomerID,
+				acct.StripeSubscriptionIDKey:  subscription.StripeSubscriptionID,
 			}
 
 			if err := acctClient.UpdateAccount(ctx, accountID, subscriptionValues); err != nil {
@@ -81,7 +80,14 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber) func(ctx
 				}, nil
 			}
 
-			if err := subscrClient.RemoveSubscription(ctx, account.StripeCustomerID); err != nil {
+			subscription := subscr.Subscription{
+				ID:                    account.SubscriptionID,
+				StripePaymentMethodID: account.StripePaymentMethodID,
+				StripeCustomerID:      account.StripeCustomerID,
+				StripeSubscriptionID:  account.StripeSubscriptionID,
+			}
+
+			if err := subscrClient.RemoveSubscription(ctx, subscription); err != nil {
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error removing user subscription"}`,

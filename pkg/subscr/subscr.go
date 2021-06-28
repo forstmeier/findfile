@@ -5,8 +5,8 @@ import "context"
 // Subscriber defines the methods for interacting with the
 // subscription management system.
 type Subscriber interface {
-	CreateSubscription(ctx context.Context, info SubscriberInfo) (*Subscription, error)
-	RemoveSubscription(ctx context.Context, id string) error
+	CreateSubscription(ctx context.Context, accountID string, info SubscriberInfo) (*Subscription, error)
+	RemoveSubscription(ctx context.Context, subscription Subscription) error
 	AddUsage(ctx context.Context, id string) error
 }
 
@@ -25,9 +25,8 @@ type SubscriberInfo struct {
 // Subscription contains the output of the CreateSubscription
 // method.
 type Subscription struct {
-	ID                       string
-	StripePaymentMethodID    string
-	StripeCustomerID         string
-	StripeSubscriptionID     string
-	StripeSubscriptionItemID string
+	ID                    string
+	StripePaymentMethodID string
+	StripeCustomerID      string
+	StripeSubscriptionID  string
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	client := New()
+	client := New("stripe_api_key")
 	if client == nil {
 		t.Error("error creating subscr client")
 	}
@@ -143,10 +143,9 @@ func TestCreateSubscription(t *testing.T) {
 			},
 			newSubscriptionError: nil,
 			subscription: &Subscription{
-				StripePaymentMethodID:    "test_payment_method_id",
-				StripeCustomerID:         "test_customer_id",
-				StripeSubscriptionID:     "test_subscription_id",
-				StripeSubscriptionItemID: "test_subscription_item_id",
+				StripePaymentMethodID: "test_payment_method_id",
+				StripeCustomerID:      "test_customer_id",
+				StripeSubscriptionID:  "test_subscription_id",
 			},
 			error: nil,
 		},
@@ -166,7 +165,7 @@ func TestCreateSubscription(t *testing.T) {
 				},
 			}
 
-			subscription, err := client.CreateSubscription(context.Background(), test.subscriberInfo)
+			subscription, err := client.CreateSubscription(context.Background(), "account_id", test.subscriberInfo)
 
 			if err != nil {
 				switch test.error.(type) {
@@ -217,8 +216,6 @@ func checkSubscriptions(t *testing.T, received, expected *Subscription) {
 	} else if received.StripeCustomerID != expected.StripeCustomerID {
 		check = true
 	} else if received.StripeSubscriptionID != expected.StripeSubscriptionID {
-		check = true
-	} else if received.StripeSubscriptionItemID != expected.StripeSubscriptionItemID {
 		check = true
 	}
 
@@ -301,7 +298,11 @@ func TestRemoveSubscription(t *testing.T) {
 				},
 			}
 
-			err := client.RemoveSubscription(context.Background(), "test_customer_id")
+			subscription := Subscription{
+				StripeCustomerID: "test_customer_id",
+			}
+
+			err := client.RemoveSubscription(context.Background(), subscription)
 
 			if err != nil {
 				switch test.error.(type) {
