@@ -15,9 +15,11 @@ import (
 func main() {
 	stripeAPIKey := os.Getenv("STRIPE_API_KEY")
 
+	stripeItemIDs := []string{}
+
 	acctClient := acct.New(session.New())
 
-	subscrClient := subscr.New(stripeAPIKey)
+	subscrClient := subscr.New(stripeAPIKey, stripeItemIDs)
 
 	lambda.Start(handler(acctClient, subscrClient))
 }

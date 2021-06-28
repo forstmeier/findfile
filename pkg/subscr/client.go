@@ -2,7 +2,6 @@ package subscr
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,11 +21,12 @@ type Client struct {
 	newSubscription  func(params *stripe.SubscriptionParams) (*stripe.Subscription, error)
 	deleteCustomer   func(id string, params *stripe.CustomerParams) (*stripe.Customer, error)
 	newUsageRecord   func(params *stripe.UsageRecordParams) (*stripe.UsageRecord, error)
+	stripeItemIDs    []string
 }
 
 // New generates a Client pointer instance with a Stripe
 // session client.
-func New(stripeAPIKey string) *Client {
+func New(stripeAPIKey string, stripeItemIDs []string) *Client {
 	stripe.Key = stripeAPIKey
 
 	return &Client{
@@ -35,6 +35,7 @@ func New(stripeAPIKey string) *Client {
 		newSubscription:  sub.New,
 		deleteCustomer:   customer.Del,
 		newUsageRecord:   usagerecord.New,
+		stripeItemIDs:    stripeItemIDs,
 	}
 }
 
@@ -83,16 +84,16 @@ func (c *Client) CreateSubscription(ctx context.Context, accountID string, info 
 		return nil, &ErrorNewCustomer{err: err}
 	}
 
+	subscriptionItems := make([]*stripe.SubscriptionItemsParams, len(c.stripeItemIDs))
+	for i, id := range c.stripeItemIDs {
+		subscriptionItems[i] = &stripe.SubscriptionItemsParams{
+			Price: stripe.String(id),
+		}
+	}
+
 	subscriptionParams := &stripe.SubscriptionParams{
 		Customer: &newCustomer.ID,
-		Items: []*stripe.SubscriptionItemsParams{
-			{
-				Price: stripe.String(os.Getenv("STRIPE_FIXED_PRICE_ID")),
-			},
-			{
-				Price: stripe.String(os.Getenv("STRIPE_VARIABLE_PRICE_ID")),
-			},
-		},
+		Items:    subscriptionItems,
 		Params: stripe.Params{
 			Metadata: map[string]string{
 				"account_id": accountID,

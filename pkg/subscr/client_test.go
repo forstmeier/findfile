@@ -3,14 +3,13 @@ package subscr
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 
 	"github.com/stripe/stripe-go/v72"
 )
 
 func TestNew(t *testing.T) {
-	client := New("stripe_api_key")
+	client := New("stripe_api_key", []string{"stripe_subscription_item_id"})
 	if client == nil {
 		t.Error("error creating subscr client")
 	}
@@ -135,7 +134,7 @@ func TestCreateSubscription(t *testing.T) {
 						{
 							ID: "test_subscription_item_id",
 							Price: &stripe.Price{
-								ID: os.Getenv("STRIPE_VARIABLE_PRICE_ID"),
+								ID: "test_subscription_item_price_id",
 							},
 						},
 					},
