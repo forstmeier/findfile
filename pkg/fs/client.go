@@ -21,6 +21,7 @@ type Client struct {
 type s3Client interface {
 	PutObjectRequest(input *s3.PutObjectInput) (req *request.Request, output *s3.PutObjectOutput)
 	GetObjectRequest(input *s3.GetObjectInput) (req *request.Request, output *s3.GetObjectOutput)
+	ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
 	DeleteObjects(input *s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
 }
 
@@ -69,6 +70,40 @@ func (c *Client) GenerateDownloadURL(ctx context.Context, accountID string, file
 	}
 
 	return urlString, nil
+}
+
+// ListFilesByAccountID implements the fs.Filesystemer.ListFilesByAccountID
+// method.
+func (c *Client) ListFilesByAccountID(ctx context.Context, filepath, accountID string) ([]FileInfo, error) {
+	var results []FileInfo
+	var continuationToken string
+	for {
+		input := &s3.ListObjectsV2Input{
+			Bucket:            aws.String(filepath),
+			Prefix:            aws.String(accountID),
+			ContinuationToken: aws.String(continuationToken),
+		}
+
+		output, err := c.s3Client.ListObjectsV2(input)
+		if err != nil {
+			return nil, &ErrorListObjects{err: err}
+		}
+
+		for _, content := range output.Contents {
+			results = append(results, FileInfo{
+				Filepath: *output.Name,
+				Filename: *content.Key,
+			})
+		}
+
+		if *output.IsTruncated {
+			continuationToken = *output.NextContinuationToken
+		} else {
+			break
+		}
+	}
+
+	return results, nil
 }
 
 // DeleteFiles implements the fs.Filesystemer.DeleteFiles method.

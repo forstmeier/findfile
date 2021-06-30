@@ -30,6 +30,17 @@ func TestErrorPresignURL(t *testing.T) {
 	}
 }
 
+func TestErrorListObjects(t *testing.T) {
+	err := &ErrorListObjects{err: errors.New("mock list object error")}
+
+	recieved := err.Error()
+	expected := "fs: list files: mock list object error"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
+
 func TestErrorDeleteObjects(t *testing.T) {
 	err := &ErrorDeleteObjects{err: errors.New("mock delete object error")}
 

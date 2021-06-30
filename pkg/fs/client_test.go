@@ -3,6 +3,7 @@ package fs
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -125,7 +126,9 @@ func TestGenerateDownloadURL(t *testing.T) {
 }
 
 type mockS3Client struct {
-	deleteObjectsError error
+	deleteObjectsError  error
+	listObjectsV2Output *s3.ListObjectsV2Output
+	listObjectsV2Error  error
 }
 
 func (m *mockS3Client) PutObjectRequest(input *s3.PutObjectInput) (req *request.Request, output *s3.PutObjectOutput) {
@@ -136,8 +139,79 @@ func (m *mockS3Client) GetObjectRequest(input *s3.GetObjectInput) (req *request.
 	return nil, nil
 }
 
+func (m *mockS3Client) ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
+	return m.listObjectsV2Output, m.listObjectsV2Error
+}
+
 func (m *mockS3Client) DeleteObjects(input *s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error) {
 	return nil, m.deleteObjectsError
+}
+
+func TestListFilesByAccountID(t *testing.T) {
+	tests := []struct {
+		description         string
+		listObjectsV2Output *s3.ListObjectsV2Output
+		listObjectsV2Error  error
+		output              []FileInfo
+		error               error
+	}{
+		{
+			description:         "error listing files in s3",
+			listObjectsV2Output: nil,
+			listObjectsV2Error:  errors.New("mock list objects error"),
+			output:              nil,
+			error:               &ErrorListObjects{},
+		},
+		{
+			description: "successful list files invocation",
+			listObjectsV2Output: &s3.ListObjectsV2Output{
+				Name: aws.String("bucket"),
+				Contents: []*s3.Object{
+					{
+						Key: aws.String("file.jpg"),
+					},
+				},
+				IsTruncated: aws.Bool(false),
+			},
+			listObjectsV2Error: nil,
+			output: []FileInfo{
+				{
+					Filepath: "bucket",
+					Filename: "file.jpg",
+				},
+			},
+			error: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			client := &Client{
+				s3Client: &mockS3Client{
+					listObjectsV2Output: test.listObjectsV2Output,
+					listObjectsV2Error:  test.listObjectsV2Error,
+				},
+			}
+
+			output, err := client.ListFilesByAccountID(context.Background(), "bucket", "account_id")
+
+			if err != nil {
+				switch test.error.(type) {
+				case *ErrorListObjects:
+					var testError *ErrorListObjects
+					if !errors.As(err, &testError) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					}
+				default:
+					t.Fatalf("unexpected error type: %v", err)
+				}
+			} else {
+				if !reflect.DeepEqual(output, test.output) {
+					t.Errorf("incorrect output, received: %+v, expected: %+v", output, test.output)
+				}
+			}
+		})
+	}
 }
 
 func TestDeleteFiles(t *testing.T) {

@@ -25,6 +25,16 @@ func (e *ErrorPresignURL) Error() string {
 	return fmt.Sprintf("%s: presign %s: %s", packageName, e.action, e.err.Error())
 }
 
+// ErrorListObjects wraps errors returned by s3.S3.ListObjectsV2
+// in the DeleteFiles method.
+type ErrorListObjects struct {
+	err error
+}
+
+func (e *ErrorListObjects) Error() string {
+	return fmt.Sprintf("%s: list files: %s", packageName, e.err.Error())
+}
+
 // ErrorDeleteObjects wraps errors returned by s3.S3.DeleteObjects
 // in the DeleteFiles method.
 type ErrorDeleteObjects struct {

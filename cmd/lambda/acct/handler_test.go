@@ -68,6 +68,10 @@ func (m *mockFSClient) GenerateDownloadURL(ctx context.Context, accountID string
 	return "", nil
 }
 
+func (m *mockFSClient) ListFilesByAccountID(ctx context.Context, filepath, accountID string) ([]fs.FileInfo, error) {
+	return nil, nil
+}
+
 func (m *mockFSClient) DeleteFiles(ctx context.Context, accountID string, filesInfo []fs.FileInfo) error {
 	return m.mockDeleteFilesError
 }
