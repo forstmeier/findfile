@@ -102,7 +102,15 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 				}, nil
 			}
 
-			filesInfo := []fs.FileInfo{}
+			filesInfo, err := fsClient.ListFilesByAccountID(ctx, fs.MainBucket, accountID)
+
+			if err != nil {
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       `{"error": "error listing user files"}`,
+				}, nil
+			}
+
 			if err := fsClient.DeleteFiles(ctx, accountID, filesInfo); err != nil {
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
