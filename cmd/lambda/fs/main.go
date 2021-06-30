@@ -3,8 +3,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
 
@@ -17,10 +15,7 @@ func main() {
 
 	acctClient := acct.New(newSession)
 
-	fsClient, err := fs.New(newSession)
-	if err != nil {
-		log.Fatalf("error creating fs client: %s", err.Error())
-	}
+	fsClient := fs.New(newSession)
 
 	lambda.Start(handler(acctClient, fsClient))
 }

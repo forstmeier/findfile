@@ -25,12 +25,12 @@ type s3Client interface {
 }
 
 // New generates a Client pointer instance with an AWS S3 client.
-func New(newSession *session.Session) (*Client, error) {
+func New(newSession *session.Session) *Client {
 	s3Client := s3.New(newSession)
 
 	return &Client{
 		s3Client: s3Client,
-	}, nil
+	}
 }
 
 // GenerateUploadURL implements the fs.Filesystemer.GenerateUploadURL method
@@ -73,23 +73,33 @@ func (c *Client) GenerateDownloadURL(ctx context.Context, accountID string, file
 
 // DeleteFiles implements the fs.Filesystemer.DeleteFiles method.
 func (c *Client) DeleteFiles(ctx context.Context, accountID string, filesInfo []FileInfo) error {
-	objects := make([]*s3.ObjectIdentifier, len(filesInfo))
-	for i, fileInfo := range filesInfo {
-		objects[i] = &s3.ObjectIdentifier{
-			Key: aws.String(fmt.Sprintf("%s/%s", accountID, fileInfo.Filename)),
+	chunkSize := 1000 // S3 max delete objects count
+	for i := 0; i < len(filesInfo); i += chunkSize {
+		end := i + chunkSize
+		if end > len(filesInfo) {
+			end = len(filesInfo)
 		}
-	}
 
-	input := &s3.DeleteObjectsInput{
-		Bucket: aws.String(filesInfo[0].Filepath),
-		Delete: &s3.Delete{
-			Objects: objects,
-		},
-	}
+		filesInfoSubset := filesInfo[i:end]
 
-	_, err := c.s3Client.DeleteObjects(input)
-	if err != nil {
-		return &ErrorDeleteObjects{err: err}
+		objects := make([]*s3.ObjectIdentifier, len(filesInfoSubset))
+		for i, fileInfo := range filesInfoSubset {
+			objects[i] = &s3.ObjectIdentifier{
+				Key: aws.String(fmt.Sprintf("%s/%s", accountID, fileInfo.Filename)),
+			}
+		}
+
+		input := &s3.DeleteObjectsInput{
+			Bucket: aws.String(filesInfo[0].Filepath),
+			Delete: &s3.Delete{
+				Objects: objects,
+			},
+		}
+
+		_, err := c.s3Client.DeleteObjects(input)
+		if err != nil {
+			return &ErrorDeleteObjects{err: err}
+		}
 	}
 
 	return nil

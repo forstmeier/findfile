@@ -10,12 +10,13 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cheesesteakio/api/pkg/acct"
+	"github.com/cheesesteakio/api/pkg/fs"
 	"github.com/cheesesteakio/api/pkg/subscr"
 )
 
 const accountIDHeader = "x-cheesesteakstorage-account-id"
 
-func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		body := ""
 
@@ -98,6 +99,14 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber) func(ctx
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error removing user account"}`,
+				}, nil
+			}
+
+			filesInfo := []fs.FileInfo{}
+			if err := fsClient.DeleteFiles(ctx, accountID, filesInfo); err != nil {
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       `{"error": "error removing user files"}`,
 				}, nil
 			}
 

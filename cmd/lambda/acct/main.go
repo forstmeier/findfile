@@ -9,17 +9,22 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/cheesesteakio/api/pkg/acct"
+	"github.com/cheesesteakio/api/pkg/fs"
 	"github.com/cheesesteakio/api/pkg/subscr"
 )
 
 func main() {
+	newSession := session.New()
+
+	acctClient := acct.New(newSession)
+
+	fsClient := fs.New(newSession)
+
 	stripeAPIKey := os.Getenv("STRIPE_API_KEY")
 
 	stripeItemIDs := []string{}
 
-	acctClient := acct.New(session.New())
-
 	subscrClient := subscr.New(stripeAPIKey, stripeItemIDs)
 
-	lambda.Start(handler(acctClient, subscrClient))
+	lambda.Start(handler(acctClient, subscrClient, fsClient))
 }

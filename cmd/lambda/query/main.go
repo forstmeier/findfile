@@ -32,10 +32,7 @@ func main() {
 		log.Fatalf("error creating db client: %s", err.Error())
 	}
 
-	fsClient, err := fs.New(newSession)
-	if err != nil {
-		log.Fatalf("error creating fs client: %s", err.Error())
-	}
+	fsClient := fs.New(newSession)
 
 	lambda.Start(handler(acctClient, csqlClient, dbClient, fsClient))
 }

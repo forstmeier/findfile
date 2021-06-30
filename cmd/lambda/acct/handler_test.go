@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
+
 	"github.com/cheesesteakio/api/pkg/acct"
+	"github.com/cheesesteakio/api/pkg/fs"
 	"github.com/cheesesteakio/api/pkg/subscr"
 )
 
@@ -54,6 +56,22 @@ func (m *mockSubscrClient) AddUsage(ctx context.Context, itemID string, itemQuan
 	return nil
 }
 
+type mockFSClient struct {
+	mockDeleteFilesError error
+}
+
+func (m *mockFSClient) GenerateUploadURL(ctx context.Context, accountID string, fileInfo fs.FileInfo) (string, error) {
+	return "", nil
+}
+
+func (m *mockFSClient) GenerateDownloadURL(ctx context.Context, accountID string, fileInfo fs.FileInfo) (string, error) {
+	return "", nil
+}
+
+func (m *mockFSClient) DeleteFiles(ctx context.Context, accountID string, filesInfo []fs.FileInfo) error {
+	return m.mockDeleteFilesError
+}
+
 func Test_handler(t *testing.T) {
 	tests := []struct {
 		description                  string
@@ -66,6 +84,7 @@ func Test_handler(t *testing.T) {
 		mockCreateSubscriptionOutput *subscr.Subscription
 		mockCreateSubscriptionError  error
 		mockRemoveSubscriptionError  error
+		mockDeleteFilesError         error
 		statusCode                   int
 		body                         string
 	}{
@@ -82,6 +101,7 @@ func Test_handler(t *testing.T) {
 			mockCreateSubscriptionOutput: nil,
 			mockCreateSubscriptionError:  nil,
 			mockRemoveSubscriptionError:  nil,
+			mockDeleteFilesError:         nil,
 			statusCode:                   http.StatusBadRequest,
 			body:                         `{"error": "http method \[GET\] not supported"}`,
 		},
@@ -99,6 +119,7 @@ func Test_handler(t *testing.T) {
 			mockCreateSubscriptionOutput: nil,
 			mockCreateSubscriptionError:  nil,
 			mockRemoveSubscriptionError:  nil,
+			mockDeleteFilesError:         nil,
 			statusCode:                   http.StatusInternalServerError,
 			body:                         `{"error": "error unmarshalling subscriber info"}`,
 		},
@@ -116,6 +137,7 @@ func Test_handler(t *testing.T) {
 			mockCreateSubscriptionOutput: nil,
 			mockCreateSubscriptionError:  nil,
 			mockRemoveSubscriptionError:  nil,
+			mockDeleteFilesError:         nil,
 			statusCode:                   http.StatusInternalServerError,
 			body:                         `{"error": "error creating user account"}`,
 		},
@@ -133,6 +155,7 @@ func Test_handler(t *testing.T) {
 			mockCreateSubscriptionOutput: nil,
 			mockCreateSubscriptionError:  errors.New("mock create subscription error"),
 			mockRemoveSubscriptionError:  nil,
+			mockDeleteFilesError:         nil,
 			statusCode:                   http.StatusInternalServerError,
 			body:                         `{"error": "error creating user subscription"}`,
 		},
@@ -155,6 +178,7 @@ func Test_handler(t *testing.T) {
 			},
 			mockCreateSubscriptionError: nil,
 			mockRemoveSubscriptionError: nil,
+			mockDeleteFilesError:        nil,
 			statusCode:                  http.StatusInternalServerError,
 			body:                        `{"error": "error adding subscription to user account"}`,
 		},
@@ -177,6 +201,7 @@ func Test_handler(t *testing.T) {
 			},
 			mockCreateSubscriptionError: nil,
 			mockRemoveSubscriptionError: nil,
+			mockDeleteFilesError:        nil,
 			statusCode:                  http.StatusOK,
 			body:                        `{"message": "success", "account_id": ".*"}`,
 		},
@@ -193,6 +218,7 @@ func Test_handler(t *testing.T) {
 			mockCreateSubscriptionOutput: nil,
 			mockCreateSubscriptionError:  nil,
 			mockRemoveSubscriptionError:  nil,
+			mockDeleteFilesError:         nil,
 			statusCode:                   http.StatusBadRequest,
 			body:                         `{"error": "account id not provided"}`,
 		},
@@ -212,6 +238,7 @@ func Test_handler(t *testing.T) {
 			mockCreateSubscriptionOutput: nil,
 			mockCreateSubscriptionError:  nil,
 			mockRemoveSubscriptionError:  nil,
+			mockDeleteFilesError:         nil,
 			statusCode:                   http.StatusInternalServerError,
 			body:                         `{"error": "error getting account values"}`,
 		},
@@ -233,6 +260,7 @@ func Test_handler(t *testing.T) {
 			mockCreateSubscriptionOutput: nil,
 			mockCreateSubscriptionError:  nil,
 			mockRemoveSubscriptionError:  errors.New("mock delete subscription error"),
+			mockDeleteFilesError:         nil,
 			statusCode:                   http.StatusInternalServerError,
 			body:                         `{"error": "error removing user subscription"}`,
 		},
@@ -254,8 +282,31 @@ func Test_handler(t *testing.T) {
 			mockCreateSubscriptionOutput: nil,
 			mockCreateSubscriptionError:  nil,
 			mockRemoveSubscriptionError:  nil,
+			mockDeleteFilesError:         nil,
 			statusCode:                   http.StatusInternalServerError,
 			body:                         `{"error": "error removing user account"}`,
+		},
+		{
+			description: "s3 client error removing files from filesystem",
+			request: events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodDelete,
+				Headers: map[string]string{
+					accountIDHeader: "account_id",
+				},
+			},
+			mockCreateAccountError: nil,
+			mockUpdateAccountError: nil,
+			mockReadAccountOutput: &acct.Account{
+				StripeCustomerID: "stripe_customer_id",
+			},
+			mockReadAccountError:         nil,
+			mockDeleteAccountError:       nil,
+			mockCreateSubscriptionOutput: nil,
+			mockCreateSubscriptionError:  nil,
+			mockRemoveSubscriptionError:  nil,
+			mockDeleteFilesError:         errors.New("mock delete files error"),
+			statusCode:                   http.StatusInternalServerError,
+			body:                         `{"error": "error removing user files"}`,
 		},
 		{
 			description: "successful handler delete invocation",
@@ -275,6 +326,7 @@ func Test_handler(t *testing.T) {
 			mockCreateSubscriptionOutput: nil,
 			mockCreateSubscriptionError:  nil,
 			mockRemoveSubscriptionError:  nil,
+			mockDeleteFilesError:         nil,
 			statusCode:                   http.StatusOK,
 			body:                         `{"message": "success", "account_id": "account_id"}`,
 		},
@@ -296,7 +348,11 @@ func Test_handler(t *testing.T) {
 				mockRemoveSubscriptionError:  test.mockRemoveSubscriptionError,
 			}
 
-			handlerFunc := handler(acctClient, subscrClient)
+			fsClient := &mockFSClient{
+				mockDeleteFilesError: test.mockDeleteFilesError,
+			}
+
+			handlerFunc := handler(acctClient, subscrClient, fsClient)
 
 			response, _ := handlerFunc(context.Background(), test.request)
 
