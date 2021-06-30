@@ -7,7 +7,7 @@ import "context"
 type Subscriber interface {
 	CreateSubscription(ctx context.Context, accountID string, info SubscriberInfo) (*Subscription, error)
 	RemoveSubscription(ctx context.Context, subscription Subscription) error
-	AddUsage(ctx context.Context, id string) error
+	AddUsage(ctx context.Context, itemID string, itemQuantity int64) error
 }
 
 // SubscriberInfo contains the user information required to

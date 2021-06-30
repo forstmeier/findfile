@@ -50,7 +50,7 @@ func (m *mockSubscrClient) RemoveSubscription(ctx context.Context, subscription 
 	return m.mockRemoveSubscriptionError
 }
 
-func (m *mockSubscrClient) AddUsage(ctx context.Context, id string) error {
+func (m *mockSubscrClient) AddUsage(ctx context.Context, itemID string, itemQuantity int64) error {
 	return nil
 }
 

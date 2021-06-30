@@ -157,10 +157,10 @@ func (c *Client) RemoveSubscription(ctx context.Context, subscription Subscripti
 // AddUsage implements the Subscriber.AddUsage method and adds a
 // usage record for metered billing in Stripe for the provided
 // subscription item id.
-func (c *Client) AddUsage(ctx context.Context, id string) error {
+func (c *Client) AddUsage(ctx context.Context, itemID string, itemQuantity int64) error {
 	params := &stripe.UsageRecordParams{
-		Quantity:         stripe.Int64(1),
-		SubscriptionItem: stripe.String(id),
+		Quantity:         stripe.Int64(itemQuantity),
+		SubscriptionItem: stripe.String(itemID),
 		Timestamp:        stripe.Int64(time.Now().Unix()),
 	}
 	_, err := c.newUsageRecord(params)

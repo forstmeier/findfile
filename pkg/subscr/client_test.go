@@ -348,7 +348,7 @@ func TestAddUsage(t *testing.T) {
 				},
 			}
 
-			err := client.AddUsage(context.Background(), "test_subscription_item_id")
+			err := client.AddUsage(context.Background(), "test_subscription_item_id", 1)
 
 			if err != nil {
 				switch test.error.(type) {
