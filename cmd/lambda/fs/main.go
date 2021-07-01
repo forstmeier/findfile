@@ -3,6 +3,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
 
@@ -13,7 +15,9 @@ import (
 func main() {
 	newSession := session.New()
 
-	acctClient := acct.New(newSession)
+	tableName := os.Getenv("TABLE_NAME")
+
+	acctClient := acct.New(newSession, tableName)
 
 	fsClient := fs.New(newSession)
 

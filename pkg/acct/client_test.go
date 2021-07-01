@@ -12,7 +12,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	client := New(session.New())
+	client := New(session.New(), "table_name")
 
 	if client == nil {
 		t.Error("error creating accounter client")

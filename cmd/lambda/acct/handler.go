@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/google/uuid"
@@ -14,7 +15,7 @@ import (
 	"github.com/cheesesteakio/api/pkg/subscr"
 )
 
-const accountIDHeader = "x-cheesesteakstorage-account-id"
+var accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
 
 func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {

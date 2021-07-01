@@ -13,9 +13,10 @@ import (
 	"github.com/cheesesteakio/api/pkg/fs"
 )
 
-const accountIDHeader = "x-cheesesteakstorage-account-id"
-
-var demoAccountID = os.Getenv("DEMO_ACCOUNT_ID")
+var (
+	accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
+	demoAccountID   = os.Getenv("DEMO_ACCOUNT_ID")
+)
 
 func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {

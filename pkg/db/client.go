@@ -25,10 +25,10 @@ type documentDBClient interface {
 }
 
 // New generates a db.Client pointer instance with a DocumentDB client.
-func New(ddb *mongo.Client, databaseName, collectionName string) (*Client, error) {
+func New(ddb *mongo.Client, databaseName, collectionName string) *Client {
 	return &Client{
 		documentDBClient: ddb.Database(databaseName).Collection(collectionName),
-	}, nil
+	}
 }
 
 // CreateOrUpdateDocuments implements the db.Databaser.CreateOrUpdateDocuments

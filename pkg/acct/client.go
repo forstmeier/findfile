@@ -10,7 +10,6 @@ import (
 
 // DynamoDB-specific attribute keys for subscription values.
 const (
-	TableName                = "accounts"
 	AccountIDKey             = "id"
 	SubscriptionIDKey        = "subscription_id"
 	StripePaymentMethodIDKey = "stripe_payment_method_id"
@@ -22,6 +21,7 @@ var _ Accounter = &Client{}
 
 // Client implements the acct.Accounter methods using DynamoDB.
 type Client struct {
+	tableName      string
 	dynamoDBClient dynamoDBClient
 }
 
@@ -33,10 +33,11 @@ type dynamoDBClient interface {
 }
 
 // New generates a acct.Client pointer instance with a DynamoDB client.
-func New(newSession *session.Session) *Client {
+func New(newSession *session.Session, tableName string) *Client {
 	dynamoDBClient := dynamodb.New(newSession)
 
 	return &Client{
+		tableName:      tableName,
 		dynamoDBClient: dynamoDBClient,
 	}
 }
@@ -49,7 +50,7 @@ func (c *Client) CreateAccount(ctx context.Context, accountID string) error {
 				S: aws.String(accountID),
 			},
 		},
-		TableName: aws.String(TableName),
+		TableName: aws.String(c.tableName),
 	}
 
 	_, err := c.dynamoDBClient.PutItem(input)
@@ -68,7 +69,7 @@ func (c *Client) ReadAccount(ctx context.Context, accountID string) (*Account, e
 				S: aws.String(accountID),
 			},
 		},
-		TableName: aws.String(TableName),
+		TableName: aws.String(c.tableName),
 	}
 
 	output, err := c.dynamoDBClient.GetItem(input)
@@ -89,7 +90,7 @@ func (c *Client) UpdateAccount(ctx context.Context, accountID string, values map
 	expression, attributes := generateExpressionAndAttributes(values)
 
 	input := &dynamodb.UpdateItemInput{
-		TableName: aws.String(TableName),
+		TableName: aws.String(c.tableName),
 		Key: map[string]*dynamodb.AttributeValue{
 			AccountIDKey: {
 				S: aws.String(accountID),
@@ -116,7 +117,7 @@ func (c *Client) DeleteAccount(ctx context.Context, accountID string) error {
 				S: aws.String(accountID),
 			},
 		},
-		TableName: aws.String(TableName),
+		TableName: aws.String(c.tableName),
 	}
 
 	_, err := c.dynamoDBClient.DeleteItem(input)

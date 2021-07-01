@@ -16,15 +16,16 @@ import (
 func main() {
 	newSession := session.New()
 
-	acctClient := acct.New(newSession)
+	acctClient := acct.New(newSession, os.Getenv("TABLE_NAME"))
 
 	fsClient := fs.New(newSession)
 
-	stripeAPIKey := os.Getenv("STRIPE_API_KEY")
+	stripeItemIDs := []string{
+		os.Getenv("STRIPE_MONTHLY_PRICE_ID"),
+		os.Getenv("STRIPE_METERED_PRICE_ID"),
+	}
 
-	stripeItemIDs := []string{}
-
-	subscrClient := subscr.New(stripeAPIKey, stripeItemIDs)
+	subscrClient := subscr.New(os.Getenv("STRIPE_API_KEY"), stripeItemIDs)
 
 	lambda.Start(handler(acctClient, subscrClient, fsClient))
 }

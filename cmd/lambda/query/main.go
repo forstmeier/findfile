@@ -4,6 +4,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -23,14 +24,13 @@ func main() {
 		log.Fatalf("error creating mongo db client: %s", err.Error())
 	}
 
-	acctClient := acct.New(newSession)
+	tableName := os.Getenv("TABLE_NAME")
+
+	acctClient := acct.New(newSession, tableName)
 
 	csqlClient := csql.New()
 
-	dbClient, err := db.New(ddb, "main", "documents")
-	if err != nil {
-		log.Fatalf("error creating db client: %s", err.Error())
-	}
+	dbClient := db.New(ddb, "main", "documents")
 
 	fsClient := fs.New(newSession)
 

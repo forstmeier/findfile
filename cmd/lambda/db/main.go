@@ -21,10 +21,7 @@ func main() {
 
 	docparsClient := docpars.New(session.New())
 
-	dbClient, err := db.New(ddb, "main", "documents")
-	if err != nil {
-		log.Fatalf("error creating db client: %s", err.Error())
-	}
+	dbClient := db.New(ddb, "main", "documents")
 
 	lambda.Start(handler(docparsClient, dbClient))
 }

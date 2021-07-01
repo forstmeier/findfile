@@ -17,12 +17,7 @@ func TestNew(t *testing.T) {
 		t.Fatalf("error creating test session: %s", err.Error())
 	}
 
-	client, err := New(ddb, "databaseName", "collectionName")
-
-	if err != nil {
-		t.Errorf("error received creating database client, %s:", err.Error())
-	}
-
+	client := New(ddb, "databaseName", "collectionName")
 	if client == nil {
 		t.Error("error creating database client")
 	}
