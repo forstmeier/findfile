@@ -9,3 +9,9 @@ acct
 db
 fs
 query
+
+# zipped binaries
+acct.zip
+db.zip
+fs.zip
+query.zip
