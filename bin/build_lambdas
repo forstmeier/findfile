@@ -1,0 +1,13 @@
+#!/bin/bash
+
+GOARCH=amd64 GOOS=linux go build -o acct ./cmd/lambda/acct
+GOARCH=amd64 GOOS=linux go build -o db ./cmd/lambda/db
+GOARCH=amd64 GOOS=linux go build -o fs ./cmd/lambda/fs
+GOARCH=amd64 GOOS=linux go build -o query ./cmd/lambda/query
+
+zip acct.zip acct
+zip db.zip db
+zip fs.zip fs
+zip query.zip query
+
+rm acct db fs query

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+AWS_OUTPUT=$( cat etc/config/output.json | jq '.aws' )
+
+ARTIFACT_BUCKET=$( jq -r  '.s3.artifact_bucket' <<< "${AWS_OUTPUT}" ) 
+ACCT_FUNCTION=$( jq -r  '.lambda.acct_function.name' <<< "${AWS_OUTPUT}" ) 
+DB_FUNCTION=$( jq -r  '.lambda.db_function.name' <<< "${AWS_OUTPUT}" ) 
+FS_FUNCTION=$( jq -r  '.lambda.fs_function.name' <<< "${AWS_OUTPUT}" ) 
+QUERY_FUNCTION=$( jq -r  '.lambda.query_function.name' <<< "${AWS_OUTPUT}" ) 
+
+aws lambda update-function-code --function-name $ACCT_FUNCTION --s3-bucket $ARTIFACT_BUCKET --s3-key acct.zip --region us-east-1
+aws lambda update-function-code --function-name $DB_FUNCTION --s3-bucket $ARTIFACT_BUCKET --s3-key db.zip --region us-east-1
+aws lambda update-function-code --function-name $FS_FUNCTION --s3-bucket $ARTIFACT_BUCKET --s3-key fs.zip --region us-east-1
+aws lambda update-function-code --function-name $QUERY_FUNCTION --s3-bucket $ARTIFACT_BUCKET --s3-key query.zip --region us-east-1
+
+ARN=$( aws lambda publish-layer-version --layer-name rds-layer --content S3Bucket=$ARTIFACT_BUCKET,S3Key=rds-layer.zip --compatible-runtimes go1.x --region us-east-1 | jq -r '.LayerVersionArn' )
+
+aws lambda update-function-configuration --function-name $DB_FUNCTION --layers $ARN --region us-east-1
+aws lambda update-function-configuration --function-name $QUERY_FUNCTION --layers $ARN --region us-east-1
