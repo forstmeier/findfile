@@ -1,0 +1,5 @@
+#!/bin/bash
+
+STACK_NAME=cheesesteakio
+
+aws cloudformation delete-stack --stack-name $STACK_NAME

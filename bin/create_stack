@@ -1,0 +1,23 @@
+#!/bin/bash
+
+STACK_NAME=cheesesteakio
+
+CONFIG_JSON=$( cat etc/config/config.json | jq )
+
+ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) 
+
+aws cloudformation deploy \
+	--template-file cft.yaml \
+	--stack-name $STACK_NAME \
+	--parameter-overrides \
+		AccountIDHTTPHeader=$( jq -r  '.app.account_id_http_header' <<< "${CONFIG_JSON}" ) \
+		ArtifactBucket=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) \
+		MainBucket=$( jq -r  '.aws.s3.main_bucket' <<< "${CONFIG_JSON}" ) \
+		DemoAccountID=$( jq -r  '.app.demo_account_id' <<< "${CONFIG_JSON}" ) \
+		StripeAPIKey=$( jq -r  '.stripe.api_key' <<< "${CONFIG_JSON}" ) \
+		StripeMonthlyPriceID=$( jq -r  '.stripe.monthly_price_id' <<< "${CONFIG_JSON}" ) \
+		StripeMeteredPriceID=$( jq -r  '.stripe.metered_price_id' <<< "${CONFIG_JSON}" ) \
+		DBIndexUsername=$( jq -r  '.aws.db_index.username' <<< "${CONFIG_JSON}" ) \
+		DBIndexPassword=$( jq -r  '.aws.db_index.password' <<< "${CONFIG_JSON}" ) \
+	--capabilities CAPABILITY_IAM \
+	--no-fail-on-empty-changeset

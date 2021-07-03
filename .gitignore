@@ -1,9 +1,8 @@
 # unit test output
 coverage.out
 
-# configuration input/output
-etc/config/input.json
-etc/config/output.json
+# configuration
+etc/config/config.json
 
 # binaries
 acct

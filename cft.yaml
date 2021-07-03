@@ -1,0 +1,427 @@
+Description: API resources definition
+
+Parameters:
+
+  AccountIDHTTPHeader:
+    Type: String
+    Description: HTTP header for receiving account IDs in the API
+  ArtifactBucket:
+    Type: String
+    Description: Storage location for all code and application artifacts - built separate from stack
+  MainBucket:
+    Type: String
+    Description: Storage location for all user files in application - built separate from stack
+  DemoAccountID:
+    Type: String
+    Description: UUID for demo account request header
+  StripeAPIKey:
+    Type: String
+    Description: Stripe API key for the application account
+  StripeMonthlyPriceID:
+    Type: String
+    Description: Stripe ID for the fixed monthly subscription price
+  StripeMeteredPriceID:
+    Type: String
+    Description: Stripe ID for the per-usage subscription price
+  DBIndexUsername:
+    Type: String
+    Description: Username for the query database
+  DBIndexPassword:
+    Type: String
+    Description: Password for the query database
+
+Resources:
+
+  acctFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: 
+        S3Bucket:
+          Ref: ArtifactBucket 
+        S3Key: acct.zip
+      Description: Function providing user account management
+      Environment:
+        Variables:
+          ACCOUNT_ID_HTTP_HEADER:
+            Ref: AccountIDHTTPHeader
+          STRIPE_API_KEY:
+            Ref: StripeAPIKey
+          STRIPE_MONTHLY_PRICE_ID:
+            Ref: StripeMonthlyPriceID
+          STRIPE_METERED_PRICE_ID:
+            Ref: StripeMeteredPriceID
+          TABLE_NAME:
+            Ref: acctTable
+      FunctionName: acctFunction
+      Handler: acct
+      MemorySize: 128
+      Role:
+        Fn::GetAtt:
+        - acctRole
+        - Arn
+      Runtime: go1.x
+      Timeout: 5
+
+  dbFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: ArtifactBucket
+        S3Key: db.zip
+      Description: Function providing parsed user document management
+      FunctionName: dbFunction
+      Handler: db
+      Layers:
+      - Ref: rdsLayer
+      MemorySize: 256
+      Role:
+        Fn::GetAtt:
+        - dbRole
+        - Arn
+      Runtime: go1.x
+      Timeout: 10
+
+  fsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: ArtifactBucket
+        S3Key: fs.zip
+      Description: Function providing user file management
+      Environment:
+        Variables:
+          ACCOUNT_ID_HTTP_HEADER:
+            Ref: AccountIDHTTPHeader
+          DEMO_ACCOUNT_ID:
+            Ref: DemoAccountID
+          TABLE_NAME:
+            Ref: acctTable
+      FunctionName: fsFunction
+      Handler: fs
+      MemorySize: 128
+      Role:
+        Fn::GetAtt:
+        - fsRole
+        - Arn
+      Runtime: go1.x
+      Timeout: 5
+
+  queryFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: ArtifactBucket
+        S3Key: query.zip
+      Description: Function providing user query handling
+      Environment:
+        Variables:
+          ACCOUNT_ID_HTTP_HEADER:
+            Ref: AccountIDHTTPHeader
+          DEMO_ACCOUNT_ID:
+            Ref: DemoAccountID
+          TABLE_NAME:
+            Ref: acctTable
+      FunctionName: queryFunction
+      Handler: query
+      Layers:
+      - Ref: rdsLayer
+      MemorySize: 128
+      Role:
+        Fn::GetAtt:
+        - queryRole
+        - Arn
+      Runtime: go1.x
+      Timeout: 5
+
+  rdsLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      Content:
+        S3Bucket: 
+          Ref: ArtifactBucket
+        S3Key: rds-layer.zip
+      
+  acctRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Description: Role for managing user accounts in acctFunction
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Policies:
+      - PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Action:
+            - dynamodb:DeleteItem
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            Effect: Allow
+            Resource: "*"
+          - Action:
+            - s3:DeleteObject
+            - s3:ListBucket
+            Effect: Allow
+            Resource: "*"
+        PolicyName: acctPolicy
+
+  dbRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Description: Role for parsing provided files into documents in dbFunction
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Policies:
+      - PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Action:
+            - textract:DetectDocumentText
+            Effect: Allow
+            Resource: "*"
+        PolicyName: dbPolicy
+
+  fsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Description: Role for managing provided files and stored documents in fsFunction
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Policies:
+      - PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - dynamodb:GetItem
+            Effect: Allow
+            Resource: "*"
+          - Action:
+            - s3:DeleteObject
+            - s3:GetObject
+            - s3:PutObject
+            Effect: Allow
+            Resource: "*"
+        PolicyName: fsPolicy
+
+  queryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Description: Role for querying stored documents in queryFunction
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Policies:
+      - PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - dynamodb:GetItem
+            Effect: Allow
+            Resource: "*"
+        PolicyName: queryPolicy
+
+  acctTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  dbIndex:
+    Type: AWS::DocDB::DBCluster
+    Properties:
+      MasterUsername:
+        Ref: DBIndexUsername
+      MasterUserPassword:
+        Ref: DBIndexPassword
+      StorageEncrypted: true
+
+  api:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Body:
+        swagger: "2.0"
+        info:
+          title: Application API
+          version: "0.1"
+        schemes:
+        - https
+        paths:
+          /account:
+            post:
+              produces:
+              - application/json
+              responses:
+                "200":
+                  description: Successful account POST request
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      acount_id:
+                        type: string
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${acctFunction.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: when_no_match
+                contentHandling: CONVERT_TO_TEXT
+                type: aws_proxy
+            delete:
+              produces:
+              - application/json
+              responses:
+                "200":
+                  description: Successful account DELETE request
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      acount_id:
+                        type: string
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${acctFunction.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: when_no_match
+                contentHandling: CONVERT_TO_TEXT
+                type: aws_proxy
+          /files:
+            post:
+              produces:
+              - application/json
+              responses:
+                "200":
+                  description: Successful files POST request
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      urls:
+                        type: array
+                        items:
+                          type: string
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${fsFunction.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: when_no_match
+                contentHandling: CONVERT_TO_TEXT
+                type: aws_proxy
+            delete:
+              produces:
+              - application/json
+              responses:
+                "200":
+                  description: Successful files DELETE request
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${fsFunction.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: when_no_match
+                contentHandling: CONVERT_TO_TEXT
+                type: aws_proxy
+          /query:
+            post:
+              produces:
+              - application/json
+              responses:
+                "200":
+                  description: Successful query POST request
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      filenames:
+                        type: array
+                        items:
+                          type: string
+                      presigned_urls:
+                        type: array
+                        items:
+                          type: string
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${queryFunction.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: when_no_match
+                contentHandling: CONVERT_TO_TEXT
+                type: aws_proxy
+
+Outputs:
+  AcctFunctionName:
+    Value:
+      Ref: acctFunction
+  DBFunctionName:
+    Value:
+      Ref: dbFunction
+  FSFunctionName:
+    Value:
+      Ref: fsFunction
+  QueryFunctionName:
+    Value:
+      Ref: queryFunction
+  ArtifactBucketName:
+    Value:
+      Ref: ArtifactBucket
+  MainBucketName:
+    Value:
+      Ref: MainBucket

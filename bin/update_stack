@@ -1,0 +1,24 @@
+#!/bin/bash
+
+STACK_NAME=cheesesteakio
+
+CONFIG_JSON=$( cat etc/config/config.json | jq )
+
+ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) 
+
+aws s3 cp cft.yaml s3://$ARTIFACT_BUCKET/cft.yaml
+
+aws cloudformation update-stack \
+	--stack-name $STACK_NAME \
+	--template-url https://s3.amazonaws.com/$ARTIFACT_BUCKET/cft.yaml \
+	--parameters \
+		ParameterKey=AccountIDHTTPHeader,ParameterValue=$( jq -r  '.app.account_id_http_header' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=ArtifactBucket,ParameterValue=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=MainBucket,ParameterValue=$( jq -r  '.aws.s3.main_bucket' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=DemoAccountID,ParameterValue=$( jq -r  '.app.demo_account_id' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=StripeAPIKey,ParameterValue=$( jq -r  '.stripe.api_key' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=StripeMonthlyPriceID,ParameterValue=$( jq -r  '.stripe.monthly_price_id' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=StripeMeteredPriceID,ParameterValue=$( jq -r  '.stripe.metered_price_id' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=DBIndexUsername,ParameterValue=$( jq -r  '.aws.db_index.username' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=DBIndexPassword,ParameterValue=$( jq -r  '.aws.db_index.password' <<< "${CONFIG_JSON}" ) \
+	--capabilities CAPABILITY_IAM \
