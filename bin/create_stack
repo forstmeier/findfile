@@ -1,6 +1,6 @@
 #!/bin/bash
 
-STACK_NAME=cheesesteakio
+STACK_NAME=cheesesteak
 
 CONFIG_JSON=$( cat etc/config/config.json | jq )
 
@@ -17,7 +17,7 @@ aws cloudformation deploy \
 		StripeAPIKey=$( jq -r  '.stripe.api_key' <<< "${CONFIG_JSON}" ) \
 		StripeMonthlyPriceID=$( jq -r  '.stripe.monthly_price_id' <<< "${CONFIG_JSON}" ) \
 		StripeMeteredPriceID=$( jq -r  '.stripe.metered_price_id' <<< "${CONFIG_JSON}" ) \
-		DBIndexUsername=$( jq -r  '.aws.db_index.username' <<< "${CONFIG_JSON}" ) \
-		DBIndexPassword=$( jq -r  '.aws.db_index.password' <<< "${CONFIG_JSON}" ) \
+		DBUsername=$( jq -r  '.aws.db.username' <<< "${CONFIG_JSON}" ) \
+		DBPassword=$( jq -r  '.aws.db.password' <<< "${CONFIG_JSON}" ) \
 	--capabilities CAPABILITY_IAM \
 	--no-fail-on-empty-changeset

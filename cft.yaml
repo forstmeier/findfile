@@ -23,10 +23,10 @@ Parameters:
   StripeMeteredPriceID:
     Type: String
     Description: Stripe ID for the per-usage subscription price
-  DBIndexUsername:
+  DBUsername:
     Type: String
     Description: Username for the query database
-  DBIndexPassword:
+  DBPassword:
     Type: String
     Description: Password for the query database
 
@@ -265,10 +265,17 @@ Resources:
     Type: AWS::DocDB::DBCluster
     Properties:
       MasterUsername:
-        Ref: DBIndexUsername
+        Ref: DBUsername
       MasterUserPassword:
-        Ref: DBIndexPassword
+        Ref: DBPassword
       StorageEncrypted: true
+
+  dbInstance:
+    Type: AWS::DocDB::DBInstance
+    Properties:
+      DBClusterIdentifier:
+        Ref: dbIndex
+      DBInstanceClass: db.r5.large
 
   api:
     Type: AWS::ApiGateway::RestApi

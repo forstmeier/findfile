@@ -1,6 +1,6 @@
 #!/bin/bash
 
-STACK_NAME=cheesesteakio
+STACK_NAME=cheesesteak
 
 CONFIG_JSON=$( cat etc/config/config.json | jq )
 
@@ -19,6 +19,6 @@ aws cloudformation update-stack \
 		ParameterKey=StripeAPIKey,ParameterValue=$( jq -r  '.stripe.api_key' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=StripeMonthlyPriceID,ParameterValue=$( jq -r  '.stripe.monthly_price_id' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=StripeMeteredPriceID,ParameterValue=$( jq -r  '.stripe.metered_price_id' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=DBIndexUsername,ParameterValue=$( jq -r  '.aws.db_index.username' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=DBIndexPassword,ParameterValue=$( jq -r  '.aws.db_index.password' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=DBUsername,ParameterValue=$( jq -r  '.aws.db.username' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=DBPassword,ParameterValue=$( jq -r  '.aws.db.password' <<< "${CONFIG_JSON}" ) \
 	--capabilities CAPABILITY_IAM \
