@@ -1,6 +1,6 @@
 #!/bin/bash
 
-AWS_OUTPUT=$( cat etc/config/output.json | jq '.aws' )
+AWS_OUTPUT=$( cat etc/config/config.json | jq '.aws' )
 
 ARTIFACT_BUCKET=$( jq -r  '.s3.artifact_bucket' <<< "${AWS_OUTPUT}" ) 
 ACCT_FUNCTION=$( jq -r  '.lambda.acct_function.name' <<< "${AWS_OUTPUT}" ) 
