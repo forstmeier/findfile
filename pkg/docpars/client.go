@@ -89,7 +89,7 @@ func convertToDocument(input *textract.DetectDocumentTextOutput, accountID, file
 		page := Page{
 			ID:     uuid.NewString(),
 			Entity: pageEntity,
-			Lines:  []Data{},
+			Lines:  []Line{},
 		}
 
 		if pageBlock.Page == nil {
@@ -106,7 +106,7 @@ func convertToDocument(input *textract.DetectDocumentTextOutput, accountID, file
 				height := *lineBlock.Geometry.BoundingBox.Height
 				width := *lineBlock.Geometry.BoundingBox.Width
 
-				data := Data{
+				data := Line{
 					ID:     uuid.NewString(),
 					Entity: lineEntity,
 					Text:   *lineBlock.Text,

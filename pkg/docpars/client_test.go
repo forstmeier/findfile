@@ -66,7 +66,7 @@ func TestParse(t *testing.T) {
 				Filepath:  filepath,
 				Pages: []Page{
 					{
-						Lines: []Data{
+						Lines: []Line{
 							{
 								Text: "test line",
 								Coordinates: Coordinates{
@@ -203,7 +203,7 @@ func Test_convertToContent(t *testing.T) {
 				Pages: []Page{
 					{
 						PageNumber: 1,
-						Lines: []Data{
+						Lines: []Line{
 							{
 								Text: "test words",
 								Coordinates: Coordinates{
@@ -280,7 +280,7 @@ func Test_convertToContent(t *testing.T) {
 				Pages: []Page{
 					{
 						PageNumber: 1,
-						Lines: []Data{
+						Lines: []Line{
 							{
 								Text: "test words",
 								Coordinates: Coordinates{
@@ -391,7 +391,7 @@ func Test_convertToContent(t *testing.T) {
 				Pages: []Page{
 					{
 						PageNumber: 1,
-						Lines: []Data{
+						Lines: []Line{
 							{
 								Text: "test words",
 								Coordinates: Coordinates{
@@ -417,7 +417,7 @@ func Test_convertToContent(t *testing.T) {
 					},
 					{
 						PageNumber: 2,
-						Lines: []Data{
+						Lines: []Line{
 							{
 								Text: "another",
 								Coordinates: Coordinates{

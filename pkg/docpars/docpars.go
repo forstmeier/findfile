@@ -17,11 +17,11 @@ type Page struct {
 	ID         string `json:"id"`
 	Entity     string `json:"entity"`
 	PageNumber int64  `json:"page_number"`
-	Lines      []Data `json:"lines"`
+	Lines      []Line `json:"lines"`
 }
 
-// Data holds text and location coordinates retrieved from the image file.
-type Data struct {
+// Line holds text and location coordinates retrieved from the image file.
+type Line struct {
 	ID          string      `json:"id"`
 	Entity      string      `json:"entity"`
 	Text        string      `json:"text"`
