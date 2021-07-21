@@ -2,6 +2,10 @@ package db
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
+	"io/ioutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -22,6 +26,32 @@ type documentDBClient interface {
 	UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error)
 	DeleteOne(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) (*mongo.DeleteResult, error)
 	Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (*mongo.Cursor, error)
+}
+
+// GetConnectionURI is a DocumentDB-specific implementation
+// helper function for generating a TLS database endpoint.
+func GetConnectionURI(username, password, endpoint string) string {
+	connectionStringTemplate := "mongodb://%s:%s@%s/sample-database?tls=true&replicaSet=rs0&readpreference=secondaryPreferred"
+	return fmt.Sprintf(connectionStringTemplate, username, password, endpoint)
+}
+
+// GetTLSConfig is a DocumentDB-specific implementation
+// helper function for generating a TLS config from the
+// provided PEM file path.
+func GetTLSConfig(filepath string) (*tls.Config, error) {
+	tlsConfig := new(tls.Config)
+	certs, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		return tlsConfig, &ErrorReadPEMFile{err: err}
+	}
+
+	tlsConfig.RootCAs = x509.NewCertPool()
+	ok := tlsConfig.RootCAs.AppendCertsFromPEM(certs)
+	if !ok {
+		return tlsConfig, &ErrorParsePEMFile{}
+	}
+
+	return tlsConfig, nil
 }
 
 // New generates a db.Client pointer instance with a DocumentDB client.

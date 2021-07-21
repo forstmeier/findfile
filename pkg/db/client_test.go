@@ -11,6 +11,25 @@ import (
 	"github.com/cheesesteakio/api/pkg/docpars"
 )
 
+func TestGetConnectionURI(t *testing.T) {
+	received := GetConnectionURI("username", "password", "endpoint")
+	expected := "mongodb://username:password@endpoint/sample-database?tls=true&replicaSet=rs0&readpreference=secondaryPreferred"
+	if received != expected {
+		t.Errorf("incorrect connection uri, received: %s, expected: %s", received, expected)
+	}
+}
+
+func TestGetTLSConfig(t *testing.T) {
+	tlsConfig, err := GetTLSConfig("../../etc/aws/rds-combined-ca-bundle.pem")
+	if tlsConfig == nil {
+		t.Error("error creating tls config")
+	}
+
+	if err != nil {
+		t.Errorf("error creating tls config: %s", err.Error())
+	}
+}
+
 func TestNew(t *testing.T) {
 	ddb, err := mongo.NewClient(nil)
 	if err != nil {

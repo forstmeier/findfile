@@ -4,6 +4,24 @@ import "fmt"
 
 const packageName = "db"
 
+// ErrorReadPEMFile wraps errors returned by ioutil.ReadFile
+// in the db.GetTLSConfig function.
+type ErrorReadPEMFile struct {
+	err error
+}
+
+func (e *ErrorReadPEMFile) Error() string {
+	return fmt.Sprintf("%s: get tls config: %s", packageName, e.err.Error())
+}
+
+// ErrorParsePEMFile wraps errors returned by an ok check in
+// parsing the PEK file in the db.GetTLSConfig function.
+type ErrorParsePEMFile struct{}
+
+func (e *ErrorParsePEMFile) Error() string {
+	return fmt.Sprintf("%s: get tls config: error parsing pem file", packageName)
+}
+
 // ErrorNewClient wraps errors returned by mongo.NewClient in
 // the db.New method.
 type ErrorNewClient struct {

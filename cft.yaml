@@ -70,6 +70,15 @@ Resources:
           Ref: ArtifactBucket
         S3Key: db.zip
       Description: Function providing parsed user document management
+      Environment:
+        Variables:
+          DB_USERNAME:
+            Ref: DBUsername
+          DB_PASSWORD:
+            Ref: DBPassword
+          DB_ENDPOINT:
+            Fn::GetAtt:
+              - dbIndex.Endpoint
       FunctionName: dbFunction
       Handler: db
       Layers:
@@ -124,6 +133,13 @@ Resources:
             Ref: DemoAccountID
           TABLE_NAME:
             Ref: acctTable
+          DB_USERNAME:
+            Ref: DBUsername
+          DB_PASSWORD:
+            Ref: DBPassword
+          DB_ENDPOINT:
+            Fn::GetAtt:
+              - dbIndex.Endpoint
       FunctionName: queryFunction
       Handler: query
       Layers:

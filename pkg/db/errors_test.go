@@ -5,6 +5,28 @@ import (
 	"testing"
 )
 
+func TestErrorReadPEMFile(t *testing.T) {
+	err := &ErrorReadPEMFile{err: errors.New("mock ioutil read file error")}
+
+	recieved := err.Error()
+	expected := "db: get tls config: mock ioutil read file error"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
+
+func TestErrorParsePEMFile(t *testing.T) {
+	err := &ErrorParsePEMFile{}
+
+	recieved := err.Error()
+	expected := "db: get tls config: error parsing pem file"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
+
 func TestErrorNewClient(t *testing.T) {
 	err := &ErrorNewClient{err: errors.New("mock new client error")}
 
