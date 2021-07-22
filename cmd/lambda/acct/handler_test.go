@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"errors"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"testing"
 
@@ -13,6 +16,11 @@ import (
 	"github.com/cheesesteakio/api/pkg/fs"
 	"github.com/cheesesteakio/api/pkg/subscr"
 )
+
+func TestMain(m *testing.M) {
+	log.SetOutput(ioutil.Discard)
+	os.Exit(m.Run())
+}
 
 type mockAcctClient struct {
 	mockCreateAccountError error

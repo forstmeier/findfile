@@ -13,18 +13,23 @@ import (
 	"github.com/cheesesteakio/api/pkg/acct"
 	"github.com/cheesesteakio/api/pkg/fs"
 	"github.com/cheesesteakio/api/pkg/subscr"
+	"github.com/cheesesteakio/api/util"
 )
 
 var accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
 
 func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+		util.Log("REQUEST_BODY", request.Body)
+		util.Log("REQUEST_METHOD", request.HTTPMethod)
+
 		body := ""
 
 		switch request.HTTPMethod {
 		case http.MethodPost:
 			subscriberInfo := subscr.SubscriberInfo{}
 			if err := json.Unmarshal([]byte(request.Body), &subscriberInfo); err != nil {
+				util.Log("UNMARSHAL_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error unmarshalling subscriber info"}`,
@@ -35,6 +40,7 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 			accountID := uuid.NewString()
 
 			if err := acctClient.CreateAccount(ctx, accountID); err != nil {
+				util.Log("CREATE_ACCOUNT_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error creating user account"}`,
@@ -43,6 +49,7 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 
 			subscription, err := subscrClient.CreateSubscription(ctx, accountID, subscriberInfo)
 			if err != nil {
+				util.Log("CREATE_SUBSCRIPTION_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error creating user subscription"}`,
@@ -57,6 +64,7 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 			}
 
 			if err := acctClient.UpdateAccount(ctx, accountID, subscriptionValues); err != nil {
+				util.Log("UPDATE_ACCOUNT_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error adding subscription to user account"}`,
@@ -68,6 +76,7 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 		case http.MethodDelete:
 			accountID, ok := request.Headers[accountIDHeader]
 			if !ok {
+				util.Log("ACCOUNT_ID_ERROR", "account id not provided")
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusBadRequest,
 					Body:       `{"error": "account id not provided"}`,
@@ -76,6 +85,7 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 
 			account, err := acctClient.ReadAccount(ctx, accountID)
 			if err != nil {
+				util.Log("READ_ACCOUNT_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error getting account values"}`,
@@ -90,6 +100,7 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 			}
 
 			if err := subscrClient.RemoveSubscription(ctx, subscription); err != nil {
+				util.Log("REMOVE_SUBSCRIPTION_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error removing user subscription"}`,
@@ -97,6 +108,7 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 			}
 
 			if err := acctClient.DeleteAccount(ctx, accountID); err != nil {
+				util.Log("DELETE_ACCOUNT_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error removing user account"}`,
@@ -104,8 +116,8 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 			}
 
 			filesInfo, err := fsClient.ListFilesByAccountID(ctx, fs.MainBucket, accountID)
-
 			if err != nil {
+				util.Log("LIST_FILES_BY_ACCOUNT_ID_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error listing user files"}`,
@@ -113,6 +125,7 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 			}
 
 			if err := fsClient.DeleteFiles(ctx, accountID, filesInfo); err != nil {
+				util.Log("DELETE_FILES_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error removing user files"}`,
@@ -128,6 +141,7 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 			}, nil
 		}
 
+		util.Log("RESPONSE_BODY", body)
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusOK,
 			Body:       body,

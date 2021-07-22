@@ -11,6 +11,7 @@ import (
 
 	"github.com/cheesesteakio/api/pkg/acct"
 	"github.com/cheesesteakio/api/pkg/fs"
+	"github.com/cheesesteakio/api/util"
 )
 
 var (
@@ -20,8 +21,12 @@ var (
 
 func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+		util.Log("REQUEST_BODY", request.Body)
+		util.Log("REQUEST_METHOD", request.HTTPMethod)
+
 		accountID, ok := request.Headers[accountIDHeader]
 		if !ok {
+			util.Log("ACCOUNT_ID_ERROR", "account id not provided")
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
 				Body:       `{"error": "account id not provided"}`,
@@ -37,8 +42,8 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 
 		if !isDemo {
 			account, err := acctClient.ReadAccount(ctx, accountID)
-
 			if err != nil {
+				util.Log("READ_ACCOUNT_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error getting account values"}`,
@@ -46,6 +51,7 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 			}
 
 			if account == nil {
+				util.Log("ACCOUNT_ERROR", "nil account value")
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       fmt.Sprintf(`{"error": "account [%s] not found}`, accountID),
@@ -55,6 +61,7 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 
 		filenames := []string{}
 		if err := json.Unmarshal([]byte(request.Body), &filenames); err != nil {
+			util.Log("UNMARSHAL_REQUEST_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
 				Body:       `{"error": "error unmarshalling filenames array"}`,
@@ -74,6 +81,7 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 
 				presignedURL, err := fsClient.GenerateUploadURL(ctx, accountID, fileInfo)
 				if err != nil {
+					util.Log("GENERATE_UPLOAD_URL_ERROR", err)
 					return events.APIGatewayProxyResponse{
 						StatusCode: http.StatusInternalServerError,
 						Body:       fmt.Sprintf(`{"error": "error generating [%s] presigned url"}`, fileame),
@@ -85,6 +93,7 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 
 			presignedURLsBytes, err := json.Marshal(presignedURLs)
 			if err != nil {
+				util.Log("MARSHAL_PRESIGNED_URLS_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error marshalling presigned urls"}`,
@@ -102,6 +111,7 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 			}
 
 			if err := fsClient.DeleteFiles(ctx, accountID, filesInfo); err != nil {
+				util.Log("DELETE_FILES_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error deleting files"}`,
@@ -116,6 +126,7 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 			}, nil
 		}
 
+		util.Log("RESPONSE_BODY", body)
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusOK,
 			Body:       body,

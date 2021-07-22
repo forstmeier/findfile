@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"io/ioutil"
+	"log"
+	"os"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -10,6 +13,11 @@ import (
 	"github.com/cheesesteakio/api/pkg/db"
 	"github.com/cheesesteakio/api/pkg/docpars"
 )
+
+func TestMain(m *testing.M) {
+	log.SetOutput(ioutil.Discard)
+	os.Exit(m.Run())
+}
 
 type mockDocParsClient struct {
 	parseAccountID string

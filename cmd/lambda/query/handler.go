@@ -13,6 +13,7 @@ import (
 	"github.com/cheesesteakio/api/pkg/csql"
 	"github.com/cheesesteakio/api/pkg/db"
 	"github.com/cheesesteakio/api/pkg/fs"
+	"github.com/cheesesteakio/api/util"
 )
 
 var (
@@ -22,8 +23,12 @@ var (
 
 func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Databaser, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+		util.Log("REQUEST_BODY", request.Body)
+		util.Log("REQUEST_METHOD", request.HTTPMethod)
+
 		accountID, ok := request.Headers[accountIDHeader]
 		if !ok {
+			util.Log("ACCOUNT_ID_ERROR", "account id not provided")
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
 				Body:       `{"error": "account id not provided"}`,
@@ -31,6 +36,7 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 		}
 
 		if request.HTTPMethod != http.MethodPost {
+			util.Log("HTTP_METHOD_ERROR", "http method not supported")
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
 				Body:       fmt.Sprintf(`{"error": "http method [%s] not supported"}`, request.HTTPMethod),
@@ -46,8 +52,8 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 
 		if !isDemo {
 			account, err := acctClient.ReadAccount(ctx, accountID)
-
 			if err != nil {
+				util.Log("READ_ACCOUNT_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error getting account values"}`,
@@ -55,6 +61,7 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 			}
 
 			if account == nil {
+				util.Log("ACCOUNT_ERROR", "nil account value")
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       fmt.Sprintf(`{"error": "account [%s] not found}`, accountID),
@@ -64,6 +71,7 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 
 		query := map[string]interface{}{}
 		if err := json.Unmarshal([]byte(request.Body), &query); err != nil {
+			util.Log("UNMARSHAL_REQUEST_BODY_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
 				Body:       `{"error": "error unmarshalling query"}`,
@@ -72,6 +80,7 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 
 		csqlQuery, err := csqlClient.ConvertCSQL(ctx, accountID, query)
 		if err != nil {
+			util.Log("CONVERT_CSQL_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
 				Body:       `{"error": "error converting query to csql"}`,
@@ -80,6 +89,7 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 
 		documents, err := dbClient.QueryDocuments(ctx, csqlQuery)
 		if err != nil {
+			util.Log("QUERY_DOCUMENTS_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
 				Body:       fmt.Sprintf(`{"error": "error runing [%s] query"}`, csqlQuery),
@@ -98,6 +108,7 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 
 			presignedURL, err := fsClient.GenerateDownloadURL(ctx, accountID, fileInfo)
 			if err != nil {
+				util.Log("GENERATE_DOWNLOAD_URL_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       fmt.Sprintf(`{"error": "error generating [%s] presigned url"}`, document.Filename),
@@ -118,12 +129,14 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 
 		outputBytes, err := json.Marshal(output)
 		if err != nil {
+			util.Log("MARSHAL_OUTPUT_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
 				Body:       `{"error": "error marshalling presigned urls"}`,
 			}, nil
 		}
 
+		util.Log("RESPONSE_BODY", string(outputBytes))
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusOK,
 			Body:       string(outputBytes),

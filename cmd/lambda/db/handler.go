@@ -9,6 +9,7 @@ import (
 
 	"github.com/cheesesteakio/api/pkg/db"
 	"github.com/cheesesteakio/api/pkg/docpars"
+	"github.com/cheesesteakio/api/util"
 )
 
 var (
@@ -20,6 +21,8 @@ var (
 
 func handler(docparsClient docpars.Parser, dbClient db.Databaser) func(ctx context.Context, event events.S3Event) error {
 	return func(ctx context.Context, event events.S3Event) error {
+		util.Log("EVENT_BODY", event)
+
 		createOrUpdateDocs := [][3]string{}
 		deleteDocs := []db.DocumentInfo{}
 
@@ -49,6 +52,7 @@ func handler(docparsClient docpars.Parser, dbClient db.Databaser) func(ctx conte
 		for i, doc := range createOrUpdateDocs {
 			document, err := docparsClient.Parse(ctx, doc[0], doc[1], doc[2], nil)
 			if err != nil {
+				util.Log("PARSE_ERROR", err)
 				return errorParseFile
 			}
 
@@ -56,13 +60,16 @@ func handler(docparsClient docpars.Parser, dbClient db.Databaser) func(ctx conte
 		}
 
 		if err := dbClient.CreateOrUpdateDocuments(ctx, documents); err != nil {
+			util.Log("CREATE_OR_UPDATE_DOCUMENTS_ERROR", err)
 			return errorCreateOrUpdateDocuments
 		}
 
 		if err := dbClient.DeleteDocuments(ctx, deleteDocs); err != nil {
+			util.Log("DELETE_DOCUMENTS_ERROR", err)
 			return errorDeleteDocuments
 		}
 
+		util.Log("RESPONSE_BODY", "successful invocation")
 		return nil
 	}
 }
