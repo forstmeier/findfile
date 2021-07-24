@@ -94,6 +94,9 @@ func (c *Client) CreateSubscription(ctx context.Context, accountID string, info 
 	subscriptionParams := &stripe.SubscriptionParams{
 		Customer: &newCustomer.ID,
 		Items:    subscriptionItems,
+		AutomaticTax: &stripe.SubscriptionAutomaticTaxParams{
+			Enabled: stripe.Bool(true),
+		},
 		Params: stripe.Params{
 			Metadata: map[string]string{
 				"account_id": accountID,
