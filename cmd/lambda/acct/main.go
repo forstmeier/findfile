@@ -20,12 +20,11 @@ func main() {
 
 	fsClient := fs.New(newSession)
 
-	stripeItemIDs := []string{
+	subscrClient := subscr.New(
+		os.Getenv("STRIPE_API_KEY"),
 		os.Getenv("STRIPE_MONTHLY_PRICE_ID"),
 		os.Getenv("STRIPE_METERED_PRICE_ID"),
-	}
-
-	subscrClient := subscr.New(os.Getenv("STRIPE_API_KEY"), stripeItemIDs)
+	)
 
 	lambda.Start(handler(acctClient, subscrClient, fsClient))
 }

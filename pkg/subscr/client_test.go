@@ -9,7 +9,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	client := New("stripe_api_key", []string{"stripe_subscription_item_id"})
+	client := New("stripe_api_key", "stripe_monthly_price_id", "stripe_metered_price_id")
 	if client == nil {
 		t.Error("error creating subscr client")
 	}

@@ -16,26 +16,28 @@ var _ Subscriber = &Client{}
 
 // Client implements the Subscriber methods using Stripe.
 type Client struct {
-	newPaymentMethod func(params *stripe.PaymentMethodParams) (*stripe.PaymentMethod, error)
-	newCustomer      func(params *stripe.CustomerParams) (*stripe.Customer, error)
-	newSubscription  func(params *stripe.SubscriptionParams) (*stripe.Subscription, error)
-	deleteCustomer   func(id string, params *stripe.CustomerParams) (*stripe.Customer, error)
-	newUsageRecord   func(params *stripe.UsageRecordParams) (*stripe.UsageRecord, error)
-	stripeItemIDs    []string
+	newPaymentMethod     func(params *stripe.PaymentMethodParams) (*stripe.PaymentMethod, error)
+	newCustomer          func(params *stripe.CustomerParams) (*stripe.Customer, error)
+	newSubscription      func(params *stripe.SubscriptionParams) (*stripe.Subscription, error)
+	deleteCustomer       func(id string, params *stripe.CustomerParams) (*stripe.Customer, error)
+	newUsageRecord       func(params *stripe.UsageRecordParams) (*stripe.UsageRecord, error)
+	stripeMonthlyPriceID string
+	stripeMeteredPriceID string
 }
 
 // New generates a Client pointer instance with a Stripe
 // session client.
-func New(stripeAPIKey string, stripeItemIDs []string) *Client {
+func New(stripeAPIKey string, stripeMonthlyPriceID, stripeMeteredPriceID string) *Client {
 	stripe.Key = stripeAPIKey
 
 	return &Client{
-		newPaymentMethod: paymentmethod.New,
-		newCustomer:      customer.New,
-		newSubscription:  sub.New,
-		deleteCustomer:   customer.Del,
-		newUsageRecord:   usagerecord.New,
-		stripeItemIDs:    stripeItemIDs,
+		newPaymentMethod:     paymentmethod.New,
+		newCustomer:          customer.New,
+		newSubscription:      sub.New,
+		deleteCustomer:       customer.Del,
+		newUsageRecord:       usagerecord.New,
+		stripeMonthlyPriceID: stripeMonthlyPriceID,
+		stripeMeteredPriceID: stripeMeteredPriceID,
 	}
 }
 
@@ -84,11 +86,13 @@ func (c *Client) CreateSubscription(ctx context.Context, accountID string, info 
 		return nil, &ErrorNewCustomer{err: err}
 	}
 
-	subscriptionItems := make([]*stripe.SubscriptionItemsParams, len(c.stripeItemIDs))
-	for i, id := range c.stripeItemIDs {
-		subscriptionItems[i] = &stripe.SubscriptionItemsParams{
-			Price: stripe.String(id),
-		}
+	subscriptionItems := []*stripe.SubscriptionItemsParams{
+		{
+			Price: stripe.String(c.stripeMonthlyPriceID),
+		},
+		{
+			Price: stripe.String(c.stripeMeteredPriceID),
+		},
 	}
 
 	subscriptionParams := &stripe.SubscriptionParams{
