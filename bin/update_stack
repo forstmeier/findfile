@@ -12,6 +12,7 @@ aws cloudformation update-stack \
 	--stack-name $STACK_NAME \
 	--template-url https://s3.amazonaws.com/$ARTIFACT_BUCKET/cft.yaml \
 	--parameters \
+		ParameterKey=ProjectEmail,ParameterValue=$( jq -r  '.app.email' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=AccountIDHTTPHeader,ParameterValue=$( jq -r  '.app.account_id_http_header' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=ArtifactBucket,ParameterValue=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=MainBucket,ParameterValue=$( jq -r  '.aws.s3.main_bucket' <<< "${CONFIG_JSON}" ) \

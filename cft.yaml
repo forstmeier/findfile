@@ -2,6 +2,9 @@ Description: API resources definition
 
 Parameters:
 
+  ProjectEmail:
+    Type: String
+    Description: Email address for the project owner
   AccountIDHTTPHeader:
     Type: String
     Description: HTTP header for receiving account IDs in the API
@@ -78,7 +81,8 @@ Resources:
             Ref: DBPassword
           DB_ENDPOINT:
             Fn::GetAtt:
-              - dbIndex.Endpoint
+            - dbIndex
+            - Endpoint
       FunctionName: dbFunction
       Handler: db
       Layers:
@@ -139,7 +143,8 @@ Resources:
             Ref: DBPassword
           DB_ENDPOINT:
             Fn::GetAtt:
-              - dbIndex.Endpoint
+            - dbIndex
+            - Endpoint
       FunctionName: queryFunction
       Handler: query
       Layers:
@@ -429,7 +434,34 @@ Resources:
                 contentHandling: CONVERT_TO_TEXT
                 type: aws_proxy
 
+  budget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget: 
+        BudgetLimit: 
+          Amount: 50.00
+          Unit: USD
+        BudgetName:
+          Fn::Join:
+            - '-'
+            - - Ref: AWS::StackName
+              - budget
+        BudgetType: COST
+        TimeUnit: MONTHLY
+      NotificationsWithSubscribers:
+        - Notification: 
+            ComparisonOperator: EQUAL_TO
+            NotificationType: ACTUAL
+            Threshold: 100.00
+          Subscribers: 
+            - Address:
+                Ref: ProjectEmail
+              SubscriptionType: EMAIL
+
 Outputs:
+  Stackname:
+    Value:
+      Ref: AWS::StackName
   AcctFunctionName:
     Value:
       Ref: acctFunction

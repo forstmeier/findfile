@@ -10,6 +10,7 @@ aws cloudformation deploy \
 	--template-file cft.yaml \
 	--stack-name $STACK_NAME \
 	--parameter-overrides \
+		ProjectEmail=$( jq -r  '.app.email' <<< "${CONFIG_JSON}" ) \
 		AccountIDHTTPHeader=$( jq -r  '.app.account_id_http_header' <<< "${CONFIG_JSON}" ) \
 		ArtifactBucket=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) \
 		MainBucket=$( jq -r  '.aws.s3.main_bucket' <<< "${CONFIG_JSON}" ) \
