@@ -3,15 +3,3 @@ coverage.out
 
 # configuration
 etc/config/config.json
-
-# binaries
-acct
-db
-fs
-query
-
-# zipped binaries
-acct.zip
-db.zip
-fs.zip
-query.zip
