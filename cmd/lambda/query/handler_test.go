@@ -43,13 +43,13 @@ func (m *mockAcctClient) DeleteAccount(ctx context.Context, accountID string) er
 	return nil
 }
 
-type mockCSQLClient struct {
-	mockConvertCSQLOutput []byte
-	mockConvertCSQLError  error
+type mockCQLClient struct {
+	mockConvertCQLOutput []byte
+	mockConvertCQLError  error
 }
 
-func (m *mockCSQLClient) ConvertCSQL(ctx context.Context, accountID string, csqlQuery map[string]interface{}) ([]byte, error) {
-	return m.mockConvertCSQLOutput, m.mockConvertCSQLError
+func (m *mockCQLClient) ConvertCQL(ctx context.Context, accountID string, cqlQuery map[string]interface{}) ([]byte, error) {
+	return m.mockConvertCQLOutput, m.mockConvertCQLError
 }
 
 type mockDBClient struct {
@@ -96,8 +96,8 @@ func Test_handler(t *testing.T) {
 		request                        events.APIGatewayProxyRequest
 		mockReadAccountOutput          *acct.Account
 		mockReadAccountError           error
-		mockConvertCSQLOutput          []byte
-		mockConvertCSQLError           error
+		mockConvertCQLOutput           []byte
+		mockConvertCQLError            error
 		mockQueryDocumentsOutput       []docpars.Document
 		mockQueryDocumentsError        error
 		mockGeneratePresignedURLOutput string
@@ -110,8 +110,8 @@ func Test_handler(t *testing.T) {
 			request:                        events.APIGatewayProxyRequest{},
 			mockReadAccountOutput:          nil,
 			mockReadAccountError:           nil,
-			mockConvertCSQLOutput:          nil,
-			mockConvertCSQLError:           nil,
+			mockConvertCQLOutput:           nil,
+			mockConvertCQLError:            nil,
 			mockQueryDocumentsOutput:       nil,
 			mockQueryDocumentsError:        nil,
 			mockGeneratePresignedURLOutput: "",
@@ -129,8 +129,8 @@ func Test_handler(t *testing.T) {
 			},
 			mockReadAccountOutput:          nil,
 			mockReadAccountError:           nil,
-			mockConvertCSQLOutput:          nil,
-			mockConvertCSQLError:           nil,
+			mockConvertCQLOutput:           nil,
+			mockConvertCQLError:            nil,
 			mockQueryDocumentsOutput:       nil,
 			mockQueryDocumentsError:        nil,
 			mockGeneratePresignedURLOutput: "",
@@ -148,8 +148,8 @@ func Test_handler(t *testing.T) {
 			},
 			mockReadAccountOutput:          nil,
 			mockReadAccountError:           errors.New("mock read account error"),
-			mockConvertCSQLOutput:          nil,
-			mockConvertCSQLError:           nil,
+			mockConvertCQLOutput:           nil,
+			mockConvertCQLError:            nil,
 			mockQueryDocumentsOutput:       nil,
 			mockQueryDocumentsError:        nil,
 			mockGeneratePresignedURLOutput: "",
@@ -167,8 +167,8 @@ func Test_handler(t *testing.T) {
 			},
 			mockReadAccountOutput:          nil,
 			mockReadAccountError:           nil,
-			mockConvertCSQLOutput:          nil,
-			mockConvertCSQLError:           nil,
+			mockConvertCQLOutput:           nil,
+			mockConvertCQLError:            nil,
 			mockQueryDocumentsOutput:       nil,
 			mockQueryDocumentsError:        nil,
 			mockGeneratePresignedURLOutput: "",
@@ -177,7 +177,7 @@ func Test_handler(t *testing.T) {
 			body:                           `{"error": "account [account_id] not found}`,
 		},
 		{
-			description: "error unmarshalling request body csql query",
+			description: "error unmarshalling request body cql query",
 			request: events.APIGatewayProxyRequest{
 				Headers: map[string]string{
 					accountIDHeader: "account_id",
@@ -187,8 +187,8 @@ func Test_handler(t *testing.T) {
 			},
 			mockReadAccountOutput:          &acct.Account{},
 			mockReadAccountError:           nil,
-			mockConvertCSQLOutput:          nil,
-			mockConvertCSQLError:           nil,
+			mockConvertCQLOutput:           nil,
+			mockConvertCQLError:            nil,
 			mockQueryDocumentsOutput:       nil,
 			mockQueryDocumentsError:        nil,
 			mockGeneratePresignedURLOutput: "",
@@ -197,7 +197,7 @@ func Test_handler(t *testing.T) {
 			body:                           `{"error": "error unmarshalling query"}`,
 		},
 		{
-			description: "csql client error converting csql query",
+			description: "cql client error converting cql query",
 			request: events.APIGatewayProxyRequest{
 				Headers: map[string]string{
 					accountIDHeader: "account_id",
@@ -207,14 +207,14 @@ func Test_handler(t *testing.T) {
 			},
 			mockReadAccountOutput:          &acct.Account{},
 			mockReadAccountError:           nil,
-			mockConvertCSQLOutput:          nil,
-			mockConvertCSQLError:           errors.New("mock convert csql error"),
+			mockConvertCQLOutput:           nil,
+			mockConvertCQLError:            errors.New("mock convert cql error"),
 			mockQueryDocumentsOutput:       nil,
 			mockQueryDocumentsError:        nil,
 			mockGeneratePresignedURLOutput: "",
 			mockGeneratePresignedURLError:  nil,
 			statusCode:                     http.StatusInternalServerError,
-			body:                           `{"error": "error converting query to csql"}`,
+			body:                           `{"error": "error converting query to cql"}`,
 		},
 		{
 			description: "documentdb client error querying documents in database",
@@ -227,8 +227,8 @@ func Test_handler(t *testing.T) {
 			},
 			mockReadAccountOutput:          &acct.Account{},
 			mockReadAccountError:           nil,
-			mockConvertCSQLOutput:          []byte("test_query"),
-			mockConvertCSQLError:           nil,
+			mockConvertCQLOutput:           []byte("test_query"),
+			mockConvertCQLError:            nil,
 			mockQueryDocumentsOutput:       nil,
 			mockQueryDocumentsError:        errors.New("mock query documents error"),
 			mockGeneratePresignedURLOutput: "",
@@ -247,8 +247,8 @@ func Test_handler(t *testing.T) {
 			},
 			mockReadAccountOutput: &acct.Account{},
 			mockReadAccountError:  nil,
-			mockConvertCSQLOutput: []byte("test_query"),
-			mockConvertCSQLError:  nil,
+			mockConvertCQLOutput:  []byte("test_query"),
+			mockConvertCQLError:   nil,
 			mockQueryDocumentsOutput: []docpars.Document{
 				{
 					Filename: "filename.jpg",
@@ -271,8 +271,8 @@ func Test_handler(t *testing.T) {
 			},
 			mockReadAccountOutput: &acct.Account{},
 			mockReadAccountError:  nil,
-			mockConvertCSQLOutput: []byte("test_query"),
-			mockConvertCSQLError:  nil,
+			mockConvertCQLOutput:  []byte("test_query"),
+			mockConvertCQLError:   nil,
 			mockQueryDocumentsOutput: []docpars.Document{
 				{
 					Filename: "filename.jpg",
@@ -293,9 +293,9 @@ func Test_handler(t *testing.T) {
 				mockReadAccountError:  test.mockReadAccountError,
 			}
 
-			csqlClient := &mockCSQLClient{
-				mockConvertCSQLOutput: test.mockConvertCSQLOutput,
-				mockConvertCSQLError:  test.mockConvertCSQLError,
+			cqlClient := &mockCQLClient{
+				mockConvertCQLOutput: test.mockConvertCQLOutput,
+				mockConvertCQLError:  test.mockConvertCQLError,
 			}
 
 			dbClient := &mockDBClient{
@@ -308,7 +308,7 @@ func Test_handler(t *testing.T) {
 				mockGeneratePresignedURLError:  test.mockGeneratePresignedURLError,
 			}
 
-			handlerFunc := handler(acctClient, csqlClient, dbClient, fsClient)
+			handlerFunc := handler(acctClient, cqlClient, dbClient, fsClient)
 
 			response, _ := handlerFunc(context.Background(), test.request)
 

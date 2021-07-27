@@ -1,4 +1,4 @@
-package csql
+package cql
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestConvertCSQL(t *testing.T) {
+func TestConvertCQL(t *testing.T) {
 	tests := []struct {
 		description string
 		input       map[string]interface{}
@@ -24,14 +24,14 @@ func TestConvertCSQL(t *testing.T) {
 		error       error
 	}{
 		{
-			description: "error from parse csql helper function",
+			description: "error from parse cql helper function",
 			input:       map[string]interface{}{},
 			parseOutput: nil,
-			parseError:  errors.New("mock parse csql error"),
-			error:       &ErrorConvertCSQL{},
+			parseError:  errors.New("mock parse cql error"),
+			error:       &ErrorConvertCQL{},
 		},
 		{
-			description: "successful convert csql invocation",
+			description: "successful convert cql invocation",
 			input:       map[string]interface{}{},
 			parseOutput: []byte("test byte output"),
 			error:       nil,
@@ -41,17 +41,17 @@ func TestConvertCSQL(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			c := &Client{
-				parseCSQL: func(accountID string, csqlQuery map[string]interface{}) ([]byte, error) {
+				parseCQL: func(accountID string, cqlQuery map[string]interface{}) ([]byte, error) {
 					return test.parseOutput, test.parseError
 				},
 			}
 
-			received, err := c.ConvertCSQL(context.Background(), "account_id", test.input)
+			received, err := c.ConvertCQL(context.Background(), "account_id", test.input)
 
 			if err != nil {
 				switch test.error.(type) {
-				case *ErrorConvertCSQL:
-					var testError *ErrorConvertCSQL
+				case *ErrorConvertCQL:
+					var testError *ErrorConvertCQL
 					if !errors.As(err, &testError) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
 					}

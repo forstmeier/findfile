@@ -1,4 +1,4 @@
-package csql
+package cql
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func Test_parseCSQL(t *testing.T) {
+func Test_parseCQL(t *testing.T) {
 	tests := []struct {
 		description string
 		input       map[string]interface{}
@@ -63,7 +63,7 @@ func Test_parseCSQL(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			received, err := parseCSQL("account_id", test.input)
+			received, err := parseCQL("account_id", test.input)
 
 			if err != nil {
 				if err != test.error {
@@ -246,7 +246,7 @@ func Test_validateSearchJSON(t *testing.T) {
 			error: errorCoordinatesMisplaced,
 		},
 		{
-			description: "successful invocation with correct csql query",
+			description: "successful invocation with correct cql query",
 			input: search{
 				Text:       "search value",
 				PageNumber: 1,

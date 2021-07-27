@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 
 	"github.com/cheesesteakio/api/pkg/acct"
-	"github.com/cheesesteakio/api/pkg/csql"
+	"github.com/cheesesteakio/api/pkg/cql"
 	"github.com/cheesesteakio/api/pkg/db"
 	"github.com/cheesesteakio/api/pkg/fs"
 	"github.com/cheesesteakio/api/util"
@@ -21,7 +21,7 @@ var (
 	demoAccountID   = os.Getenv("DEMO_ACCOUNT_ID")
 )
 
-func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Databaser, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(acctClient acct.Accounter, cqlClient cql.CQLer, dbClient db.Databaser, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		util.Log("REQUEST_BODY", request.Body)
 		util.Log("REQUEST_METHOD", request.HTTPMethod)
@@ -78,21 +78,21 @@ func handler(acctClient acct.Accounter, csqlClient csql.CSQLer, dbClient db.Data
 			}, nil
 		}
 
-		csqlQuery, err := csqlClient.ConvertCSQL(ctx, accountID, query)
+		cqlQuery, err := cqlClient.ConvertCQL(ctx, accountID, query)
 		if err != nil {
-			util.Log("CONVERT_CSQL_ERROR", err)
+			util.Log("CONVERT_CQL_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "error converting query to csql"}`,
+				Body:       `{"error": "error converting query to cql"}`,
 			}, nil
 		}
 
-		documents, err := dbClient.QueryDocuments(ctx, csqlQuery)
+		documents, err := dbClient.QueryDocuments(ctx, cqlQuery)
 		if err != nil {
 			util.Log("QUERY_DOCUMENTS_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
-				Body:       fmt.Sprintf(`{"error": "error runing [%s] query"}`, csqlQuery),
+				Body:       fmt.Sprintf(`{"error": "error runing [%s] query"}`, cqlQuery),
 			}, nil
 		}
 

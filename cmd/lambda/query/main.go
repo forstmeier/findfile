@@ -12,7 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/cheesesteakio/api/pkg/acct"
-	"github.com/cheesesteakio/api/pkg/csql"
+	"github.com/cheesesteakio/api/pkg/cql"
 	"github.com/cheesesteakio/api/pkg/db"
 	"github.com/cheesesteakio/api/pkg/fs"
 )
@@ -38,11 +38,11 @@ func main() {
 
 	acctClient := acct.New(newSession, tableName)
 
-	csqlClient := csql.New()
+	cqlClient := cql.New()
 
 	dbClient := db.New(ddb, "main", "documents")
 
 	fsClient := fs.New(newSession)
 
-	lambda.Start(handler(acctClient, csqlClient, dbClient, fsClient))
+	lambda.Start(handler(acctClient, cqlClient, dbClient, fsClient))
 }

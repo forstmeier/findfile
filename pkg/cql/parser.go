@@ -1,4 +1,4 @@
-package csql
+package cql
 
 import (
 	"encoding/json"
@@ -24,13 +24,13 @@ type search struct {
 	Coordinates [2][2]float64 `json:"coordinates"`
 }
 
-func parseCSQL(accountID string, csqlQuery map[string]interface{}) ([]byte, error) {
+func parseCQL(accountID string, cqlQuery map[string]interface{}) ([]byte, error) {
 	var output []byte
 
-	if len(csqlQuery) > 1 {
+	if len(cqlQuery) > 1 {
 		return nil, errorTooManyAttributes
 	}
-	if searchValue, searchOK := csqlQuery["search"]; searchOK {
+	if searchValue, searchOK := cqlQuery["search"]; searchOK {
 		searchJSON, typeOK := searchValue.(search)
 		if !typeOK {
 			return nil, errorTypeIncorrect
