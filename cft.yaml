@@ -32,6 +32,9 @@ Parameters:
   DBPassword:
     Type: String
     Description: Password for the query database
+  CertificateARN:
+    Type: String
+    Description: Certificate ARN for the project domain name
 
 Resources:
 
@@ -433,6 +436,20 @@ Resources:
                 passthroughBehavior: when_no_match
                 contentHandling: CONVERT_TO_TEXT
                 type: aws_proxy
+
+  domainName:
+    Type: AWS::ApiGateway::DomainName
+    Properties: 
+      CertificateArn:
+        Ref: CertificateARN
+      DomainName: api.cheesesteak.io
+
+  apiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties: 
+      RestApiId:
+        Ref: api
+      StageName: production
 
   budget:
     Type: AWS::Budgets::Budget

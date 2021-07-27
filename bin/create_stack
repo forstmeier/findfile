@@ -20,5 +20,6 @@ aws cloudformation deploy \
 		StripeMeteredPriceID=$( jq -r  '.stripe.metered_price_id' <<< "${CONFIG_JSON}" ) \
 		DBUsername=$( jq -r  '.aws.db.username' <<< "${CONFIG_JSON}" ) \
 		DBPassword=$( jq -r  '.aws.db.password' <<< "${CONFIG_JSON}" ) \
+		CertificateARN=$( jq -r  '.aws.acm.certificate_arn' <<< "${CONFIG_JSON}" ) \
 	--capabilities CAPABILITY_IAM \
 	--no-fail-on-empty-changeset
