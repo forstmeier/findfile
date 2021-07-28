@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# builds AWS Lambda packages and generates ZIP files
+
 GOARCH=amd64 GOOS=linux go build -o acct ./cmd/lambda/acct
 GOARCH=amd64 GOOS=linux go build -o db ./cmd/lambda/db
 GOARCH=amd64 GOOS=linux go build -o fs ./cmd/lambda/fs

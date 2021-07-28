@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# removes the infrastructure stack via AWS CloudFormation
+
 STACK_NAME=cheesesteak
 
 aws cloudformation delete-stack --stack-name $STACK_NAME

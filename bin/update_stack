@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# updates the infrastructure stack in CloudFormation
+
 STACK_NAME=cheesesteak
 
 CONFIG_JSON=$( cat etc/config/config.json | jq )

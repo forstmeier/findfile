@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# uploads the pre-ZIPed AWS Lambda code files to S3
+
 cp etc/aws/rds-combined-ca-bundle.pem .
 zip rds-layer.zip rds-combined-ca-bundle.pem
 

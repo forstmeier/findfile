@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# run_unit_tests runs unit tests for all Go packages and optionally 
-# generates an HTML visual if "view" argument is provided.
+# runs unit tests for all Go packages and optionally 
+# generates an HTML visual if "view" argument is provided
 
 go test -tags test -coverprofile=coverage.out ./...
 if [[ $1 == "view" ]]; then

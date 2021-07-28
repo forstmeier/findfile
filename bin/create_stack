@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# launches the infrastructure stack via AWS CloudFormation
+
 STACK_NAME=cheesesteak
 
 CONFIG_JSON=$( cat etc/config/config.json | jq )

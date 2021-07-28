@@ -1,12 +1,14 @@
 #!/bin/bash
 
+# updates the AWS Lambdas with the pre-uploaded code files in S3
+
 AWS_OUTPUT=$( cat etc/config/config.json | jq '.aws' )
 
 ARTIFACT_BUCKET=$( jq -r  '.s3.artifact_bucket' <<< "${AWS_OUTPUT}" ) 
-ACCT_FUNCTION=$( jq -r  '.lambda.acct_function.name' <<< "${AWS_OUTPUT}" ) 
-DB_FUNCTION=$( jq -r  '.lambda.db_function.name' <<< "${AWS_OUTPUT}" ) 
-FS_FUNCTION=$( jq -r  '.lambda.fs_function.name' <<< "${AWS_OUTPUT}" ) 
-QUERY_FUNCTION=$( jq -r  '.lambda.query_function.name' <<< "${AWS_OUTPUT}" ) 
+ACCT_FUNCTION=acctFunction
+DB_FUNCTION=dbFunction
+FS_FUNCTION=fsFunction
+QUERY_FUNCTION=queryFunction
 
 aws lambda update-function-code --function-name $ACCT_FUNCTION --s3-bucket $ARTIFACT_BUCKET --s3-key acct.zip --region us-east-1
 aws lambda update-function-code --function-name $DB_FUNCTION --s3-bucket $ARTIFACT_BUCKET --s3-key db.zip --region us-east-1
