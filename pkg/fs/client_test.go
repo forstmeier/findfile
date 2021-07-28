@@ -65,7 +65,7 @@ func TestGenerateUploadURL(t *testing.T) {
 					t.Fatalf("unexpected error type: %v", err)
 				}
 			} else {
-				if !strings.Contains(presignedURL, "https://bucket.s3.amazonaws.com/account_id/file.jpg") {
+				if !strings.Contains(presignedURL, "https://bucket.s3.amazonaws.com/files/account_id/file.jpg") {
 					t.Errorf("incorrect presigned url, received: %s", presignedURL)
 				}
 			}
@@ -117,7 +117,7 @@ func TestGenerateDownloadURL(t *testing.T) {
 					t.Fatalf("unexpected error type: %v", err)
 				}
 			} else {
-				if !strings.Contains(presignedURL, "https://bucket.s3.amazonaws.com/account_id/file.jpg") {
+				if !strings.Contains(presignedURL, "https://bucket.s3.amazonaws.com/files/account_id/file.jpg") {
 					t.Errorf("incorrect presigned url, received: %s", presignedURL)
 				}
 			}
