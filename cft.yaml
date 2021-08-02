@@ -561,6 +561,32 @@ Resources:
         Ref: api
       StageName:
         Ref: StageName
+      StageDescription:
+        MetricsEnabled: true
+        LoggingLevel: ERROR
+
+  apiAccount:
+    Type: AWS::ApiGateway::Account
+    Properties: 
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+        - accountRole
+        - Arn
+
+  accountRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - apigateway.amazonaws.com
+          Action: sts:AssumeRole        
+      Description: Role for allowing API Gateway to write logs to CloudWatch
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
 
   budget:
     Type: AWS::Budgets::Budget
