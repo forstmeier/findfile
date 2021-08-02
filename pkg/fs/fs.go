@@ -2,12 +2,6 @@ package fs
 
 import "context"
 
-// Bucket name constants for use in Filesystemer callers.
-const (
-	MainBucket = "cheesesteakstorage-main"
-	DemoBucket = "cheesesteakstorage-demo"
-)
-
 // Filesystemer defines the methods for interacting with the
 // target filesystem.
 type Filesystemer interface {

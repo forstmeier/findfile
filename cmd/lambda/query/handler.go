@@ -19,6 +19,7 @@ import (
 var (
 	accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
 	demoAccountID   = os.Getenv("DEMO_ACCOUNT_ID")
+	mainBucket      = os.Getenv("MAIN_BUCKET")
 )
 
 func handler(acctClient acct.Accounter, cqlClient cql.CQLer, dbClient db.Databaser, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -43,14 +44,7 @@ func handler(acctClient acct.Accounter, cqlClient cql.CQLer, dbClient db.Databas
 			}, nil
 		}
 
-		isDemo := accountID == demoAccountID
-
-		bucketName := fs.DemoBucket
-		if !isDemo {
-			bucketName = fs.MainBucket
-		}
-
-		if !isDemo {
+		if accountID != demoAccountID {
 			account, err := acctClient.ReadAccount(ctx, accountID)
 			if err != nil {
 				util.Log("READ_ACCOUNT_ERROR", err)
@@ -102,7 +96,7 @@ func handler(acctClient acct.Accounter, cqlClient cql.CQLer, dbClient db.Databas
 			filenames[i] = document.Filename
 
 			fileInfo := fs.FileInfo{
-				Filepath: bucketName,
+				Filepath: mainBucket,
 				Filename: document.Filename,
 			}
 

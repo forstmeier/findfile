@@ -35,6 +35,19 @@ Parameters:
   CertificateARN:
     Type: String
     Description: Certificate ARN for the project domain name
+  DomainName:
+    Type: String
+    Description: Custom domain name for project API
+    Default: api.cheesesteak.io
+  StageName:
+    Type: String
+    Description: Stage the API is deployed on
+    Default: production
+    AllowedValues:
+    - production
+  DomainHostedZoneID:
+    Type: String
+    Description: ID for the custom domain hosted zone
 
 Resources:
 
@@ -48,6 +61,8 @@ Resources:
       Description: Function providing user account management
       Environment:
         Variables:
+          MAIN_BUCKET:
+            Ref: MainBucket
           ACCOUNT_ID_HTTP_HEADER:
             Ref: AccountIDHTTPHeader
           STRIPE_API_KEY:
@@ -108,6 +123,8 @@ Resources:
       Description: Function providing user file management
       Environment:
         Variables:
+          MAIN_BUCKET:
+            Ref: MainBucket
           ACCOUNT_ID_HTTP_HEADER:
             Ref: AccountIDHTTPHeader
           DEMO_ACCOUNT_ID:
@@ -134,6 +151,8 @@ Resources:
       Description: Function providing user query handling
       Environment:
         Variables:
+          MAIN_BUCKET:
+            Ref: MainBucket
           ACCOUNT_ID_HTTP_HEADER:
             Ref: AccountIDHTTPHeader
           DEMO_ACCOUNT_ID:
@@ -307,7 +326,7 @@ Resources:
       Body:
         swagger: "2.0"
         info:
-          title: Application API
+          title: Cheesesteak API
           version: "0.1"
         schemes:
         - https
@@ -437,19 +456,111 @@ Resources:
                 contentHandling: CONVERT_TO_TEXT
                 type: aws_proxy
 
+  acctFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+        - acctFunction
+        - Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*/*/*
+
+  dbFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+        - dbFunction
+        - Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*/*/*
+
+  fsFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+        - fsFunction
+        - Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*/*/*
+
+  queryFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+        - queryFunction
+        - Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*/*/*
+
   domainName:
     Type: AWS::ApiGateway::DomainName
     Properties: 
       CertificateArn:
         Ref: CertificateARN
-      DomainName: api.cheesesteak.io
+      DomainName:
+        Ref: DomainName
+      SecurityPolicy: TLS_1_2
+
+  domainCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName:
+        Ref: DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+      - DomainName:
+          Ref: DomainName
+        HostedZoneId:
+          Ref: DomainHostedZoneID
+
+  domainRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId:
+        Ref: DomainHostedZoneID
+      Name:
+        Ref: DomainName
+      Type: A
+      AliasTarget:
+        HostedZoneId:
+          Fn::GetAtt:
+          - domainName
+          - DistributionHostedZoneId
+        DNSName:
+          Fn::GetAtt:
+          - domainName
+          - DistributionDomainName
+
+  domainBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName:
+        Ref: DomainName
+      RestApiId:
+        Ref: api
+      Stage:
+        Ref: StageName
+    DependsOn: apiDeployment
 
   apiDeployment:
     Type: AWS::ApiGateway::Deployment
     Properties: 
       RestApiId:
         Ref: api
-      StageName: production
+      StageName:
+        Ref: StageName
 
   budget:
     Type: AWS::Budgets::Budget
@@ -460,40 +571,45 @@ Resources:
           Unit: USD
         BudgetName:
           Fn::Join:
-            - '-'
-            - - Ref: AWS::StackName
-              - budget
+          - '-'
+          - - Ref: AWS::StackName
+            - budget
         BudgetType: COST
         TimeUnit: MONTHLY
       NotificationsWithSubscribers:
-        - Notification: 
-            ComparisonOperator: EQUAL_TO
-            NotificationType: ACTUAL
-            Threshold: 100.00
-          Subscribers: 
-            - Address:
-                Ref: ProjectEmail
-              SubscriptionType: EMAIL
+      - Notification: 
+          ComparisonOperator: EQUAL_TO
+          NotificationType: ACTUAL
+          Threshold: 100.00
+        Subscribers: 
+        - Address:
+            Ref: ProjectEmail
+          SubscriptionType: EMAIL
 
 Outputs:
   Stackname:
     Value:
       Ref: AWS::StackName
-  AcctFunctionName:
-    Value:
-      Ref: acctFunction
-  DBFunctionName:
-    Value:
-      Ref: dbFunction
-  FSFunctionName:
-    Value:
-      Ref: fsFunction
-  QueryFunctionName:
-    Value:
-      Ref: queryFunction
   ArtifactBucketName:
     Value:
       Ref: ArtifactBucket
   MainBucketName:
     Value:
       Ref: MainBucket
+  ExternalAPIEndpoint:
+    Value:
+      Fn::Join:
+      - ''
+      - - https://
+        - Ref: DomainName
+  InternalAPIEndpoint:
+    Value:
+      Fn::Sub:
+      - https://${api}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
+      - Stage:
+          Ref: StageName
+  DBEndpoint:
+    Value:
+      Fn::GetAtt:
+      - dbIndex
+      - Endpoint

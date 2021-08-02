@@ -25,4 +25,5 @@ aws cloudformation update-stack \
 		ParameterKey=DBUsername,ParameterValue=$( jq -r  '.aws.db.username' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=DBPassword,ParameterValue=$( jq -r  '.aws.db.password' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=CertificateARN,ParameterValue=$( jq -r  '.aws.acm.certificate_arn' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=DomainHostedZoneID,ParameterValue=$( jq -r  '.aws.domain.hosted_zone_id' <<< "${CONFIG_JSON}" ) \
 	--capabilities CAPABILITY_IAM \

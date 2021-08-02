@@ -16,7 +16,10 @@ import (
 	"github.com/cheesesteakio/api/util"
 )
 
-var accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
+var (
+	accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
+	mainBucket      = os.Getenv("MAIN_BUCKET")
+)
 
 func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -115,7 +118,7 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 				}, nil
 			}
 
-			filesInfo, err := fsClient.ListFilesByAccountID(ctx, fs.MainBucket, accountID)
+			filesInfo, err := fsClient.ListFilesByAccountID(ctx, mainBucket, accountID)
 			if err != nil {
 				util.Log("LIST_FILES_BY_ACCOUNT_ID_ERROR", err)
 				return events.APIGatewayProxyResponse{

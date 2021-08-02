@@ -17,6 +17,7 @@ import (
 var (
 	accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
 	demoAccountID   = os.Getenv("DEMO_ACCOUNT_ID")
+	mainBucket      = os.Getenv("MAIN_BUCKET")
 )
 
 func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -33,14 +34,7 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 			}, nil
 		}
 
-		isDemo := accountID == demoAccountID
-
-		bucketName := fs.DemoBucket
-		if !isDemo {
-			bucketName = fs.MainBucket
-		}
-
-		if !isDemo {
+		if accountID != demoAccountID {
 			account, err := acctClient.ReadAccount(ctx, accountID)
 			if err != nil {
 				util.Log("READ_ACCOUNT_ERROR", err)
@@ -75,7 +69,7 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 			presignedURLs := make([]string, len(filenames))
 			for i, fileame := range filenames {
 				fileInfo := fs.FileInfo{
-					Filepath: bucketName,
+					Filepath: mainBucket,
 					Filename: fileame,
 				}
 
@@ -105,7 +99,7 @@ func handler(acctClient acct.Accounter, fsClient fs.Filesystemer) func(ctx conte
 			filesInfo := make([]fs.FileInfo, len(filenames))
 			for i, filename := range filenames {
 				filesInfo[i] = fs.FileInfo{
-					Filepath: bucketName,
+					Filepath: mainBucket,
 					Filename: filename,
 				}
 			}
