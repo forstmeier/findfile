@@ -39,7 +39,7 @@ func New(newSession *session.Session) *Client {
 func (c *Client) GenerateUploadURL(ctx context.Context, accountID string, fileInfo FileInfo) (string, error) {
 	putRequest, _ := c.s3Client.PutObjectRequest(&s3.PutObjectInput{
 		Bucket: aws.String(fileInfo.Filepath),
-		Key:    aws.String(fmt.Sprintf("files/%s/%s", accountID, fileInfo.Filename)),
+		Key:    aws.String(fmt.Sprintf("%s/files/%s", accountID, fileInfo.Filename)),
 	})
 
 	urlString, err := putRequest.Presign(15 * time.Minute)
@@ -58,7 +58,7 @@ func (c *Client) GenerateUploadURL(ctx context.Context, accountID string, fileIn
 func (c *Client) GenerateDownloadURL(ctx context.Context, accountID string, fileInfo FileInfo) (string, error) {
 	getRequest, _ := c.s3Client.GetObjectRequest(&s3.GetObjectInput{
 		Bucket: aws.String(fileInfo.Filepath),
-		Key:    aws.String(fmt.Sprintf("files/%s/%s", accountID, fileInfo.Filename)),
+		Key:    aws.String(fmt.Sprintf("%s/files/%s", accountID, fileInfo.Filename)),
 	})
 
 	urlString, err := getRequest.Presign(15 * time.Minute)
@@ -80,7 +80,7 @@ func (c *Client) ListFilesByAccountID(ctx context.Context, filepath, accountID s
 	for {
 		input := &s3.ListObjectsV2Input{
 			Bucket:            aws.String(filepath),
-			Prefix:            aws.String("files/" + accountID),
+			Prefix:            aws.String(fmt.Sprintf("%s/files", accountID)),
 			ContinuationToken: aws.String(continuationToken),
 		}
 
@@ -120,7 +120,7 @@ func (c *Client) DeleteFiles(ctx context.Context, accountID string, filesInfo []
 		objects := make([]*s3.ObjectIdentifier, len(filesInfoSubset))
 		for i, fileInfo := range filesInfoSubset {
 			objects[i] = &s3.ObjectIdentifier{
-				Key: aws.String(fmt.Sprintf("files/%s/%s", accountID, fileInfo.Filename)),
+				Key: aws.String(fmt.Sprintf("%s/files/%s", accountID, fileInfo.Filename)),
 			}
 		}
 
