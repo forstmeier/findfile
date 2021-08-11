@@ -354,7 +354,7 @@ Resources:
                     statusCode: "200"
                 passthroughBehavior: when_no_match
                 contentHandling: CONVERT_TO_TEXT
-                type: aws_proxy
+                type: AWS_PROXY
             delete:
               produces:
               - application/json
@@ -377,7 +377,7 @@ Resources:
                     statusCode: "200"
                 passthroughBehavior: when_no_match
                 contentHandling: CONVERT_TO_TEXT
-                type: aws_proxy
+                type: AWS_PROXY
           /files:
             post:
               produces:
@@ -403,7 +403,7 @@ Resources:
                     statusCode: "200"
                 passthroughBehavior: when_no_match
                 contentHandling: CONVERT_TO_TEXT
-                type: aws_proxy
+                type: AWS_PROXY
             delete:
               produces:
               - application/json
@@ -424,7 +424,7 @@ Resources:
                     statusCode: "200"
                 passthroughBehavior: when_no_match
                 contentHandling: CONVERT_TO_TEXT
-                type: aws_proxy
+                type: AWS_PROXY
           /query:
             post:
               produces:
@@ -454,7 +454,7 @@ Resources:
                     statusCode: "200"
                 passthroughBehavior: when_no_match
                 contentHandling: CONVERT_TO_TEXT
-                type: aws_proxy
+                type: AWS_PROXY
 
   acctFunctionPermission:
     Type: AWS::Lambda::Permission
@@ -466,7 +466,7 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn:
-        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*/*/*
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
 
   dbFunctionPermission:
     Type: AWS::Lambda::Permission
@@ -478,7 +478,7 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn:
-        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*/*/*
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
 
   fsFunctionPermission:
     Type: AWS::Lambda::Permission
@@ -490,7 +490,7 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn:
-        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*/*/*
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
 
   queryFunctionPermission:
     Type: AWS::Lambda::Permission
@@ -502,7 +502,7 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn:
-        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*/*/*
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
 
   domainName:
     Type: AWS::ApiGateway::DomainName
