@@ -4,4 +4,6 @@
 
 STACK_NAME=cheesesteak
 
+aws s3 rm s3://cheesesteak-main --recursive
+
 aws cloudformation delete-stack --stack-name $STACK_NAME
