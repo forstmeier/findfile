@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
-	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 
+	"github.com/cheesesteakio/api/pkg/acct"
 	"github.com/cheesesteakio/api/pkg/db"
 	"github.com/cheesesteakio/api/pkg/docpars"
 	"github.com/cheesesteakio/api/util"
@@ -14,37 +15,49 @@ import (
 
 var (
 	errorUnsupportedEvent        = errors.New("event type not supported")
+	errorUnmarshalEvent          = errors.New("event json unmarshal error")
+	errorGetAccount              = errors.New("get account error")
 	errorParseFile               = errors.New("parse file error")
 	errorCreateOrUpdateDocuments = errors.New("create or update documents error")
 	errorDeleteDocuments         = errors.New("delete documents error")
 )
 
-func handler(docparsClient docpars.Parser, dbClient db.Databaser) func(ctx context.Context, event events.S3Event) error {
-	return func(ctx context.Context, event events.S3Event) error {
+func handler(acctClient acct.Accounter, docparsClient docpars.Parser, dbClient db.Databaser) func(ctx context.Context, event events.SNSEvent) error {
+	return func(ctx context.Context, event events.SNSEvent) error {
 		util.Log("EVENT_BODY", event)
 
 		createOrUpdateDocs := [][3]string{}
 		deleteDocs := []db.DocumentInfo{}
 
-		for _, record := range event.Records {
-			if record.EventName == "s3:ObjectCreated:Put" {
-				keyElements := strings.Split(record.S3.Object.Key, "/")
-				accountID := keyElements[len(keyElements)-2]
+		for _, snsRecord := range event.Records {
+			s3Event := events.S3Event{}
 
-				createOrUpdateDocs = append(createOrUpdateDocs, [3]string{
-					accountID,
-					record.S3.Object.Key,
-					record.S3.Bucket.Name,
-				})
+			if err := json.Unmarshal([]byte(snsRecord.SNS.Message), &s3Event); err != nil {
+				return errorUnmarshalEvent
+			}
 
-			} else if record.EventName == "s3:ObjectRemoved:Delete" {
-				deleteDocs = append(deleteDocs, db.DocumentInfo{
-					Filepath: record.S3.Bucket.Name,
-					Filename: record.S3.Object.Key,
-				})
+			for _, s3Record := range s3Event.Records {
+				if s3Record.EventName == "ObjectCreated:Put" {
+					account, err := acctClient.GetAccountBySecondaryID(ctx, s3Record.S3.Bucket.Name)
+					if err != nil {
+						return errorGetAccount
+					}
 
-			} else {
-				return errorUnsupportedEvent
+					createOrUpdateDocs = append(createOrUpdateDocs, [3]string{
+						account.ID,
+						s3Record.S3.Object.Key,
+						s3Record.S3.Bucket.Name,
+					})
+
+				} else if s3Record.EventName == "ObjectRemoved:Delete" {
+					deleteDocs = append(deleteDocs, db.DocumentInfo{
+						Filepath: s3Record.S3.Bucket.Name,
+						Filename: s3Record.S3.Object.Key,
+					})
+
+				} else {
+					return errorUnsupportedEvent
+				}
 			}
 		}
 
