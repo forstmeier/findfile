@@ -37,12 +37,16 @@ func handler(acctClient acct.Accounter, docparsClient docpars.Parser, dbClient d
 			}
 
 			for _, s3Record := range s3Event.Records {
-				if s3Record.EventName == "ObjectCreated:Put" {
-					account, err := acctClient.GetAccountBySecondaryID(ctx, s3Record.S3.Bucket.Name)
-					if err != nil {
-						return errorGetAccount
-					}
+				account, err := acctClient.GetAccountBySecondaryID(ctx, s3Record.S3.Bucket.Name)
+				if err != nil {
+					return errorGetAccount
+				}
 
+				if account == nil {
+					continue
+				}
+
+				if s3Record.EventName == "ObjectCreated:Put" {
 					createOrUpdateDocs = append(createOrUpdateDocs, [3]string{
 						account.ID,
 						s3Record.S3.Object.Key,

@@ -103,7 +103,7 @@ func Test_handler(t *testing.T) {
 					},
 				},
 			},
-			mockGetAccountBySecondaryIDOutput: nil,
+			mockGetAccountBySecondaryIDOutput: &acct.Account{},
 			mockGetAccountBySecondaryIDError:  nil,
 			mockParseOutput:                   nil,
 			mockParseError:                    nil,
