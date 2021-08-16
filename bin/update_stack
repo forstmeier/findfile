@@ -17,13 +17,7 @@ aws cloudformation update-stack \
 		ParameterKey=ProjectEmail,ParameterValue=$( jq -r  '.app.email' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=AccountIDHTTPHeader,ParameterValue=$( jq -r  '.app.account_id_http_header' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=ArtifactBucket,ParameterValue=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=MainBucket,ParameterValue=$( jq -r  '.aws.s3.main_bucket' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=DemoAccountID,ParameterValue=$( jq -r  '.app.demo_account_id' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=StripeAPIKey,ParameterValue=$( jq -r  '.stripe.api_key' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=StripeMonthlyPriceID,ParameterValue=$( jq -r  '.stripe.monthly_price_id' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=StripeMeteredPriceID,ParameterValue=$( jq -r  '.stripe.metered_price_id' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=DBUsername,ParameterValue=$( jq -r  '.aws.db.username' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=DBPassword,ParameterValue=$( jq -r  '.aws.db.password' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=StorageBucket,ParameterValue=$( jq -r  '.aws.s3.storage_bucket' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=CertificateARN,ParameterValue=$( jq -r  '.aws.acm.certificate_arn' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=DomainHostedZoneID,ParameterValue=$( jq -r  '.aws.domain.hosted_zone_id' <<< "${CONFIG_JSON}" ) \
 	--capabilities CAPABILITY_IAM \

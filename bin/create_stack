@@ -15,13 +15,7 @@ aws cloudformation deploy \
 		ProjectEmail=$( jq -r  '.app.email' <<< "${CONFIG_JSON}" ) \
 		AccountIDHTTPHeader=$( jq -r  '.app.account_id_http_header' <<< "${CONFIG_JSON}" ) \
 		ArtifactBucket=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) \
-		MainBucket=$( jq -r  '.aws.s3.main_bucket' <<< "${CONFIG_JSON}" ) \
-		DemoAccountID=$( jq -r  '.app.demo_account_id' <<< "${CONFIG_JSON}" ) \
-		StripeAPIKey=$( jq -r  '.stripe.api_key' <<< "${CONFIG_JSON}" ) \
-		StripeMonthlyPriceID=$( jq -r  '.stripe.monthly_price_id' <<< "${CONFIG_JSON}" ) \
-		StripeMeteredPriceID=$( jq -r  '.stripe.metered_price_id' <<< "${CONFIG_JSON}" ) \
-		DBUsername=$( jq -r  '.aws.db.username' <<< "${CONFIG_JSON}" ) \
-		DBPassword=$( jq -r  '.aws.db.password' <<< "${CONFIG_JSON}" ) \
+		StorageBucket=$( jq -r  '.aws.s3.storage_bucket' <<< "${CONFIG_JSON}" ) \
 		CertificateARN=$( jq -r  '.aws.acm.certificate_arn' <<< "${CONFIG_JSON}" ) \
 		DomainHostedZoneID=$( jq -r  '.aws.domain.hosted_zone_id' <<< "${CONFIG_JSON}" ) \
 	--capabilities CAPABILITY_IAM \
