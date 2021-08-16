@@ -11,6 +11,7 @@ import (
 
 func Test_itemToAccountObject(t *testing.T) {
 	accountID := "test_account_id"
+	bucketName := "bucket_name"
 	subscriptionID := "test_subscription_id"
 	stripePaymentMethodID := "test_stripe_payment_method_id"
 	stripeCustomerID := "test_stripe_customer_id"
@@ -19,6 +20,9 @@ func Test_itemToAccountObject(t *testing.T) {
 	input := map[string]*dynamodb.AttributeValue{
 		AccountIDKey: {
 			S: aws.String(accountID),
+		},
+		BucketNameKey: {
+			S: aws.String(bucketName),
 		},
 		SubscriptionIDKey: {
 			S: aws.String(subscriptionID),
@@ -38,6 +42,10 @@ func Test_itemToAccountObject(t *testing.T) {
 
 	if account.ID != accountID {
 		t.Errorf("incorrect account id, received: %s, expected: %s", account.ID, accountID)
+	}
+
+	if account.BucketName != bucketName {
+		t.Errorf("incorrect bucket name, received: %s, expected: %s", account.BucketName, bucketName)
 	}
 
 	if account.SubscriptionID != subscriptionID {

@@ -11,6 +11,7 @@ import (
 // DynamoDB-specific attribute keys for subscription values.
 const (
 	AccountIDKey             = "id"
+	BucketNameKey            = "bucket_name"
 	SubscriptionIDKey        = "subscription_id"
 	StripePaymentMethodIDKey = "stripe_payment_method_id"
 	StripeCustomerIDKey      = "stripe_customer_id"
@@ -43,11 +44,14 @@ func New(newSession *session.Session, tableName string) *Client {
 }
 
 // CreateAccount implements the acct.Accounter.CreateAccount method.
-func (c *Client) CreateAccount(ctx context.Context, accountID string) error {
+func (c *Client) CreateAccount(ctx context.Context, accountID, bucketName string) error {
 	input := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
 			AccountIDKey: {
 				S: aws.String(accountID),
+			},
+			BucketNameKey: {
+				S: aws.String(bucketName),
 			},
 		},
 		TableName: aws.String(c.tableName),

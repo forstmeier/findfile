@@ -15,6 +15,10 @@ func itemToAccountObject(items map[string]*dynamodb.AttributeValue) *Account {
 		account.ID = *attribute.S
 	}
 
+	if attribute, ok := items[BucketNameKey]; ok {
+		account.BucketName = *attribute.S
+	}
+
 	if attribute, ok := items[SubscriptionIDKey]; ok {
 		account.SubscriptionID = *attribute.S
 	}
@@ -37,6 +41,7 @@ func itemToAccountObject(items map[string]*dynamodb.AttributeValue) *Account {
 func checkValues(values map[string]string) (bool, string) {
 	supportedKeys := map[string]struct{}{
 		AccountIDKey:             {},
+		BucketNameKey:            {},
 		SubscriptionIDKey:        {},
 		StripePaymentMethodIDKey: {},
 		StripeCustomerIDKey:      {},

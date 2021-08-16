@@ -69,7 +69,7 @@ func TestCreateAccount(t *testing.T) {
 				},
 			}
 
-			err := client.CreateAccount(context.Background(), "account_id")
+			err := client.CreateAccount(context.Background(), "account_id", "bucket_name")
 
 			if err != nil {
 				switch test.error.(type) {
