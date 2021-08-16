@@ -21,19 +21,25 @@ func TestMain(m *testing.M) {
 }
 
 type mockAcctClient struct {
-	mockCreateAccountError error
-	mockUpdateAccountError error
-	mockReadAccountOutput  *acct.Account
-	mockReadAccountError   error
-	mockDeleteAccountError error
+	mockCreateAccountError           error
+	mockUpdateAccountError           error
+	mockGetAccountByIDOutput         *acct.Account
+	mockGetAccountByIDError          error
+	mockGetAccountBySecodaryIDOutput *acct.Account
+	mockGetAccountBySecodaryIDError  error
+	mockDeleteAccountError           error
 }
 
 func (m *mockAcctClient) CreateAccount(ctx context.Context, accountID, bucketName string) error {
 	return m.mockCreateAccountError
 }
 
-func (m *mockAcctClient) ReadAccount(ctx context.Context, accountID string) (*acct.Account, error) {
-	return m.mockReadAccountOutput, m.mockReadAccountError
+func (m *mockAcctClient) GetAccountByID(ctx context.Context, accountID string) (*acct.Account, error) {
+	return m.mockGetAccountByIDOutput, m.mockGetAccountByIDError
+}
+
+func (m *mockAcctClient) GetAccountBySecondaryID(ctx context.Context, secondaryID string) (*acct.Account, error) {
+	return m.mockGetAccountBySecodaryIDOutput, m.mockGetAccountBySecodaryIDError
 }
 
 func (m *mockAcctClient) UpdateAccount(ctx context.Context, accountID string, values map[string]string) error {
@@ -46,28 +52,28 @@ func (m *mockAcctClient) DeleteAccount(ctx context.Context, accountID string) er
 
 func Test_handler(t *testing.T) {
 	tests := []struct {
-		description            string
-		request                events.APIGatewayProxyRequest
-		mockCreateAccountError error
-		mockUpdateAccountError error
-		mockReadAccountOutput  *acct.Account
-		mockReadAccountError   error
-		mockDeleteAccountError error
-		statusCode             int
-		body                   string
+		description              string
+		request                  events.APIGatewayProxyRequest
+		mockCreateAccountError   error
+		mockUpdateAccountError   error
+		mockGetAccountByIDOutput *acct.Account
+		mockGetAccountByIDError  error
+		mockDeleteAccountError   error
+		statusCode               int
+		body                     string
 	}{
 		{
 			description: "unsupported http method recieved",
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodGet,
 			},
-			mockCreateAccountError: nil,
-			mockUpdateAccountError: nil,
-			mockReadAccountOutput:  nil,
-			mockReadAccountError:   nil,
-			mockDeleteAccountError: nil,
-			statusCode:             http.StatusBadRequest,
-			body:                   `{"error": "http method \[GET\] not supported"}`,
+			mockCreateAccountError:   nil,
+			mockUpdateAccountError:   nil,
+			mockGetAccountByIDOutput: nil,
+			mockGetAccountByIDError:  nil,
+			mockDeleteAccountError:   nil,
+			statusCode:               http.StatusBadRequest,
+			body:                     `{"error": "http method \[GET\] not supported"}`,
 		},
 		{
 			description: "error unmarshalling user information",
@@ -75,13 +81,13 @@ func Test_handler(t *testing.T) {
 				HTTPMethod: http.MethodPost,
 				Body:       "---------",
 			},
-			mockCreateAccountError: nil,
-			mockUpdateAccountError: nil,
-			mockReadAccountOutput:  nil,
-			mockReadAccountError:   nil,
-			mockDeleteAccountError: nil,
-			statusCode:             http.StatusInternalServerError,
-			body:                   `{"error": "error unmarshalling request"}`,
+			mockCreateAccountError:   nil,
+			mockUpdateAccountError:   nil,
+			mockGetAccountByIDOutput: nil,
+			mockGetAccountByIDError:  nil,
+			mockDeleteAccountError:   nil,
+			statusCode:               http.StatusInternalServerError,
+			body:                     `{"error": "error unmarshalling request"}`,
 		},
 		{
 			description: "error creating user account",
@@ -89,13 +95,13 @@ func Test_handler(t *testing.T) {
 				HTTPMethod: http.MethodPost,
 				Body:       `{"bucket_name": "bucket"}`,
 			},
-			mockCreateAccountError: errors.New("mock create account error"),
-			mockUpdateAccountError: nil,
-			mockReadAccountOutput:  nil,
-			mockReadAccountError:   nil,
-			mockDeleteAccountError: nil,
-			statusCode:             http.StatusInternalServerError,
-			body:                   `{"error": "error creating user account"}`,
+			mockCreateAccountError:   errors.New("mock create account error"),
+			mockUpdateAccountError:   nil,
+			mockGetAccountByIDOutput: nil,
+			mockGetAccountByIDError:  nil,
+			mockDeleteAccountError:   nil,
+			statusCode:               http.StatusInternalServerError,
+			body:                     `{"error": "error creating user account"}`,
 		},
 		{
 			description: "successful handler create invocation",
@@ -103,26 +109,26 @@ func Test_handler(t *testing.T) {
 				HTTPMethod: http.MethodPost,
 				Body:       `{"bucket_name": "bucket"}`,
 			},
-			mockCreateAccountError: nil,
-			mockUpdateAccountError: nil,
-			mockReadAccountOutput:  nil,
-			mockReadAccountError:   nil,
-			mockDeleteAccountError: nil,
-			statusCode:             http.StatusOK,
-			body:                   `{"message": "success", "account_id": ".*"}`,
+			mockCreateAccountError:   nil,
+			mockUpdateAccountError:   nil,
+			mockGetAccountByIDOutput: nil,
+			mockGetAccountByIDError:  nil,
+			mockDeleteAccountError:   nil,
+			statusCode:               http.StatusOK,
+			body:                     `{"message": "success", "account_id": ".*"}`,
 		},
 		{
 			description: "account id not provided in request header",
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodDelete,
 			},
-			mockCreateAccountError: nil,
-			mockUpdateAccountError: nil,
-			mockReadAccountOutput:  nil,
-			mockReadAccountError:   nil,
-			mockDeleteAccountError: nil,
-			statusCode:             http.StatusBadRequest,
-			body:                   `{"error": "account id not provided"}`,
+			mockCreateAccountError:   nil,
+			mockUpdateAccountError:   nil,
+			mockGetAccountByIDOutput: nil,
+			mockGetAccountByIDError:  nil,
+			mockDeleteAccountError:   nil,
+			statusCode:               http.StatusBadRequest,
+			body:                     `{"error": "account id not provided"}`,
 		},
 		{
 			description: "dynamodb client error removing account from database",
@@ -132,13 +138,13 @@ func Test_handler(t *testing.T) {
 					accountIDHeader: "account_id",
 				},
 			},
-			mockCreateAccountError: nil,
-			mockUpdateAccountError: nil,
-			mockReadAccountOutput:  &acct.Account{},
-			mockReadAccountError:   nil,
-			mockDeleteAccountError: errors.New("mock delete account error"),
-			statusCode:             http.StatusInternalServerError,
-			body:                   `{"error": "error removing user account"}`,
+			mockCreateAccountError:   nil,
+			mockUpdateAccountError:   nil,
+			mockGetAccountByIDOutput: &acct.Account{},
+			mockGetAccountByIDError:  nil,
+			mockDeleteAccountError:   errors.New("mock delete account error"),
+			statusCode:               http.StatusInternalServerError,
+			body:                     `{"error": "error removing user account"}`,
 		},
 		{
 			description: "successful handler delete invocation",
@@ -148,24 +154,24 @@ func Test_handler(t *testing.T) {
 					accountIDHeader: "account_id",
 				},
 			},
-			mockCreateAccountError: nil,
-			mockUpdateAccountError: nil,
-			mockReadAccountOutput:  &acct.Account{},
-			mockReadAccountError:   nil,
-			mockDeleteAccountError: nil,
-			statusCode:             http.StatusOK,
-			body:                   `{"message": "success", "account_id": "account_id"}`,
+			mockCreateAccountError:   nil,
+			mockUpdateAccountError:   nil,
+			mockGetAccountByIDOutput: &acct.Account{},
+			mockGetAccountByIDError:  nil,
+			mockDeleteAccountError:   nil,
+			statusCode:               http.StatusOK,
+			body:                     `{"message": "success", "account_id": "account_id"}`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			acctClient := &mockAcctClient{
-				mockCreateAccountError: test.mockCreateAccountError,
-				mockUpdateAccountError: test.mockUpdateAccountError,
-				mockReadAccountOutput:  test.mockReadAccountOutput,
-				mockReadAccountError:   test.mockReadAccountError,
-				mockDeleteAccountError: test.mockDeleteAccountError,
+				mockCreateAccountError:   test.mockCreateAccountError,
+				mockUpdateAccountError:   test.mockUpdateAccountError,
+				mockGetAccountByIDOutput: test.mockGetAccountByIDOutput,
+				mockGetAccountByIDError:  test.mockGetAccountByIDError,
+				mockDeleteAccountError:   test.mockDeleteAccountError,
 			}
 
 			handlerFunc := handler(acctClient)
