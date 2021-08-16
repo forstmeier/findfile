@@ -16,6 +16,7 @@ aws cloudformation deploy \
 		AccountIDHTTPHeader=$( jq -r  '.app.account_id_http_header' <<< "${CONFIG_JSON}" ) \
 		ArtifactBucket=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) \
 		StorageBucket=$( jq -r  '.aws.s3.storage_bucket' <<< "${CONFIG_JSON}" ) \
+		DatabaseName=$( jq -r  '.aws.athena.database_name' <<< "${CONFIG_JSON}" ) \
 		CertificateARN=$( jq -r  '.aws.acm.certificate_arn' <<< "${CONFIG_JSON}" ) \
 		DomainHostedZoneID=$( jq -r  '.aws.domain.hosted_zone_id' <<< "${CONFIG_JSON}" ) \
 	--capabilities CAPABILITY_IAM \
