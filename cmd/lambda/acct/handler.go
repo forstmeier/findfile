@@ -11,17 +11,12 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cheesesteakio/api/pkg/acct"
-	"github.com/cheesesteakio/api/pkg/fs"
-	"github.com/cheesesteakio/api/pkg/subscr"
 	"github.com/cheesesteakio/api/util"
 )
 
-var (
-	accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
-	mainBucket      = os.Getenv("MAIN_BUCKET")
-)
+var accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
 
-func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(acctClient acct.Accounter) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		util.Log("REQUEST_BODY", request.Body)
 		util.Log("REQUEST_METHOD", request.HTTPMethod)
@@ -30,19 +25,18 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 
 		switch request.HTTPMethod {
 		case http.MethodPost:
-			subscriberInfo := subscr.SubscriberInfo{}
-			if err := json.Unmarshal([]byte(request.Body), &subscriberInfo); err != nil {
-				util.Log("UNMARSHAL_ERROR", err)
-				return events.APIGatewayProxyResponse{
-					StatusCode: http.StatusInternalServerError,
-					Body:       `{"error": "error unmarshalling subscriber info"}`,
-				}, nil
-			}
-			subscriberInfo.ID = uuid.NewString()
-
 			accountID := uuid.NewString()
 
-			if err := acctClient.CreateAccount(ctx, accountID); err != nil {
+			requestJSON := map[string]string{}
+			if err := json.Unmarshal([]byte(request.Body), &requestJSON); err != nil {
+				util.Log("UNMARSHAL_REQUEST_BODY_ERROR", err)
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       `{"error": "error unmarshalling request"}`,
+				}, nil
+			}
+
+			if err := acctClient.CreateAccount(ctx, accountID, requestJSON["bucket_name"]); err != nil {
 				util.Log("CREATE_ACCOUNT_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
@@ -50,29 +44,10 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 				}, nil
 			}
 
-			subscription, err := subscrClient.CreateSubscription(ctx, accountID, subscriberInfo)
-			if err != nil {
-				util.Log("CREATE_SUBSCRIPTION_ERROR", err)
-				return events.APIGatewayProxyResponse{
-					StatusCode: http.StatusInternalServerError,
-					Body:       `{"error": "error creating user subscription"}`,
-				}, nil
-			}
-
-			subscriptionValues := map[string]string{
-				acct.SubscriptionIDKey:        subscription.ID,
-				acct.StripePaymentMethodIDKey: subscription.StripePaymentMethodID,
-				acct.StripeCustomerIDKey:      subscription.StripeCustomerID,
-				acct.StripeSubscriptionIDKey:  subscription.StripeSubscriptionID,
-			}
-
-			if err := acctClient.UpdateAccount(ctx, accountID, subscriptionValues); err != nil {
-				util.Log("UPDATE_ACCOUNT_ERROR", err)
-				return events.APIGatewayProxyResponse{
-					StatusCode: http.StatusInternalServerError,
-					Body:       `{"error": "error adding subscription to user account"}`,
-				}, nil
-			}
+			// NOTE: for the subscription logic, there would also be a check
+			// for the existence of the required Stripe values and if the user
+			// sent them the subscription would be created with a subscrClient
+			// and the values would be added via the acctClient.UpdateAccount method.
 
 			body = fmt.Sprintf(`{"message": "success", "account_id": "%s"}`, accountID)
 
@@ -86,30 +61,6 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 				}, nil
 			}
 
-			account, err := acctClient.ReadAccount(ctx, accountID)
-			if err != nil {
-				util.Log("READ_ACCOUNT_ERROR", err)
-				return events.APIGatewayProxyResponse{
-					StatusCode: http.StatusInternalServerError,
-					Body:       `{"error": "error getting account values"}`,
-				}, nil
-			}
-
-			subscription := subscr.Subscription{
-				ID:                    account.SubscriptionID,
-				StripePaymentMethodID: account.StripePaymentMethodID,
-				StripeCustomerID:      account.StripeCustomerID,
-				StripeSubscriptionID:  account.StripeSubscriptionID,
-			}
-
-			if err := subscrClient.RemoveSubscription(ctx, subscription); err != nil {
-				util.Log("REMOVE_SUBSCRIPTION_ERROR", err)
-				return events.APIGatewayProxyResponse{
-					StatusCode: http.StatusInternalServerError,
-					Body:       `{"error": "error removing user subscription"}`,
-				}, nil
-			}
-
 			if err := acctClient.DeleteAccount(ctx, accountID); err != nil {
 				util.Log("DELETE_ACCOUNT_ERROR", err)
 				return events.APIGatewayProxyResponse{
@@ -118,22 +69,9 @@ func handler(acctClient acct.Accounter, subscrClient subscr.Subscriber, fsClient
 				}, nil
 			}
 
-			filesInfo, err := fsClient.ListFilesByAccountID(ctx, mainBucket, accountID)
-			if err != nil {
-				util.Log("LIST_FILES_BY_ACCOUNT_ID_ERROR", err)
-				return events.APIGatewayProxyResponse{
-					StatusCode: http.StatusInternalServerError,
-					Body:       `{"error": "error listing user files"}`,
-				}, nil
-			}
-
-			if err := fsClient.DeleteFiles(ctx, accountID, filesInfo); err != nil {
-				util.Log("DELETE_FILES_ERROR", err)
-				return events.APIGatewayProxyResponse{
-					StatusCode: http.StatusInternalServerError,
-					Body:       `{"error": "error removing user files"}`,
-				}, nil
-			}
+			// NOTE: for the delete logic, there would also be a check for the
+			// existence of Stripe values and if true the subscription would be
+			// removed with an added subscrClient in the handler.
 
 			body = fmt.Sprintf(`{"message": "success", "account_id": "%s"}`, accountID)
 
