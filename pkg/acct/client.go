@@ -65,12 +65,31 @@ func (c *Client) CreateAccount(ctx context.Context, accountID, bucketName string
 	return nil
 }
 
-// ReadAccount implements the acct.Accounter.ReadAccount method.
-func (c *Client) ReadAccount(ctx context.Context, accountID string) (*Account, error) {
+// GetAccountByID implements the acct.Accounter.GetAccountByID method.
+func (c *Client) GetAccountByID(ctx context.Context, accountID string) (*Account, error) {
 	input := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			AccountIDKey: {
 				S: aws.String(accountID),
+			},
+		},
+		TableName: aws.String(c.tableName),
+	}
+
+	output, err := c.dynamoDBClient.GetItem(input)
+	if err != nil {
+		return nil, &ErrorGetItem{err: err}
+	}
+
+	return itemToAccountObject(output.Item), nil
+}
+
+// GetAccountBySecondaryID implements the acct.Accounter.GetAccountBySecondaryID method.
+func (c *Client) GetAccountBySecondaryID(ctx context.Context, secondaryID string) (*Account, error) {
+	input := &dynamodb.GetItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			BucketNameKey: {
+				S: aws.String(secondaryID),
 			},
 		},
 		TableName: aws.String(c.tableName),

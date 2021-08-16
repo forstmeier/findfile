@@ -90,7 +90,7 @@ func TestCreateAccount(t *testing.T) {
 	}
 }
 
-func TestReadAccount(t *testing.T) {
+func TestGetAccountByID(t *testing.T) {
 	tests := []struct {
 		description   string
 		getItemOutput *dynamodb.GetItemOutput
@@ -131,7 +131,73 @@ func TestReadAccount(t *testing.T) {
 				},
 			}
 
-			account, err := client.ReadAccount(context.Background(), "account_id")
+			account, err := client.GetAccountByID(context.Background(), "account_id")
+
+			if err != nil {
+				switch test.error.(type) {
+				case *ErrorGetItem:
+					var testError *ErrorGetItem
+					if !errors.As(err, &testError) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					}
+				default:
+					t.Fatalf("unexpected error type: %v", err)
+				}
+			} else {
+				if err != test.error {
+					t.Errorf("incorrect nil error, received: %v, expected: %v", err, test.error)
+				}
+			}
+
+			if !reflect.DeepEqual(account, test.account) {
+				t.Errorf("incorrect account, received: %+v, expected: %+v", account, test.account)
+			}
+		})
+	}
+}
+
+func TestGetAccountBySecondaryID(t *testing.T) {
+	tests := []struct {
+		description   string
+		getItemOutput *dynamodb.GetItemOutput
+		getItemError  error
+		account       *Account
+		error         error
+	}{
+		{
+			description:   "dynamodb client get item error",
+			getItemOutput: nil,
+			getItemError:  errors.New("mock get item error"),
+			account:       nil,
+			error:         &ErrorGetItem{},
+		},
+		{
+			description: "successful read account invocation",
+			getItemOutput: &dynamodb.GetItemOutput{
+				Item: map[string]*dynamodb.AttributeValue{
+					AccountIDKey: {
+						S: aws.String("account_id"),
+					},
+				},
+			},
+			getItemError: nil,
+			account: &Account{
+				ID: "account_id",
+			},
+			error: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			client := &Client{
+				dynamoDBClient: &mockDynamoDBClient{
+					getItemOutput: test.getItemOutput,
+					getItemError:  test.getItemError,
+				},
+			}
+
+			account, err := client.GetAccountBySecondaryID(context.Background(), "bucket_name")
 
 			if err != nil {
 				switch test.error.(type) {

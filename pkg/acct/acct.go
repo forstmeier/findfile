@@ -6,7 +6,8 @@ import "context"
 // values stored in the application.
 type Accounter interface {
 	CreateAccount(ctx context.Context, accountID, bucketName string) error
-	ReadAccount(ctx context.Context, accountID string) (*Account, error)
+	GetAccountByID(ctx context.Context, accountID string) (*Account, error)
+	GetAccountBySecondaryID(ctx context.Context, secondaryID string) (*Account, error)
 	UpdateAccount(ctx context.Context, accountID string, values map[string]string) error
 	DeleteAccount(ctx context.Context, accountID string) error
 }
