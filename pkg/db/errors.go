@@ -4,70 +4,36 @@ import "fmt"
 
 const packageName = "db"
 
-// ErrorReadPEMFile wraps errors returned by ioutil.ReadFile
-// in the db.GetTLSConfig function.
-type ErrorReadPEMFile struct {
-	err error
+// ErrorListingObjects wraps errors returned by s3.S3.ListObjectsV2 in
+// the db.Databaser.CreateOrUpdateDocuments and
+// db.Databaser.DeleteDocuments methods.
+type ErrorListingObjects struct {
+	err    error
+	action string
 }
 
-func (e *ErrorReadPEMFile) Error() string {
-	return fmt.Sprintf("%s: get tls config: %s", packageName, e.err.Error())
+func (e *ErrorListingObjects) Error() string {
+	return fmt.Sprintf("%s: %s documents: %s", packageName, e.action, e.err.Error())
 }
 
-// ErrorParsePEMFile wraps errors returned by an ok check in
-// parsing the PEK file in the db.GetTLSConfig function.
-type ErrorParsePEMFile struct{}
-
-func (e *ErrorParsePEMFile) Error() string {
-	return fmt.Sprintf("%s: get tls config: error parsing pem file", packageName)
+// ErrorMarshalData wraps errors returned by json.Marshal in the
+// db.Databaser.CreateOrUpdateDocuments method.
+type ErrorMarshalData struct {
+	err    error
+	entity string
 }
 
-// ErrorNewClient wraps errors returned by mongo.NewClient in
-// the db.New method.
-type ErrorNewClient struct {
-	err error
+func (e *ErrorMarshalData) Error() string {
+	return fmt.Sprintf("%s: create or update documents: [%s] %s", packageName, e.entity, e.err.Error())
 }
 
-func (e *ErrorNewClient) Error() string {
-	return fmt.Sprintf("%s: new client: %s", packageName, e.err.Error())
+// ErrorPutObject wraps errors returned by s3.S3.PutObject in the
+// db.Databaser.CreateOrUpdateDocuments method.
+type ErrorPutObject struct {
+	err    error
+	entity string
 }
 
-// ErrorUpdateDocument wraps errors returned by mongo.Client.UpdateOne
-// in the db.Databaser.CreateOrUpdateDocuments method.
-type ErrorUpdateDocument struct {
-	err error
-}
-
-func (e *ErrorUpdateDocument) Error() string {
-	return fmt.Sprintf("%s: create or update: %s", packageName, e.err.Error())
-}
-
-// ErrorDeleteDocuments wraps errors returned by mongo.Client.DeleteOne
-// in the db.Databaser.Delete method.
-type ErrorDeleteDocuments struct {
-	err error
-}
-
-func (e *ErrorDeleteDocuments) Error() string {
-	return fmt.Sprintf("%s: delete: %s", packageName, e.err.Error())
-}
-
-// ErrorQueryDocuments wraps errors returned by mongo.Client.Find in
-// the db.Databaser.Query method.
-type ErrorQueryDocuments struct {
-	err error
-}
-
-func (e *ErrorQueryDocuments) Error() string {
-	return fmt.Sprintf("%s: query: %s", packageName, e.err.Error())
-}
-
-// ErrorParseQueryResults wraps errors returned by mongo.Cursor.All
-// in the db.Databaser.Query method.
-type ErrorParseQueryResults struct {
-	err error
-}
-
-func (e *ErrorParseQueryResults) Error() string {
-	return fmt.Sprintf("%s: query: %s", packageName, e.err.Error())
+func (e *ErrorPutObject) Error() string {
+	return fmt.Sprintf("%s: create or update documents: [%s] %s", packageName, e.entity, e.err.Error())
 }

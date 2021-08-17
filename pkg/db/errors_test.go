@@ -5,77 +5,42 @@ import (
 	"testing"
 )
 
-func TestErrorReadPEMFile(t *testing.T) {
-	err := &ErrorReadPEMFile{err: errors.New("mock ioutil read file error")}
+func TestErrorListingObjects(t *testing.T) {
+	err := &ErrorListingObjects{
+		err:    errors.New("mock list objects error"),
+		action: "action",
+	}
 
 	recieved := err.Error()
-	expected := "db: get tls config: mock ioutil read file error"
+	expected := "db: action documents: mock list objects error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
 	}
 }
 
-func TestErrorParsePEMFile(t *testing.T) {
-	err := &ErrorParsePEMFile{}
+func TestErrorMarshalData(t *testing.T) {
+	err := &ErrorMarshalData{
+		err:    errors.New("mock marshal data error"),
+		entity: "entity",
+	}
 
 	recieved := err.Error()
-	expected := "db: get tls config: error parsing pem file"
+	expected := "db: create or update documents: [entity] mock marshal data error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
 	}
 }
 
-func TestErrorNewClient(t *testing.T) {
-	err := &ErrorNewClient{err: errors.New("mock new client error")}
-
-	recieved := err.Error()
-	expected := "db: new client: mock new client error"
-
-	if recieved != expected {
-		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+func TestErrorPutObject(t *testing.T) {
+	err := &ErrorPutObject{
+		err:    errors.New("mock put objects error"),
+		entity: "entity",
 	}
-}
-
-func TestErrorUpdateDocument(t *testing.T) {
-	err := &ErrorUpdateDocument{err: errors.New("mock create/update documents error")}
 
 	recieved := err.Error()
-	expected := "db: create or update: mock create/update documents error"
-
-	if recieved != expected {
-		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
-	}
-}
-
-func TestErrorDeleteDocuments(t *testing.T) {
-	err := &ErrorDeleteDocuments{err: errors.New("mock delete documents error")}
-
-	recieved := err.Error()
-	expected := "db: delete: mock delete documents error"
-
-	if recieved != expected {
-		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
-	}
-}
-
-func TestErrorQueryDocuments(t *testing.T) {
-	err := &ErrorQueryDocuments{err: errors.New("mock query documents error")}
-
-	recieved := err.Error()
-	expected := "db: query: mock query documents error"
-
-	if recieved != expected {
-		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
-	}
-}
-
-func TestErrorParseQueryResults(t *testing.T) {
-	err := &ErrorParseQueryResults{err: errors.New("mock parse query results error")}
-
-	recieved := err.Error()
-	expected := "db: query: mock parse query results error"
+	expected := "db: create or update documents: [entity] mock put objects error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)

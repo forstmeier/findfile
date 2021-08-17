@@ -11,12 +11,13 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cheesesteakio/api/pkg/acct"
+	"github.com/cheesesteakio/api/pkg/db"
 	"github.com/cheesesteakio/api/util"
 )
 
 var accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
 
-func handler(acctClient acct.Accounter) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(acctClient acct.Accounter, partitionerClient db.Partitioner) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		util.Log("REQUEST_BODY", request.Body)
 		util.Log("REQUEST_METHOD", request.HTTPMethod)
@@ -44,6 +45,14 @@ func handler(acctClient acct.Accounter) func(ctx context.Context, request events
 				}, nil
 			}
 
+			if err := partitionerClient.AddPartition(ctx, accountID); err != nil {
+				util.Log("CREATE_PARTITION_ERROR", err)
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       `{"error": "error creating account partition"}`,
+				}, nil
+			}
+
 			// NOTE: for the subscription logic, there would also be a check
 			// for the existence of the required Stripe values and if the user
 			// sent them the subscription would be created with a subscrClient
@@ -66,6 +75,14 @@ func handler(acctClient acct.Accounter) func(ctx context.Context, request events
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error removing user account"}`,
+				}, nil
+			}
+
+			if err := partitionerClient.RemovePartition(ctx, accountID); err != nil {
+				util.Log("REMOVE_PARTITION_ERROR", err)
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       `{"error": "error removing account partition"}`,
 				}, nil
 			}
 
