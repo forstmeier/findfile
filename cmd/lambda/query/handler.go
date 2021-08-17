@@ -12,17 +12,12 @@ import (
 	"github.com/cheesesteakio/api/pkg/acct"
 	"github.com/cheesesteakio/api/pkg/cql"
 	"github.com/cheesesteakio/api/pkg/db"
-	"github.com/cheesesteakio/api/pkg/fs"
 	"github.com/cheesesteakio/api/util"
 )
 
-var (
-	accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
-	demoAccountID   = os.Getenv("DEMO_ACCOUNT_ID")
-	mainBucket      = os.Getenv("MAIN_BUCKET")
-)
+var accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
 
-func handler(acctClient acct.Accounter, cqlClient cql.CQLer, dbClient db.Databaser, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(acctClient acct.Accounter, cqlClient cql.CQLer, dbClient db.Databaser) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		util.Log("REQUEST_BODY", request.Body)
 		util.Log("REQUEST_METHOD", request.HTTPMethod)
@@ -44,27 +39,25 @@ func handler(acctClient acct.Accounter, cqlClient cql.CQLer, dbClient db.Databas
 			}, nil
 		}
 
-		if accountID != demoAccountID {
-			account, err := acctClient.ReadAccount(ctx, accountID)
-			if err != nil {
-				util.Log("READ_ACCOUNT_ERROR", err)
-				return events.APIGatewayProxyResponse{
-					StatusCode: http.StatusInternalServerError,
-					Body:       `{"error": "error getting account values"}`,
-				}, nil
-			}
-
-			if account == nil {
-				util.Log("ACCOUNT_ERROR", "nil account value")
-				return events.APIGatewayProxyResponse{
-					StatusCode: http.StatusInternalServerError,
-					Body:       fmt.Sprintf(`{"error": "account [%s] not found}`, accountID),
-				}, nil
-			}
+		account, err := acctClient.GetAccountByID(ctx, accountID)
+		if err != nil {
+			util.Log("READ_ACCOUNT_ERROR", err)
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusInternalServerError,
+				Body:       `{"error": "error getting account values"}`,
+			}, nil
 		}
 
-		query := map[string]interface{}{}
-		if err := json.Unmarshal([]byte(request.Body), &query); err != nil {
+		if account == nil {
+			util.Log("ACCOUNT_ERROR", "nil account value")
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusInternalServerError,
+				Body:       fmt.Sprintf(`{"error": "account [%s] not found}`, accountID),
+			}, nil
+		}
+
+		cqlJSON := map[string]interface{}{}
+		if err := json.Unmarshal([]byte(request.Body), &cqlJSON); err != nil {
 			util.Log("UNMARSHAL_REQUEST_BODY_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
@@ -72,53 +65,35 @@ func handler(acctClient acct.Accounter, cqlClient cql.CQLer, dbClient db.Databas
 			}, nil
 		}
 
-		cqlQuery, err := cqlClient.ConvertCQL(ctx, accountID, query)
+		query, err := cqlClient.ConvertCQL(ctx, accountID, cqlJSON)
 		if err != nil {
 			util.Log("CONVERT_CQL_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "error converting query to cql"}`,
+				Body:       `{"error": "error converting cql to query"}`,
 			}, nil
 		}
 
-		documents, err := dbClient.QueryDocuments(ctx, cqlQuery)
+		documents, err := dbClient.QueryDocuments(ctx, query)
 		if err != nil {
 			util.Log("QUERY_DOCUMENTS_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
-				Body:       fmt.Sprintf(`{"error": "error runing [%s] query"}`, cqlQuery),
+				Body:       `{"error": "error running query"}`,
 			}, nil
 		}
 
 		filenames := make([]string, len(documents))
-		presignedURLs := make([]string, len(documents))
 		for i, document := range documents {
 			filenames[i] = document.Filename
-
-			fileInfo := fs.FileInfo{
-				Filepath: mainBucket,
-				Filename: document.Filename,
-			}
-
-			presignedURL, err := fsClient.GenerateDownloadURL(ctx, accountID, fileInfo)
-			if err != nil {
-				util.Log("GENERATE_DOWNLOAD_URL_ERROR", err)
-				return events.APIGatewayProxyResponse{
-					StatusCode: http.StatusInternalServerError,
-					Body:       fmt.Sprintf(`{"error": "error generating [%s] presigned url"}`, document.Filename),
-				}, nil
-			}
-			presignedURLs[i] = presignedURL
 		}
 
 		output := struct {
-			Message       string   `json:"message"`
-			Filenames     []string `json:"filenames"`
-			PresignedURLs []string `json:"presigned_urls"`
+			Message   string   `json:"message"`
+			Filenames []string `json:"filenames"`
 		}{
-			Message:       "success",
-			Filenames:     filenames,
-			PresignedURLs: presignedURLs,
+			Message:   "success",
+			Filenames: filenames,
 		}
 
 		outputBytes, err := json.Marshal(output)
