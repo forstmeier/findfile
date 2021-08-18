@@ -63,12 +63,12 @@ func (m *mockDocParsClient) Parse(ctx context.Context, accountID, filename, file
 }
 
 type mockDBClient struct {
-	mockCreateOrUpdateDocumentsError error
-	mockDeleteDocumentsError         error
+	mockUpsertDocumentsError error
+	mockDeleteDocumentsError error
 }
 
-func (m *mockDBClient) CreateOrUpdateDocuments(ctx context.Context, documents []docpars.Document) error {
-	return m.mockCreateOrUpdateDocumentsError
+func (m *mockDBClient) UpsertDocuments(ctx context.Context, documents []docpars.Document) error {
+	return m.mockUpsertDocumentsError
 }
 
 func (m *mockDBClient) DeleteDocuments(ctx context.Context, documentsInfo []db.DocumentInfo) error {
@@ -87,7 +87,7 @@ func Test_handler(t *testing.T) {
 		mockGetAccountBySecondaryIDError  error
 		mockParseOutput                   *docpars.Document
 		mockParseError                    error
-		mockCreateOrUpdateDocumentsError  error
+		mockUpsertDocumentsError          error
 		mockDeleteDocumentsError          error
 		parseAccountID                    string
 		parseFilename                     string
@@ -107,7 +107,7 @@ func Test_handler(t *testing.T) {
 			mockGetAccountBySecondaryIDError:  nil,
 			mockParseOutput:                   nil,
 			mockParseError:                    nil,
-			mockCreateOrUpdateDocumentsError:  nil,
+			mockUpsertDocumentsError:          nil,
 			mockDeleteDocumentsError:          nil,
 			parseAccountID:                    "",
 			parseFilename:                     "",
@@ -132,7 +132,7 @@ func Test_handler(t *testing.T) {
 			mockGetAccountBySecondaryIDError:  errors.New("mock get account by secondary id error"),
 			mockParseOutput:                   nil,
 			mockParseError:                    nil,
-			mockCreateOrUpdateDocumentsError:  nil,
+			mockUpsertDocumentsError:          nil,
 			mockDeleteDocumentsError:          nil,
 			parseAccountID:                    "",
 			parseFilename:                     "",
@@ -162,7 +162,7 @@ func Test_handler(t *testing.T) {
 			mockGetAccountBySecondaryIDError: nil,
 			mockParseOutput:                  nil,
 			mockParseError:                   errors.New("mock parse error"),
-			mockCreateOrUpdateDocumentsError: nil,
+			mockUpsertDocumentsError:         nil,
 			mockDeleteDocumentsError:         nil,
 			parseAccountID:                   "account_id",
 			parseFilename:                    "test_file.jpg",
@@ -170,7 +170,7 @@ func Test_handler(t *testing.T) {
 			error:                            errorParseFile,
 		},
 		{
-			description: "create or update documents method error",
+			description: "upsert documents method error",
 			s3Event: events.S3Event{
 				Records: []events.S3EventRecord{
 					{
@@ -192,7 +192,7 @@ func Test_handler(t *testing.T) {
 			mockGetAccountBySecondaryIDError: nil,
 			mockParseOutput:                  &docpars.Document{},
 			mockParseError:                   nil,
-			mockCreateOrUpdateDocumentsError: errors.New("create or update documents mock error"),
+			mockUpsertDocumentsError:         errors.New("upsert documents mock error"),
 			mockDeleteDocumentsError:         nil,
 			parseAccountID:                   "account_id",
 			parseFilename:                    "test_file.jpg",
@@ -222,7 +222,7 @@ func Test_handler(t *testing.T) {
 			mockGetAccountBySecondaryIDError: nil,
 			mockParseOutput:                  &docpars.Document{},
 			mockParseError:                   nil,
-			mockCreateOrUpdateDocumentsError: nil,
+			mockUpsertDocumentsError:         nil,
 			mockDeleteDocumentsError:         errors.New("delete documents mock error"),
 			parseAccountID:                   "",
 			parseFilename:                    "",
@@ -263,7 +263,7 @@ func Test_handler(t *testing.T) {
 			mockGetAccountBySecondaryIDError: nil,
 			mockParseOutput:                  &docpars.Document{},
 			mockParseError:                   nil,
-			mockCreateOrUpdateDocumentsError: nil,
+			mockUpsertDocumentsError:         nil,
 			mockDeleteDocumentsError:         nil,
 			parseAccountID:                   "account_id",
 			parseFilename:                    "test_file_1.jpg",
@@ -285,8 +285,8 @@ func Test_handler(t *testing.T) {
 			}
 
 			dbClient := &mockDBClient{
-				mockCreateOrUpdateDocumentsError: test.mockCreateOrUpdateDocumentsError,
-				mockDeleteDocumentsError:         test.mockDeleteDocumentsError,
+				mockUpsertDocumentsError: test.mockUpsertDocumentsError,
+				mockDeleteDocumentsError: test.mockDeleteDocumentsError,
 			}
 
 			handlerFunc := handler(acctClient, docparseClient, dbClient)

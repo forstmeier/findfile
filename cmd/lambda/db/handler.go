@@ -18,7 +18,7 @@ var (
 	errorUnmarshalEvent          = errors.New("event json unmarshal error")
 	errorGetAccount              = errors.New("get account error")
 	errorParseFile               = errors.New("parse file error")
-	errorCreateOrUpdateDocuments = errors.New("create or update documents error")
+	errorCreateOrUpdateDocuments = errors.New("upsert documents error")
 	errorDeleteDocuments         = errors.New("delete documents error")
 )
 
@@ -76,8 +76,8 @@ func handler(acctClient acct.Accounter, docparsClient docpars.Parser, dbClient d
 			documents[i] = *document
 		}
 
-		if err := dbClient.CreateOrUpdateDocuments(ctx, documents); err != nil {
-			util.Log("CREATE_OR_UPDATE_DOCUMENTS_ERROR", err)
+		if err := dbClient.UpsertDocuments(ctx, documents); err != nil {
+			util.Log("UPSERT_DOCUMENTS_ERROR", err)
 			return errorCreateOrUpdateDocuments
 		}
 

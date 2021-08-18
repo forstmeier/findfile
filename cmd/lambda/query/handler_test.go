@@ -60,7 +60,7 @@ type mockDBClient struct {
 	mockQueryDocumentsError  error
 }
 
-func (m *mockDBClient) CreateOrUpdateDocuments(ctx context.Context, documents []docpars.Document) error {
+func (m *mockDBClient) UpsertDocuments(ctx context.Context, documents []docpars.Document) error {
 	return nil
 }
 

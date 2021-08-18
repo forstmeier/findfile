@@ -9,7 +9,7 @@ import (
 // Databaser defines the methods for interacting with the parsed
 // documents in the database.
 type Databaser interface {
-	CreateOrUpdateDocuments(ctx context.Context, documents []docpars.Document) error
+	UpsertDocuments(ctx context.Context, documents []docpars.Document) error
 	DeleteDocuments(ctx context.Context, documentsInfo []DocumentInfo) error
 	QueryDocuments(ctx context.Context, query []byte) ([]docpars.Document, error)
 }
