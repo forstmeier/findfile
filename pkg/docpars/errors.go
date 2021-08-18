@@ -11,5 +11,5 @@ type ErrorAnalyzeDocument struct {
 }
 
 func (e *ErrorAnalyzeDocument) Error() string {
-	return fmt.Sprintf("%s: analyze document: %s", packageName, e.err.Error())
+	return fmt.Sprintf("[%s] [analyze document]: %s", packageName, e.err.Error())
 }

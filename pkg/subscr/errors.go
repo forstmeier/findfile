@@ -15,7 +15,7 @@ type ErrorMissingFields struct {
 
 func (e *ErrorMissingFields) Error() string {
 	ids := strings.Join(e.fields, ", ")
-	return fmt.Sprintf("%s: create subscription: fields [%s] missing", packageName, ids)
+	return fmt.Sprintf("[%s] [create subscription] [check info fields]: fields [%s] missing", packageName, ids)
 }
 
 // ErrorNewPaymentMethod wraps errors returned by stripe.paymentmethod.New
@@ -25,7 +25,7 @@ type ErrorNewPaymentMethod struct {
 }
 
 func (e *ErrorNewPaymentMethod) Error() string {
-	return fmt.Sprintf("%s: create subscription: %s", packageName, e.err.Error())
+	return fmt.Sprintf("[%s] [create subscription] [new payment method]: %s", packageName, e.err.Error())
 }
 
 // ErrorNewCustomer wraps errors returned by stripe.customer.New
@@ -35,7 +35,7 @@ type ErrorNewCustomer struct {
 }
 
 func (e *ErrorNewCustomer) Error() string {
-	return fmt.Sprintf("%s: create subscription: %s", packageName, e.err.Error())
+	return fmt.Sprintf("[%s] [create subscription] [new customer]: %s", packageName, e.err.Error())
 }
 
 // ErrorNewSubscription wraps errors returned by stripe.subscription.New
@@ -45,7 +45,7 @@ type ErrorNewSubscription struct {
 }
 
 func (e *ErrorNewSubscription) Error() string {
-	return fmt.Sprintf("%s: create subscription: %s", packageName, e.err.Error())
+	return fmt.Sprintf("[%s] [create subscription] [new subscription]: %s", packageName, e.err.Error())
 }
 
 // ErrorDeleteCustomer wraps errors returned by stripe.customer.Del
@@ -55,7 +55,7 @@ type ErrorDeleteCustomer struct {
 }
 
 func (e *ErrorDeleteCustomer) Error() string {
-	return fmt.Sprintf("%s: remove subscription: %s", packageName, e.err.Error())
+	return fmt.Sprintf("[%s] [remove subscription] [delete customer]: %s", packageName, e.err.Error())
 }
 
 // ErrorCreateUsageRecord wraps errors returned by stripe.usagerecord.New
@@ -65,5 +65,5 @@ type ErrorCreateUsageRecord struct {
 }
 
 func (e *ErrorCreateUsageRecord) Error() string {
-	return fmt.Sprintf("%s: add usage: %s", packageName, e.err.Error())
+	return fmt.Sprintf("[%s] [add usage] [new usage record]: %s", packageName, e.err.Error())
 }
