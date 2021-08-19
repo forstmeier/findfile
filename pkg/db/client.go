@@ -2,88 +2,120 @@ package db
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/athena"
+	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/cheesesteakio/api/pkg/docpars"
 )
 
 var _ Databaser = &Client{}
 
-// Client implements the db.Databaser methods using DocumentDB.
+// Client implements the db.Databaser methods using AWS Athena.
 type Client struct {
-	documentDBClient documentDBClient
+	bucketName string
+	helper     helper
 }
 
-type documentDBClient interface {
-	UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error)
-	DeleteOne(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) (*mongo.DeleteResult, error)
-	Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (*mongo.Cursor, error)
+type athenaClient interface {
+	StartQueryExecution(input *athena.StartQueryExecutionInput) (*athena.StartQueryExecutionOutput, error)
+	GetQueryExecution(input *athena.GetQueryExecutionInput) (*athena.GetQueryExecutionOutput, error)
+	GetQueryResults(input *athena.GetQueryResultsInput) (*athena.GetQueryResultsOutput, error)
 }
 
-// GetConnectionURI is a DocumentDB-specific implementation
-// helper function for generating a TLS database endpoint.
-func GetConnectionURI(username, password, endpoint string) string {
-	connectionStringTemplate := "mongodb://%s:%s@%s/sample-database?tls=true&replicaSet=rs0&readpreference=secondaryPreferred"
-	return fmt.Sprintf(connectionStringTemplate, username, password, endpoint)
+type s3Client interface {
+	ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
+	PutObject(input *s3.PutObjectInput) (*s3.PutObjectOutput, error)
+	DeleteObjects(input *s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
 }
 
-// GetTLSConfig is a DocumentDB-specific implementation
-// helper function for generating a TLS config from the
-// provided PEM file path.
-func GetTLSConfig(filepath string) (*tls.Config, error) {
-	tlsConfig := new(tls.Config)
-	certs, err := ioutil.ReadFile(filepath)
-	if err != nil {
-		return tlsConfig, &ErrorReadPEMFile{err: err}
-	}
-
-	tlsConfig.RootCAs = x509.NewCertPool()
-	ok := tlsConfig.RootCAs.AppendCertsFromPEM(certs)
-	if !ok {
-		return tlsConfig, &ErrorParsePEMFile{}
-	}
-
-	return tlsConfig, nil
-}
-
-// New generates a db.Client pointer instance with a DocumentDB client.
-func New(ddb *mongo.Client, databaseName, collectionName string) *Client {
+// New generates a db.Client pointer instance with an AWS Athena client.
+func New(newSession *session.Session, databaseName, bucketName string) *Client {
 	return &Client{
-		documentDBClient: ddb.Database(databaseName).Collection(collectionName),
+		bucketName: bucketName,
+		helper: &help{
+			databaseName: databaseName,
+			bucketName:   bucketName,
+			athenaClient: athena.New(newSession),
+			s3Client:     s3.New(newSession),
+		},
 	}
 }
 
-// CreateOrUpdateDocuments implements the db.Databaser.CreateOrUpdateDocuments
-// method.
-func (c *Client) CreateOrUpdateDocuments(ctx context.Context, documents []docpars.Document) error {
+const (
+	documentsPath = "%s/documents/%s/%s.json"
+	pagesPath     = "%s/documents/%s/pages/%s/%s.json"
+	linesPath     = "%s/documents/%s/pages/%s/lines/%s/%s.json"
+)
+
+// UpsertDocuments implements the db.Databaser.UpsertDocuments method.
+func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Document) error {
 	for _, document := range documents {
-		filter := bson.D{
-			primitive.E{
-				Key:   "filename",
-				Value: document.Filename,
-			},
-			primitive.E{
-				Key:   "filepath",
-				Value: document.Filepath,
-			},
+		accountID := document.AccountID
+		documentID := document.ID
+
+		documentJSON := struct {
+			ID        string `json:"id"`
+			AccountID string `json:"account_id"`
+			Filename  string `json:"filename"`
+			Filepath  string `json:"filepath"`
+		}{
+			ID:        documentID,
+			AccountID: accountID,
+			Filename:  document.Filename,
+			Filepath:  document.Filepath,
 		}
 
-		upsert := true
-		option := &options.UpdateOptions{
-			Upsert: &upsert,
+		key := fmt.Sprintf(documentsPath, accountID, documentID, documentID)
+		if err := c.helper.uploadObject(ctx, documentJSON, key, "document"); err != nil {
+			return &ErrorUploadObject{
+				err:      err,
+				function: "upsert documents",
+			}
 		}
 
-		_, err := c.documentDBClient.UpdateOne(ctx, filter, document, option)
-		if err != nil {
-			return &ErrorUpdateDocument{err: err}
+		for _, page := range document.Pages {
+			pageID := page.ID
+
+			pageJSON := struct {
+				ID         string `json:"id"`
+				PageNumber int64  `json:"page_number"`
+			}{
+				ID:         pageID,
+				PageNumber: page.PageNumber,
+			}
+
+			key := fmt.Sprintf(pagesPath, accountID, documentID, pageID, pageID)
+			if err := c.helper.uploadObject(ctx, pageJSON, key, "page"); err != nil {
+				return &ErrorUploadObject{
+					err:      err,
+					function: "upsert documents",
+				}
+			}
+
+			for _, line := range page.Lines {
+				lineID := line.ID
+
+				lineJSON := struct {
+					ID          string              `json:"id"`
+					Text        string              `json:"text"`
+					Coordinates docpars.Coordinates `json:"coordinates"`
+				}{
+					ID:          lineID,
+					Text:        line.Text,
+					Coordinates: line.Coordinates,
+				}
+
+				key := fmt.Sprintf(linesPath, accountID, documentID, pageID, lineID, lineID)
+				if err := c.helper.uploadObject(ctx, lineJSON, key, "line"); err != nil {
+					return &ErrorUploadObject{
+						err:      err,
+						function: "upsert documents",
+					}
+				}
+			}
 		}
 	}
 
@@ -93,20 +125,48 @@ func (c *Client) CreateOrUpdateDocuments(ctx context.Context, documents []docpar
 // DeleteDocuments implements the db.Databaser.DeleteDocuments method.
 func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentInfo) error {
 	for _, documentInfo := range documentsInfo {
-		filter := bson.D{
-			primitive.E{
-				Key:   "filename",
-				Value: documentInfo.Filename,
-			},
-			primitive.E{
-				Key:   "filepath",
-				Value: documentInfo.Filepath,
-			},
+
+		_ = documentInfo // NOTE: use in query construction
+
+		query := []byte{}
+
+		executionID, state, err := c.helper.executeQuery(ctx, query)
+		if err != nil {
+			return &ErrorExecuteQuery{
+				err:      err,
+				function: "delete documents",
+			}
 		}
 
-		_, err := c.documentDBClient.DeleteOne(ctx, filter)
+		accountID, documentID, err := c.helper.getQueryResultIDs(*state, *executionID)
 		if err != nil {
-			return &ErrorDeleteDocuments{err: err}
+			return &ErrorGetQueryResults{
+				err:         err,
+				function:    "delete documents",
+				subfunction: "get query result ids",
+			}
+		}
+
+		deleteKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("%s/documents/%s", *accountID, *documentID))
+		if err != nil {
+			return &ErrorListDocumentKeys{
+				err: err,
+			}
+		}
+
+		chunkSize := 1000 // S3 max delete objects count
+		for i := 0; i < len(deleteKeys); i += chunkSize {
+			end := i + chunkSize
+			if end > len(deleteKeys) {
+				end = len(deleteKeys)
+			}
+
+			deleteKeysSubset := deleteKeys[i:end]
+			if err := c.helper.deleteDocumentsByKeys(ctx, deleteKeysSubset); err != nil {
+				return &ErrorDeleteDocumentsByKeys{
+					err: err,
+				}
+			}
 		}
 	}
 
@@ -114,15 +174,25 @@ func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentIn
 }
 
 // QueryDocuments implements the db.Databaser.QueryDocuments method.
+//
+// This implementation only returns the account id as well as the file
+// name and path.
 func (c *Client) QueryDocuments(ctx context.Context, query []byte) ([]docpars.Document, error) {
-	cursor, err := c.documentDBClient.Find(ctx, query)
+	executionID, state, err := c.helper.executeQuery(ctx, query)
 	if err != nil {
-		return nil, &ErrorQueryDocuments{err: err}
+		return nil, &ErrorExecuteQuery{
+			err:      err,
+			function: "query documents",
+		}
 	}
 
-	var documents []docpars.Document
-	if err := cursor.All(ctx, &documents); err != nil {
-		return nil, &ErrorParseQueryResults{err: err}
+	documents, err := c.helper.getQueryResultDocuments(*state, *executionID)
+	if err != nil {
+		return nil, &ErrorGetQueryResults{
+			err:         err,
+			function:    "query documents",
+			subfunction: "get query result documents",
+		}
 	}
 
 	return documents, nil
