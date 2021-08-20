@@ -179,7 +179,7 @@ func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentIn
 // QueryDocuments implements the db.Databaser.QueryDocuments method.
 //
 // This implementation only returns the account id as well as the file
-// name and path.
+// name and path in the docpars.Document objects slice.
 func (c *Client) QueryDocuments(ctx context.Context, query []byte) ([]docpars.Document, error) {
 	executionID, state, err := c.helper.executeQuery(ctx, query)
 	if err != nil {

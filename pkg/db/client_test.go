@@ -6,14 +6,20 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/cheesesteakio/api/pkg/docpars"
 )
 
 type mockHelper struct {
-	uploadKeyToError      string
-	mockUploadObjectError error
+	uploadKeyToError                  string
+	mockUploadObjectError             error
+	mockExecuteQueryExecutionID       *string
+	mockExecuteQueryState             *string
+	mockExecuteQueryError             error
+	mockGetQueryResultDocumentsOutput []docpars.Document
+	mockGetQueryResultDocumentsError  error
 }
 
 func (m *mockHelper) uploadObject(ctx context.Context, body interface{}, key string) error {
@@ -33,7 +39,7 @@ func (m *mockHelper) deleteDocumentsByKeys(ctx context.Context, keys []string) e
 }
 
 func (m *mockHelper) executeQuery(ctx context.Context, query []byte) (*string, *string, error) {
-	return nil, nil, nil // TEMP
+	return m.mockExecuteQueryExecutionID, m.mockExecuteQueryState, m.mockExecuteQueryError
 }
 
 func (m *mockHelper) getQueryResultIDs(state, executionID string) (*string, *string, error) {
@@ -41,7 +47,7 @@ func (m *mockHelper) getQueryResultIDs(state, executionID string) (*string, *str
 }
 
 func (m *mockHelper) getQueryResultDocuments(state, executionID string) ([]docpars.Document, error) {
-	return nil, nil // TEMP
+	return m.mockGetQueryResultDocumentsOutput, m.mockGetQueryResultDocumentsError
 }
 
 func TestNew(t *testing.T) {
@@ -206,12 +212,89 @@ func TestDeleteDocuments(t *testing.T) {
 
 func TestQueryDocuments(t *testing.T) {
 	tests := []struct {
-		description string
-	}{}
+		description                       string
+		mockExecuteQueryExecutionID       *string
+		mockExecuteQueryState             *string
+		mockExecuteQueryError             error
+		mockGetQueryResultDocumentsOutput []docpars.Document
+		mockGetQueryResultDocumentsError  error
+		documents                         []docpars.Document
+		error                             error
+	}{
+		{
+			description:                       "error executing query",
+			mockExecuteQueryExecutionID:       nil,
+			mockExecuteQueryState:             nil,
+			mockExecuteQueryError:             errors.New("mock execute query error"),
+			mockGetQueryResultDocumentsOutput: nil,
+			mockGetQueryResultDocumentsError:  nil,
+			documents:                         nil,
+			error:                             &ErrorExecuteQuery{},
+		},
+		{
+			description:                       "error getting query result documents",
+			mockExecuteQueryExecutionID:       aws.String("execution_id"),
+			mockExecuteQueryState:             aws.String("state"),
+			mockExecuteQueryError:             nil,
+			mockGetQueryResultDocumentsOutput: nil,
+			mockGetQueryResultDocumentsError:  errors.New("mock get query result documents error"),
+			documents:                         nil,
+			error:                             &ErrorGetQueryResults{},
+		},
+		{
+			description:                 "successful query documents invocation",
+			mockExecuteQueryExecutionID: aws.String("execution_id"),
+			mockExecuteQueryState:       aws.String("state"),
+			mockExecuteQueryError:       nil,
+			mockGetQueryResultDocumentsOutput: []docpars.Document{
+				{
+					AccountID: "account_id",
+				},
+			},
+			mockGetQueryResultDocumentsError: nil,
+			documents: []docpars.Document{
+				{
+					AccountID: "account_id",
+				},
+			},
+			error: nil,
+		},
+	}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
+			client := &Client{
+				helper: &mockHelper{
+					mockExecuteQueryExecutionID:       test.mockExecuteQueryExecutionID,
+					mockExecuteQueryState:             test.mockExecuteQueryState,
+					mockExecuteQueryError:             test.mockExecuteQueryError,
+					mockGetQueryResultDocumentsOutput: test.mockGetQueryResultDocumentsOutput,
+					mockGetQueryResultDocumentsError:  test.mockGetQueryResultDocumentsError,
+				},
+			}
 
+			documents, err := client.QueryDocuments(context.Background(), []byte("query"))
+
+			if err != nil {
+				switch e := test.error.(type) {
+				case *ErrorExecuteQuery:
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
+					}
+				case *ErrorGetQueryResults:
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
+					}
+				default:
+					t.Fatalf("unexpected error type: %v", err)
+				}
+			} else {
+				receivedAccountID := documents[0].AccountID
+				expectedAccountID := test.documents[0].AccountID
+				if receivedAccountID != expectedAccountID {
+					t.Errorf("incorrect account id, received: %s, expected: %s", receivedAccountID, expectedAccountID)
+				}
+			}
 		})
 	}
 }
