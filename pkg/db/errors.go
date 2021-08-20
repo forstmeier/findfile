@@ -54,3 +54,21 @@ type ErrorDeleteDocumentsByKeys struct {
 func (e *ErrorDeleteDocumentsByKeys) Error() string {
 	return fmt.Sprintf("[%s] [delete documents] [delete documents by keys]: %s", packageName, e.err.Error())
 }
+
+// ErrorCreatePartition wraps errors returned by glue.Glue.CreatePartition.
+type ErrorCreatePartition struct {
+	err error
+}
+
+func (e *ErrorCreatePartition) Error() string {
+	return fmt.Sprintf("[%s] [create partition]: %s", packageName, e.err.Error())
+}
+
+// ErrorDeletePartition wraps errors returned by glue.Glue.DeletePartition.
+type ErrorDeletePartition struct {
+	err error
+}
+
+func (e *ErrorDeletePartition) Error() string {
+	return fmt.Sprintf("[%s] [delete partition]: %s", packageName, e.err.Error())
+}

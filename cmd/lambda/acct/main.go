@@ -17,9 +17,12 @@ func main() {
 
 	acctClient := acct.New(newSession, os.Getenv("TABLE_NAME"))
 
-	dbClient := db.New(newSession, os.Getenv("DATABASE_NAME"), os.Getenv("STORAGE_BUCKET"))
-
-	partitionerClient := db.NewPartitionerClient(dbClient)
+	partitionerClient := db.NewPartitionerClient(
+		newSession,
+		os.Getenv("TABLE_NAME"),
+		os.Getenv("DATABASE_NAME"),
+		os.Getenv("CATALOG_ID"),
+	)
 
 	lambda.Start(handler(acctClient, partitionerClient))
 }

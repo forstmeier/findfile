@@ -74,3 +74,29 @@ func TestErrorDeleteDocumentsByKeys(t *testing.T) {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
 	}
 }
+
+func TestErrorCreatePartition(t *testing.T) {
+	err := &ErrorCreatePartition{
+		err: errors.New("mock create partition error"),
+	}
+
+	recieved := err.Error()
+	expected := "[db] [create partition]: mock create partition error"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
+
+func TestErrorDeletePartition(t *testing.T) {
+	err := &ErrorDeletePartition{
+		err: errors.New("mock delete partition error"),
+	}
+
+	recieved := err.Error()
+	expected := "[db] [delete partition]: mock delete partition error"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
