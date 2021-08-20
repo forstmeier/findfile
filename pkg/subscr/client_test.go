@@ -167,26 +167,22 @@ func TestCreateSubscription(t *testing.T) {
 			subscription, err := client.CreateSubscription(context.Background(), "account_id", test.subscriberInfo)
 
 			if err != nil {
-				switch test.error.(type) {
+				switch e := test.error.(type) {
 				case *ErrorMissingFields:
-					var testError *ErrorMissingFields
-					if !errors.As(err, &testError) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 				case *ErrorNewPaymentMethod:
-					var testError *ErrorNewPaymentMethod
-					if !errors.As(err, &testError) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 				case *ErrorNewCustomer:
-					var testError *ErrorNewCustomer
-					if !errors.As(err, &testError) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 				case *ErrorNewSubscription:
-					var testError *ErrorNewSubscription
-					if !errors.As(err, &testError) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 				default:
 					t.Fatalf("unexpected error type: %v", err)
@@ -304,11 +300,10 @@ func TestRemoveSubscription(t *testing.T) {
 			err := client.RemoveSubscription(context.Background(), subscription)
 
 			if err != nil {
-				switch test.error.(type) {
+				switch e := test.error.(type) {
 				case *ErrorDeleteCustomer:
-					var testError *ErrorDeleteCustomer
-					if !errors.As(err, &testError) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 				default:
 					t.Fatalf("unexpected error type: %v", err)
@@ -351,11 +346,10 @@ func TestAddUsage(t *testing.T) {
 			err := client.AddUsage(context.Background(), "test_subscription_item_id", 1)
 
 			if err != nil {
-				switch test.error.(type) {
+				switch e := test.error.(type) {
 				case *ErrorCreateUsageRecord:
-					var testError *ErrorCreateUsageRecord
-					if !errors.As(err, &testError) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 				default:
 					t.Fatalf("unexpected error type: %v", err)

@@ -72,11 +72,10 @@ func TestCreateAccount(t *testing.T) {
 			err := client.CreateAccount(context.Background(), "account_id", "bucket_name")
 
 			if err != nil {
-				switch test.error.(type) {
+				switch e := test.error.(type) {
 				case *ErrorPutItem:
-					var testError *ErrorPutItem
-					if !errors.As(err, &testError) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 				default:
 					t.Fatalf("unexpected error type: %v", err)
@@ -134,11 +133,10 @@ func TestGetAccountByID(t *testing.T) {
 			account, err := client.GetAccountByID(context.Background(), "account_id")
 
 			if err != nil {
-				switch test.error.(type) {
+				switch e := test.error.(type) {
 				case *ErrorGetItem:
-					var testError *ErrorGetItem
-					if !errors.As(err, &testError) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 				default:
 					t.Fatalf("unexpected error type: %v", err)
@@ -200,11 +198,10 @@ func TestGetAccountBySecondaryID(t *testing.T) {
 			account, err := client.GetAccountBySecondaryID(context.Background(), "bucket_name")
 
 			if err != nil {
-				switch test.error.(type) {
+				switch e := test.error.(type) {
 				case *ErrorGetItem:
-					var testError *ErrorGetItem
-					if !errors.As(err, &testError) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 				default:
 					t.Fatalf("unexpected error type: %v", err)

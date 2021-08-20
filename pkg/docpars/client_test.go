@@ -116,11 +116,10 @@ func TestParse(t *testing.T) {
 			document, err := client.Parse(ctx, accountID, filename, filepath, nil)
 
 			if err != nil {
-				switch test.error.(type) {
+				switch e := test.error.(type) {
 				case *ErrorAnalyzeDocument:
-					var testError *ErrorAnalyzeDocument
-					if !errors.As(err, &testError) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 				default:
 					t.Fatalf("unexpected error type: %v", err)
