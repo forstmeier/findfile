@@ -98,7 +98,7 @@ func Test_uploadObject(t *testing.T) {
 				},
 			}
 
-			err := h.uploadObject(context.Background(), body, key, "entity")
+			err := h.uploadObject(context.Background(), body, key)
 
 			if err != nil {
 				if err.Error() != test.error.Error() {

@@ -69,10 +69,11 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Docume
 		}
 
 		key := fmt.Sprintf(documentsPath, accountID, documentID, documentID)
-		if err := c.helper.uploadObject(ctx, documentJSON, key, "document"); err != nil {
+		if err := c.helper.uploadObject(ctx, documentJSON, key); err != nil {
 			return &ErrorUploadObject{
 				err:      err,
 				function: "upsert documents",
+				entity:   "document",
 			}
 		}
 
@@ -88,10 +89,11 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Docume
 			}
 
 			key := fmt.Sprintf(pagesPath, accountID, documentID, pageID, pageID)
-			if err := c.helper.uploadObject(ctx, pageJSON, key, "page"); err != nil {
+			if err := c.helper.uploadObject(ctx, pageJSON, key); err != nil {
 				return &ErrorUploadObject{
 					err:      err,
 					function: "upsert documents",
+					entity:   "page",
 				}
 			}
 
@@ -109,10 +111,11 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Docume
 				}
 
 				key := fmt.Sprintf(linesPath, accountID, documentID, pageID, lineID, lineID)
-				if err := c.helper.uploadObject(ctx, lineJSON, key, "line"); err != nil {
+				if err := c.helper.uploadObject(ctx, lineJSON, key); err != nil {
 					return &ErrorUploadObject{
 						err:      err,
 						function: "upsert documents",
+						entity:   "line",
 					}
 				}
 			}

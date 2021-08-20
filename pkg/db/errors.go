@@ -8,10 +8,11 @@ const packageName = "db"
 type ErrorUploadObject struct {
 	err      error
 	function string
+	entity   string
 }
 
 func (e *ErrorUploadObject) Error() string {
-	return fmt.Sprintf("[%s] [%s] [upload object]: %s", packageName, e.function, e.err.Error())
+	return fmt.Sprintf("[%s] [%s] [upload object] [entity: %s]: %s", packageName, e.function, e.entity, e.err.Error())
 }
 
 // ErrorExecuteQuery wraps errors returned by helper.executeQuery.

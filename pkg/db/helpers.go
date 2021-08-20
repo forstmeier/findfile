@@ -14,7 +14,7 @@ import (
 )
 
 type helper interface {
-	uploadObject(ctx context.Context, body interface{}, key, entity string) error
+	uploadObject(ctx context.Context, body interface{}, key string) error
 	listDocumentKeys(ctx context.Context, bucket, prefix string) ([]string, error)
 	deleteDocumentsByKeys(ctx context.Context, keys []string) error
 	executeQuery(ctx context.Context, query []byte) (*string, *string, error)
@@ -29,7 +29,7 @@ type help struct {
 	s3Client     s3Client
 }
 
-func (h *help) uploadObject(ctx context.Context, body interface{}, key, entity string) error {
+func (h *help) uploadObject(ctx context.Context, body interface{}, key string) error {
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
 		return err
