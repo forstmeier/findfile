@@ -128,12 +128,15 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Docume
 // DeleteDocuments implements the db.Databaser.DeleteDocuments method.
 func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentInfo) error {
 	for _, documentInfo := range documentsInfo {
+		query := fmt.Sprintf(`SELECT account_id
+		FROM documents
+		WHERE filename = '%s'
+		AND filepath = '%s';`,
+			documentInfo.Filename,
+			documentInfo.Filename,
+		)
 
-		_ = documentInfo // NOTE: use in query construction
-
-		query := []byte{}
-
-		executionID, state, err := c.helper.executeQuery(ctx, query)
+		executionID, state, err := c.helper.executeQuery(ctx, []byte(query))
 		if err != nil {
 			return &ErrorExecuteQuery{
 				err:      err,
@@ -152,29 +155,16 @@ func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentIn
 
 		deleteKeys := []string{}
 
-		deleteDocumentsKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("documents/%s", *accountID))
-		if err != nil {
-			return &ErrorListDocumentKeys{
-				err: err,
+		paths := []string{"documents", "pages", "lines"}
+		for _, path := range paths {
+			pathDeleteKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("%s/%s", path, *accountID))
+			if err != nil {
+				return &ErrorListDocumentKeys{
+					err: err,
+				}
 			}
+			deleteKeys = append(deleteKeys, pathDeleteKeys...)
 		}
-		deleteKeys = append(deleteKeys, deleteDocumentsKeys...)
-
-		deletePagesKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("pages/%s", *accountID))
-		if err != nil {
-			return &ErrorListDocumentKeys{
-				err: err,
-			}
-		}
-		deleteKeys = append(deleteKeys, deletePagesKeys...)
-
-		deleteLinesKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("lines/%s", *accountID))
-		if err != nil {
-			return &ErrorListDocumentKeys{
-				err: err,
-			}
-		}
-		deleteKeys = append(deleteKeys, deleteLinesKeys...)
 
 		chunkSize := 1000 // S3 max delete objects count
 		for i := 0; i < len(deleteKeys); i += chunkSize {
