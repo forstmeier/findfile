@@ -380,7 +380,7 @@ func Test_getQueryResultIDs(t *testing.T) {
 				},
 			}
 
-			accountID, documentID, err := h.getQueryResultIDs(test.state, test.executionID)
+			accountID, err := h.getQueryResultAccountID(test.state, test.executionID)
 
 			if err != nil {
 				if err.Error() != test.error.Error() {
@@ -389,10 +389,6 @@ func Test_getQueryResultIDs(t *testing.T) {
 			} else {
 				if *accountID != test.accountID {
 					t.Errorf("incorrect account id, received: %s, expected: %s", *accountID, test.accountID)
-				}
-
-				if *documentID != test.documentID {
-					t.Errorf("incorrect document id, received: %s, expected: %s", *documentID, test.documentID)
 				}
 			}
 		})

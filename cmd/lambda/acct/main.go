@@ -19,7 +19,8 @@ func main() {
 
 	partitionerClient := db.NewPartitionerClient(
 		newSession,
-		os.Getenv("TABLE_NAME"),
+		os.Getenv("STORAGE_BUCKET"),
+		os.Getenv("METADATA_TABLE_NAME"),
 		os.Getenv("DATABASE_NAME"),
 		os.Getenv("CATALOG_ID"),
 	)

@@ -81,7 +81,7 @@ func TestErrorCreatePartition(t *testing.T) {
 	}
 
 	recieved := err.Error()
-	expected := "[db] [create partition]: mock create partition error"
+	expected := "[db] [add partition]: mock create partition error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
@@ -94,7 +94,21 @@ func TestErrorDeletePartition(t *testing.T) {
 	}
 
 	recieved := err.Error()
-	expected := "[db] [delete partition]: mock delete partition error"
+	expected := "[db] [remove partition]: mock delete partition error"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
+
+func TestErrorPutObject(t *testing.T) {
+	err := &ErrorPutObject{
+		err:  errors.New("mock put object error"),
+		path: "path",
+	}
+
+	recieved := err.Error()
+	expected := "[db] [add partition] [path: path]: mock put object error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)

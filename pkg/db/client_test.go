@@ -42,8 +42,8 @@ func (m *mockHelper) executeQuery(ctx context.Context, query []byte) (*string, *
 	return m.mockExecuteQueryExecutionID, m.mockExecuteQueryState, m.mockExecuteQueryError
 }
 
-func (m *mockHelper) getQueryResultIDs(state, executionID string) (*string, *string, error) {
-	return nil, nil, nil // TEMP
+func (m *mockHelper) getQueryResultAccountID(state, executionID string) (*string, error) {
+	return nil, nil // TEMP
 }
 
 func (m *mockHelper) getQueryResultDocuments(state, executionID string) ([]docpars.Document, error) {
@@ -81,7 +81,7 @@ func TestUpsertDocuments(t *testing.T) {
 					Filepath:  "filepath",
 				},
 			},
-			uploadKeyToError:      fmt.Sprintf("%s/documents/%s/%s.json", accountID, documentID, documentID),
+			uploadKeyToError:      fmt.Sprintf("documents/%s/%s.json", accountID, documentID),
 			mockUploadObjectError: errors.New("mock upload object error"),
 			entity:                "document",
 			error:                 &ErrorUploadObject{},
@@ -102,7 +102,7 @@ func TestUpsertDocuments(t *testing.T) {
 					},
 				},
 			},
-			uploadKeyToError:      fmt.Sprintf("%s/documents/%s/pages/%s/%s.json", accountID, documentID, pageID, pageID),
+			uploadKeyToError:      fmt.Sprintf("pages/%s/%s.json", accountID, pageID),
 			mockUploadObjectError: errors.New("mock upload object error"),
 			entity:                "page",
 			error:                 &ErrorUploadObject{},
@@ -130,7 +130,7 @@ func TestUpsertDocuments(t *testing.T) {
 					},
 				},
 			},
-			uploadKeyToError:      fmt.Sprintf("%s/documents/%s/pages/%s/lines/%s/%s.json", accountID, documentID, pageID, lineID, lineID),
+			uploadKeyToError:      fmt.Sprintf("lines/%s/%s.json", accountID, lineID),
 			mockUploadObjectError: errors.New("mock upload object error"),
 			entity:                "line",
 			error:                 &ErrorUploadObject{},

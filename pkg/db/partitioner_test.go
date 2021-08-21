@@ -23,7 +23,7 @@ func (m *mockGlueClient) DeletePartition(input *glue.DeletePartitionInput) (*glu
 }
 
 func TestNewPartitioner(t *testing.T) {
-	client := NewPartitionerClient(session.New(), "table", "database", "catalogID")
+	client := NewPartitionerClient(session.New(), "bucket", "table", "database", "catalogID")
 	if client == nil {
 		t.Error("error partition client")
 	}
@@ -32,16 +32,25 @@ func TestNewPartitioner(t *testing.T) {
 func TestAddPartition(t *testing.T) {
 	tests := []struct {
 		description                    string
+		mockPutObjectError             error
 		mockCreatePartitionOutputError error
 		error                          error
 	}{
 		{
+			description:                    "error uploading folder",
+			mockPutObjectError:             errors.New("mock put object error"),
+			mockCreatePartitionOutputError: nil,
+			error:                          &ErrorPutObject{},
+		},
+		{
 			description:                    "error creating partition",
+			mockPutObjectError:             nil,
 			mockCreatePartitionOutputError: errors.New("mock create partition error"),
 			error:                          &ErrorCreatePartition{},
 		},
 		{
 			description:                    "successful add partition invocation",
+			mockPutObjectError:             nil,
 			mockCreatePartitionOutputError: nil,
 			error:                          nil,
 		},
@@ -50,6 +59,10 @@ func TestAddPartition(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			client := &PartitionerClient{
+				s3Client: &mockS3Client{
+					mockPutObjectOutput: nil,
+					mockPutObjectError:  test.mockPutObjectError,
+				},
 				glueClient: &mockGlueClient{
 					mockCreatePartitionOutputError: test.mockCreatePartitionOutputError,
 				},
@@ -59,6 +72,10 @@ func TestAddPartition(t *testing.T) {
 
 			if err != nil {
 				switch e := test.error.(type) {
+				case *ErrorPutObject:
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
+					}
 				case *ErrorCreatePartition:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)

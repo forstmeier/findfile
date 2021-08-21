@@ -13,12 +13,14 @@ import (
 	"github.com/cheesesteakio/api/pkg/docpars"
 )
 
+var _ helper = &help{}
+
 type helper interface {
 	uploadObject(ctx context.Context, body interface{}, key string) error
 	listDocumentKeys(ctx context.Context, bucket, prefix string) ([]string, error)
 	deleteDocumentsByKeys(ctx context.Context, keys []string) error
 	executeQuery(ctx context.Context, query []byte) (*string, *string, error)
-	getQueryResultIDs(state, executionID string) (*string, *string, error)
+	getQueryResultAccountID(state, executionID string) (*string, error)
 	getQueryResultDocuments(state, executionID string) ([]docpars.Document, error)
 }
 
@@ -126,23 +128,22 @@ func (h *help) executeQuery(ctx context.Context, query []byte) (*string, *string
 	return queryOutput.QueryExecutionId, executionOutput.QueryExecution.Status.State, nil
 }
 
-func (h *help) getQueryResultIDs(state, executionID string) (*string, *string, error) {
+func (h *help) getQueryResultAccountID(state, executionID string) (*string, error) {
 	if state != "SUCCEEDED" {
-		return nil, nil, fmt.Errorf("incorrect query state [%s]", state)
+		return nil, fmt.Errorf("incorrect query state [%s]", state)
 	}
 
 	results, err := h.athenaClient.GetQueryResults(&athena.GetQueryResultsInput{
 		QueryExecutionId: &executionID,
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	row := results.ResultSet.Rows[0]
 	accountID := *row.Data[0].VarCharValue
-	documentID := *row.Data[1].VarCharValue
 
-	return &accountID, &documentID, nil
+	return &accountID, nil
 }
 
 func (h *help) getQueryResultDocuments(state, executionID string) ([]docpars.Document, error) {

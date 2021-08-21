@@ -61,7 +61,7 @@ type ErrorCreatePartition struct {
 }
 
 func (e *ErrorCreatePartition) Error() string {
-	return fmt.Sprintf("[%s] [create partition]: %s", packageName, e.err.Error())
+	return fmt.Sprintf("[%s] [add partition]: %s", packageName, e.err.Error())
 }
 
 // ErrorDeletePartition wraps errors returned by glue.Glue.DeletePartition.
@@ -70,5 +70,15 @@ type ErrorDeletePartition struct {
 }
 
 func (e *ErrorDeletePartition) Error() string {
-	return fmt.Sprintf("[%s] [delete partition]: %s", packageName, e.err.Error())
+	return fmt.Sprintf("[%s] [remove partition]: %s", packageName, e.err.Error())
+}
+
+// ErrorPutObject wraps errors returned by s3.S3.PutObject.
+type ErrorPutObject struct {
+	err  error
+	path string
+}
+
+func (e *ErrorPutObject) Error() string {
+	return fmt.Sprintf("[%s] [add partition] [path: %s]: %s", packageName, e.path, e.err.Error())
 }

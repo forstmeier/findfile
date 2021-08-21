@@ -2,9 +2,12 @@ package db
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/glue"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 type glueClient interface {
@@ -20,40 +23,57 @@ type Partitioner interface {
 
 // PartitionerClient implements the db.Partitioner methods using AWS Athena.
 type PartitionerClient struct {
+	bucketName   string
 	tableName    string
 	databaseName string
 	catalogID    string
+	s3Client     s3Client
 	glueClient   glueClient
 }
 
 // NewPartitionerClient returns a db.Partitioner pointer instance.
-func NewPartitionerClient(newSession *session.Session, tableName, databaseName, catalogID string) Partitioner {
+func NewPartitionerClient(newSession *session.Session, bucketName, tableName, databaseName, catalogID string) Partitioner {
 	return &PartitionerClient{
+		bucketName:   bucketName,
 		tableName:    tableName,
 		databaseName: databaseName,
 		catalogID:    catalogID,
+		s3Client:     s3.New(newSession),
 		glueClient:   glue.New(newSession),
 	}
 }
 
-// AddPartition adds the required partition(s) in AWS Athena under the
+// AddPartition adds the required partition in AWS Athena under the
 // provided accountID value.
 func (p *PartitionerClient) AddPartition(ctx context.Context, accountID string) error {
-	input := &glue.CreatePartitionInput{
-		CatalogId:    &p.catalogID,
-		DatabaseName: &p.databaseName,
-		PartitionInput: &glue.PartitionInput{
-			Values: []*string{
-				&accountID,
-			},
-		},
-		TableName: &p.tableName,
-	}
+	paths := []string{"documents", "pages", "lines"}
 
-	_, err := p.glueClient.CreatePartition(input)
-	if err != nil {
-		return &ErrorCreatePartition{
-			err: err,
+	for _, path := range paths {
+		_, err := p.s3Client.PutObject(&s3.PutObjectInput{
+			Bucket: aws.String(p.bucketName),
+			Key:    aws.String(fmt.Sprintf("%s/%s", path, accountID)),
+		})
+		if err != nil {
+			return &ErrorPutObject{
+				err:  err,
+				path: path,
+			}
+		}
+
+		_, err = p.glueClient.CreatePartition(&glue.CreatePartitionInput{
+			CatalogId:    aws.String(p.catalogID),
+			DatabaseName: aws.String(p.databaseName),
+			PartitionInput: &glue.PartitionInput{
+				Values: []*string{
+					aws.String(fmt.Sprintf("%s/%s", path, accountID)),
+				},
+			},
+			TableName: &p.tableName,
+		})
+		if err != nil {
+			return &ErrorCreatePartition{
+				err: err,
+			}
 		}
 	}
 
@@ -63,19 +83,23 @@ func (p *PartitionerClient) AddPartition(ctx context.Context, accountID string) 
 // RemovePartition removes the required partition(s) in AWS Athena under
 // the provided accountID value.
 func (p *PartitionerClient) RemovePartition(ctx context.Context, accountID string) error {
-	input := &glue.DeletePartitionInput{
-		CatalogId:    &p.catalogID,
-		DatabaseName: &p.databaseName,
-		PartitionValues: []*string{
-			&accountID,
-		},
-		TableName: &p.tableName,
-	}
+	paths := []string{"documents", "pages", "lines"}
 
-	_, err := p.glueClient.DeletePartition(input)
-	if err != nil {
-		return &ErrorDeletePartition{
-			err: err,
+	for _, path := range paths {
+		input := &glue.DeletePartitionInput{
+			CatalogId:    aws.String(p.catalogID),
+			DatabaseName: aws.String(p.databaseName),
+			PartitionValues: []*string{
+				aws.String(fmt.Sprintf("%s/%s", path, accountID)),
+			},
+			TableName: aws.String(p.tableName),
+		}
+
+		_, err := p.glueClient.DeletePartition(input)
+		if err != nil {
+			return &ErrorDeletePartition{
+				err: err,
+			}
 		}
 	}
 

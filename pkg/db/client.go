@@ -45,9 +45,9 @@ func New(newSession *session.Session, databaseName, bucketName string) *Client {
 }
 
 const (
-	documentsPath = "%s/documents/%s/%s.json"
-	pagesPath     = "%s/documents/%s/pages/%s/%s.json"
-	linesPath     = "%s/documents/%s/pages/%s/lines/%s/%s.json"
+	documentsPath = "documents/%s/%s.json"
+	pagesPath     = "pages/%s/%s.json"
+	linesPath     = "lines/%s/%s.json"
 )
 
 // UpsertDocuments implements the db.Databaser.UpsertDocuments method.
@@ -68,7 +68,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Docume
 			Filepath:  document.Filepath,
 		}
 
-		key := fmt.Sprintf(documentsPath, accountID, documentID, documentID)
+		key := fmt.Sprintf(documentsPath, accountID, documentID)
 		if err := c.helper.uploadObject(ctx, documentJSON, key); err != nil {
 			return &ErrorUploadObject{
 				err:      err,
@@ -88,7 +88,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Docume
 				PageNumber: page.PageNumber,
 			}
 
-			key := fmt.Sprintf(pagesPath, accountID, documentID, pageID, pageID)
+			key := fmt.Sprintf(pagesPath, accountID, pageID)
 			if err := c.helper.uploadObject(ctx, pageJSON, key); err != nil {
 				return &ErrorUploadObject{
 					err:      err,
@@ -110,7 +110,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Docume
 					Coordinates: line.Coordinates,
 				}
 
-				key := fmt.Sprintf(linesPath, accountID, documentID, pageID, lineID, lineID)
+				key := fmt.Sprintf(linesPath, accountID, lineID)
 				if err := c.helper.uploadObject(ctx, lineJSON, key); err != nil {
 					return &ErrorUploadObject{
 						err:      err,
@@ -141,7 +141,7 @@ func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentIn
 			}
 		}
 
-		accountID, documentID, err := c.helper.getQueryResultIDs(*state, *executionID)
+		accountID, err := c.helper.getQueryResultAccountID(*state, *executionID)
 		if err != nil {
 			return &ErrorGetQueryResults{
 				err:         err,
@@ -150,12 +150,31 @@ func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentIn
 			}
 		}
 
-		deleteKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("%s/documents/%s", *accountID, *documentID))
+		deleteKeys := []string{}
+
+		deleteDocumentsKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("documents/%s", *accountID))
 		if err != nil {
 			return &ErrorListDocumentKeys{
 				err: err,
 			}
 		}
+		deleteKeys = append(deleteKeys, deleteDocumentsKeys...)
+
+		deletePagesKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("pages/%s", *accountID))
+		if err != nil {
+			return &ErrorListDocumentKeys{
+				err: err,
+			}
+		}
+		deleteKeys = append(deleteKeys, deletePagesKeys...)
+
+		deleteLinesKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("lines/%s", *accountID))
+		if err != nil {
+			return &ErrorListDocumentKeys{
+				err: err,
+			}
+		}
+		deleteKeys = append(deleteKeys, deleteLinesKeys...)
 
 		chunkSize := 1000 // S3 max delete objects count
 		for i := 0; i < len(deleteKeys); i += chunkSize {
