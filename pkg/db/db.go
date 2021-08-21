@@ -16,6 +16,7 @@ type Databaser interface {
 
 // DocumentInfo holds data related to a document.
 type DocumentInfo struct {
-	Filename string
-	Filepath string
+	AccountID string
+	Filename  string
+	Filepath  string
 }

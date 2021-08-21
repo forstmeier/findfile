@@ -208,76 +208,32 @@ func TestUpsertDocuments(t *testing.T) {
 
 func TestDeleteDocuments(t *testing.T) {
 	tests := []struct {
-		description                       string
-		mockExecuteQueryExecutionID       *string
-		mockExecuteQueryState             *string
-		mockExecuteQueryError             error
-		mockGetQueryResultAccountIDOutput *string
-		mockGetQueryResultAccountIDError  error
-		mockListDocumentKeysOutput        []string
-		mockListDocumentKeysError         error
-		mockDeleteDocumentsByKeysError    error
-		error                             error
+		description                    string
+		mockListDocumentKeysOutput     []string
+		mockListDocumentKeysError      error
+		mockDeleteDocumentsByKeysError error
+		error                          error
 	}{
 		{
-			description:                       "error executing query",
-			mockExecuteQueryExecutionID:       nil,
-			mockExecuteQueryState:             nil,
-			mockExecuteQueryError:             errors.New("mock execute query error"),
-			mockGetQueryResultAccountIDOutput: nil,
-			mockGetQueryResultAccountIDError:  nil,
-			mockListDocumentKeysOutput:        nil,
-			mockListDocumentKeysError:         nil,
-			mockDeleteDocumentsByKeysError:    nil,
-			error:                             &ErrorExecuteQuery{},
+			description:                    "error listing document keys",
+			mockListDocumentKeysOutput:     nil,
+			mockListDocumentKeysError:      errors.New("mock list document keys error"),
+			mockDeleteDocumentsByKeysError: nil,
+			error:                          &ErrorListDocumentKeys{},
 		},
 		{
-			description:                       "error getting query results",
-			mockExecuteQueryExecutionID:       aws.String("execution_id"),
-			mockExecuteQueryState:             aws.String("state"),
-			mockExecuteQueryError:             nil,
-			mockGetQueryResultAccountIDOutput: nil,
-			mockGetQueryResultAccountIDError:  errors.New("mock get query result account id error"),
-			mockListDocumentKeysOutput:        nil,
-			mockListDocumentKeysError:         nil,
-			mockDeleteDocumentsByKeysError:    nil,
-			error:                             &ErrorGetQueryResults{},
+			description:                    "error deleting documents by keys",
+			mockListDocumentKeysOutput:     []string{"key.json"},
+			mockListDocumentKeysError:      nil,
+			mockDeleteDocumentsByKeysError: errors.New("mock delete documents by keys error"),
+			error:                          &ErrorDeleteDocumentsByKeys{},
 		},
 		{
-			description:                       "error listing document keys",
-			mockExecuteQueryExecutionID:       aws.String("execution_id"),
-			mockExecuteQueryState:             aws.String("state"),
-			mockExecuteQueryError:             nil,
-			mockGetQueryResultAccountIDOutput: aws.String("account_id"),
-			mockGetQueryResultAccountIDError:  nil,
-			mockListDocumentKeysOutput:        nil,
-			mockListDocumentKeysError:         errors.New("mock list document keys error"),
-			mockDeleteDocumentsByKeysError:    nil,
-			error:                             &ErrorListDocumentKeys{},
-		},
-		{
-			description:                       "error deleting documents by keys",
-			mockExecuteQueryExecutionID:       aws.String("execution_id"),
-			mockExecuteQueryState:             aws.String("state"),
-			mockExecuteQueryError:             nil,
-			mockGetQueryResultAccountIDOutput: aws.String("account_id"),
-			mockGetQueryResultAccountIDError:  nil,
-			mockListDocumentKeysOutput:        []string{"key.json"},
-			mockListDocumentKeysError:         nil,
-			mockDeleteDocumentsByKeysError:    errors.New("mock delete documents by keys error"),
-			error:                             &ErrorDeleteDocumentsByKeys{},
-		},
-		{
-			description:                       "successful delete documents invocation",
-			mockExecuteQueryExecutionID:       aws.String("execution_id"),
-			mockExecuteQueryState:             aws.String("state"),
-			mockExecuteQueryError:             nil,
-			mockGetQueryResultAccountIDOutput: aws.String("account_id"),
-			mockGetQueryResultAccountIDError:  nil,
-			mockListDocumentKeysOutput:        []string{"key.json"},
-			mockListDocumentKeysError:         nil,
-			mockDeleteDocumentsByKeysError:    nil,
-			error:                             nil,
+			description:                    "successful delete documents invocation",
+			mockListDocumentKeysOutput:     []string{"key.json"},
+			mockListDocumentKeysError:      nil,
+			mockDeleteDocumentsByKeysError: nil,
+			error:                          nil,
 		},
 	}
 
@@ -285,14 +241,9 @@ func TestDeleteDocuments(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			client := &Client{
 				helper: &mockHelper{
-					mockExecuteQueryExecutionID:       test.mockExecuteQueryExecutionID,
-					mockExecuteQueryState:             test.mockExecuteQueryState,
-					mockExecuteQueryError:             test.mockExecuteQueryError,
-					mockGetQueryResultAccountIDOutput: test.mockGetQueryResultAccountIDOutput,
-					mockGetQueryResultAccountIDError:  test.mockGetQueryResultAccountIDError,
-					mockListDocumentKeysOutput:        test.mockListDocumentKeysOutput,
-					mockListDocumentKeysError:         test.mockListDocumentKeysError,
-					mockDeleteDocumentsByKeysError:    test.mockDeleteDocumentsByKeysError,
+					mockListDocumentKeysOutput:     test.mockListDocumentKeysOutput,
+					mockListDocumentKeysError:      test.mockListDocumentKeysError,
+					mockDeleteDocumentsByKeysError: test.mockDeleteDocumentsByKeysError,
 				},
 			}
 
@@ -305,16 +256,6 @@ func TestDeleteDocuments(t *testing.T) {
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *ErrorExecuteQuery:
-					if !errors.As(err, &e) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
-					}
-
-				case *ErrorGetQueryResults:
-					if !errors.As(err, &e) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
-					}
-
 				case *ErrorListDocumentKeys:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)

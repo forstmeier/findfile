@@ -128,36 +128,11 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Docume
 // DeleteDocuments implements the db.Databaser.DeleteDocuments method.
 func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentInfo) error {
 	for _, documentInfo := range documentsInfo {
-		query := fmt.Sprintf(`SELECT account_id
-		FROM documents
-		WHERE filename = '%s'
-		AND filepath = '%s';`,
-			documentInfo.Filename,
-			documentInfo.Filename,
-		)
-
-		executionID, state, err := c.helper.executeQuery(ctx, []byte(query))
-		if err != nil {
-			return &ErrorExecuteQuery{
-				err:      err,
-				function: "delete documents",
-			}
-		}
-
-		accountID, err := c.helper.getQueryResultAccountID(*state, *executionID)
-		if err != nil {
-			return &ErrorGetQueryResults{
-				err:         err,
-				function:    "delete documents",
-				subfunction: "get query result ids",
-			}
-		}
-
 		deleteKeys := []string{}
 
 		paths := []string{"documents", "pages", "lines"}
 		for _, path := range paths {
-			pathDeleteKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("%s/%s", path, *accountID))
+			pathDeleteKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("%s/%s", path, documentInfo.AccountID))
 			if err != nil {
 				return &ErrorListDocumentKeys{
 					err: err,

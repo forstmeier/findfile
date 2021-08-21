@@ -55,8 +55,9 @@ func handler(acctClient acct.Accounter, docparsClient docpars.Parser, dbClient d
 
 				} else if s3Record.EventName == "ObjectRemoved:Delete" {
 					deleteDocs = append(deleteDocs, db.DocumentInfo{
-						Filepath: s3Record.S3.Bucket.Name,
-						Filename: s3Record.S3.Object.Key,
+						AccountID: account.ID,
+						Filepath:  s3Record.S3.Bucket.Name,
+						Filename:  s3Record.S3.Object.Key,
 					})
 
 				} else {
