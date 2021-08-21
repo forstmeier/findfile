@@ -11,27 +11,15 @@ Parameters:
   ArtifactBucket:
     Type: String
     Description: Storage location for all code and application artifacts - built separate from stack
-  MainBucket:
+  StorageBucket:
     Type: String
     Description: Storage location for all user files in application - built separate from stack
-  DemoAccountID:
+  DatabaseName:
     Type: String
-    Description: UUID for demo account request header
-  StripeAPIKey:
+    Description: Glue database name for querying document data
+  MetadataTableName:
     Type: String
-    Description: Stripe API key for the application account
-  StripeMonthlyPriceID:
-    Type: String
-    Description: Stripe ID for the fixed monthly subscription price
-  StripeMeteredPriceID:
-    Type: String
-    Description: Stripe ID for the per-usage subscription price
-  DBUsername:
-    Type: String
-    Description: Username for the query database
-  DBPassword:
-    Type: String
-    Description: Password for the query database
+    Description: Glue metadata table name for querying document data
   CertificateARN:
     Type: String
     Description: Certificate ARN for the project domain name
@@ -51,6 +39,84 @@ Parameters:
 
 Resources:
 
+  fileEventsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: cheesesteak-file-events
+
+  fileEventsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint:
+        Fn::GetAtt:
+        - dbFunction
+        - Arn
+      Protocol: lambda
+      TopicArn:
+        Ref: fileEventsTopic
+
+  dbStore:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId:
+        Ref: AWS::AccountId
+      DatabaseInput:
+        Name:
+          Ref: DatabaseName
+
+  dbCrawler:
+    Type: AWS::Glue::Crawler
+    Properties:
+      DatabaseName:
+        Ref: dbStore
+      RecrawlPolicy:
+        RecrawlBehavior: CRAWL_NEW_FOLDERS_ONLY
+      Role:
+        Fn::GetAtt:
+        - dbStoreRole
+        - Arn
+      Targets:
+        S3Targets:
+        - Path:
+            Fn::Join:
+            - ''
+            - - s3://
+            - - Ref: StorageBucket
+            - - documents
+        - Path:
+            Fn::Join:
+            - ''
+            - - s3://
+            - - Ref: StorageBucket
+            - - pages
+        - Path:
+            Fn::Join:
+            - ''
+            - - s3://
+            - - Ref: StorageBucket
+            - - lines
+
+  dbStoreRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: glue.amazonaws.com
+          Action: sts:AssumeRole
+      Description: Role for allowing Glue crawler actions
+      Path: /
+      Policies:
+      - PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - glue:*
+            Effect: Allow
+            Resource: "*"
+
   acctFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -61,18 +127,18 @@ Resources:
       Description: Function providing user account management
       Environment:
         Variables:
-          MAIN_BUCKET:
-            Ref: MainBucket
+          DATABASE_NAME:
+            Ref: DatabaseName
+          STORAGE_BUCKET:
+            Ref: StorageBucket
           ACCOUNT_ID_HTTP_HEADER:
             Ref: AccountIDHTTPHeader
-          STRIPE_API_KEY:
-            Ref: StripeAPIKey
-          STRIPE_MONTHLY_PRICE_ID:
-            Ref: StripeMonthlyPriceID
-          STRIPE_METERED_PRICE_ID:
-            Ref: StripeMeteredPriceID
           TABLE_NAME:
             Ref: acctTable
+          METADATA_TABLE_NAME:
+            Ref: MetadataTableName
+          CATALOG_ID:
+            Ref: AWS::AccountId
       FunctionName: acctFunction
       Handler: acct
       MemorySize: 128
@@ -93,18 +159,14 @@ Resources:
       Description: Function providing parsed user document management
       Environment:
         Variables:
-          DB_USERNAME:
-            Ref: DBUsername
-          DB_PASSWORD:
-            Ref: DBPassword
-          DB_ENDPOINT:
-            Fn::GetAtt:
-            - dbIndex
-            - Endpoint
+          DATABASE_NAME:
+            Ref: DatabaseName
+          STORAGE_BUCKET:
+            Ref: StorageBucket
+          TABLE_NAME:
+            Ref: acctTable
       FunctionName: dbFunction
       Handler: db
-      Layers:
-      - Ref: rdsLayer
       MemorySize: 256
       Role:
         Fn::GetAtt:
@@ -112,34 +174,6 @@ Resources:
         - Arn
       Runtime: go1.x
       Timeout: 10
-
-  fsFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket:
-          Ref: ArtifactBucket
-        S3Key: fs.zip
-      Description: Function providing user file management
-      Environment:
-        Variables:
-          MAIN_BUCKET:
-            Ref: MainBucket
-          ACCOUNT_ID_HTTP_HEADER:
-            Ref: AccountIDHTTPHeader
-          DEMO_ACCOUNT_ID:
-            Ref: DemoAccountID
-          TABLE_NAME:
-            Ref: acctTable
-      FunctionName: fsFunction
-      Handler: fs
-      MemorySize: 128
-      Role:
-        Fn::GetAtt:
-        - fsRole
-        - Arn
-      Runtime: go1.x
-      Timeout: 5
 
   queryFunction:
     Type: AWS::Lambda::Function
@@ -151,26 +185,16 @@ Resources:
       Description: Function providing user query handling
       Environment:
         Variables:
-          MAIN_BUCKET:
-            Ref: MainBucket
+          DATABASE_NAME:
+            Ref: DatabaseName
+          STORAGE_BUCKET:
+            Ref: StorageBucket
           ACCOUNT_ID_HTTP_HEADER:
             Ref: AccountIDHTTPHeader
-          DEMO_ACCOUNT_ID:
-            Ref: DemoAccountID
           TABLE_NAME:
             Ref: acctTable
-          DB_USERNAME:
-            Ref: DBUsername
-          DB_PASSWORD:
-            Ref: DBPassword
-          DB_ENDPOINT:
-            Fn::GetAtt:
-            - dbIndex
-            - Endpoint
       FunctionName: queryFunction
       Handler: query
-      Layers:
-      - Ref: rdsLayer
       MemorySize: 128
       Role:
         Fn::GetAtt:
@@ -179,14 +203,6 @@ Resources:
       Runtime: go1.x
       Timeout: 5
 
-  rdsLayer:
-    Type: AWS::Lambda::LayerVersion
-    Properties:
-      Content:
-        S3Bucket: 
-          Ref: ArtifactBucket
-        S3Key: rds-layer.zip
-      
   acctRole:
     Type: AWS::IAM::Role
     Properties:
@@ -239,36 +255,13 @@ Resources:
             - textract:DetectDocumentText
             Effect: Allow
             Resource: "*"
-        PolicyName: dbPolicy
-
-  fsRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
-      Description: Role for managing provided files and stored documents in fsFunction
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-      Policies:
-      - PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Action:
-            - dynamodb:GetItem
-            Effect: Allow
-            Resource: "*"
           - Action:
             - s3:DeleteObject
             - s3:GetObject
             - s3:PutObject
             Effect: Allow
             Resource: "*"
-        PolicyName: fsPolicy
+        PolicyName: dbPolicy
 
   queryRole:
     Type: AWS::IAM::Role
@@ -303,22 +296,13 @@ Resources:
       - AttributeName: id
         KeyType: HASH
       BillingMode: PAY_PER_REQUEST
-
-  dbIndex:
-    Type: AWS::DocDB::DBCluster
-    Properties:
-      MasterUsername:
-        Ref: DBUsername
-      MasterUserPassword:
-        Ref: DBPassword
-      StorageEncrypted: true
-
-  dbInstance:
-    Type: AWS::DocDB::DBInstance
-    Properties:
-      DBClusterIdentifier:
-        Ref: dbIndex
-      DBInstanceClass: db.r5.large
+      GlobalSecondaryIndexes:
+      - IndexName: bucketNameIndex
+        KeySchema:
+        - AttributeName: bucket_name
+          KeyType: HASH
+      Projection:
+        ProjectionType: ALL # possibly reduce later
 
   api:
     Type: AWS::ApiGateway::RestApi
@@ -378,53 +362,6 @@ Resources:
                 passthroughBehavior: when_no_match
                 contentHandling: CONVERT_TO_TEXT
                 type: AWS_PROXY
-          /files:
-            post:
-              produces:
-              - application/json
-              responses:
-                "200":
-                  description: Successful files POST request
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-                      urls:
-                        type: array
-                        items:
-                          type: string
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${fsFunction.Arn}/invocations
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: when_no_match
-                contentHandling: CONVERT_TO_TEXT
-                type: AWS_PROXY
-            delete:
-              produces:
-              - application/json
-              responses:
-                "200":
-                  description: Successful files DELETE request
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${fsFunction.Arn}/invocations
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: when_no_match
-                contentHandling: CONVERT_TO_TEXT
-                type: AWS_PROXY
           /query:
             post:
               produces:
@@ -456,7 +393,7 @@ Resources:
                 contentHandling: CONVERT_TO_TEXT
                 type: AWS_PROXY
 
-  acctFunctionPermission:
+  acctFunctionAPIPermission:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName:
@@ -468,31 +405,17 @@ Resources:
       SourceArn:
         Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
 
-  dbFunctionPermission:
+  dbFunctionAPIPermission: 
     Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName:
-        Fn::GetAtt:
-        - dbFunction
-        - Arn
+    Properties: 
       Action: lambda:InvokeFunction
-      Principal: apigateway.amazonaws.com
+      Principal: sns.amazonaws.com
       SourceArn:
-        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
-
-  fsFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
+        Ref: fileEventsTopic 
       FunctionName:
-        Fn::GetAtt:
-        - fsFunction
-        - Arn
-      Action: lambda:InvokeFunction
-      Principal: apigateway.amazonaws.com
-      SourceArn:
-        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
+        Ref: dbFunction
 
-  queryFunctionPermission:
+  queryFunctionAPIPermission:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName:
@@ -503,6 +426,18 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn:
         Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
+
+  dbFunctionEventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+        - dbFunction
+        - Arn
+      Action: lambda.InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn:
+        Ref: fileEventsTopic
 
   domainName:
     Type: AWS::ApiGateway::DomainName
@@ -619,9 +554,12 @@ Outputs:
   ArtifactBucketName:
     Value:
       Ref: ArtifactBucket
-  MainBucketName:
+  StorageBucketName:
     Value:
-      Ref: MainBucket
+      Ref: StorageBucket
+  FileEventsTopicARN:
+    Value:
+      Ref: fileEventsTopic
   ExternalAPIEndpoint:
     Value:
       Fn::Join:
@@ -634,8 +572,3 @@ Outputs:
       - https://${api}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
       - Stage:
           Ref: StageName
-  DBEndpoint:
-    Value:
-      Fn::GetAtt:
-      - dbIndex
-      - Endpoint
