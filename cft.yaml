@@ -100,7 +100,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
         - Effect: Allow
           Principal:
@@ -115,8 +115,9 @@ Resources:
           - Action:
             - glue:*
             Effect: Allow
-            Resource: "*"
-        PolicyName: storePolicy
+            Resource: 
+              Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:*
+        PolicyName: dbStorePolicy
 
   acctFunction:
     Type: AWS::Lambda::Function
@@ -208,7 +209,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
         - Effect: Allow
           Principal:
@@ -219,7 +220,7 @@ Resources:
       - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Policies:
       - PolicyDocument:
-          Version: "2012-10-17"
+          Version: '2012-10-17'
           Statement:
           - Action:
             - dynamodb:DeleteItem
@@ -227,19 +228,36 @@ Resources:
             - dynamodb:PutItem
             - dynamodb:UpdateItem
             Effect: Allow
-            Resource: "*"
+            Resource:
+              Fn::GetAtt:
+              - acctTable
+              - Arn
           - Action:
-            - s3:DeleteObject
-            - s3:ListBucket
+            - glue:CreatePartition
+            - glue:DeletePartition
             Effect: Allow
-            Resource: "*"
+            Resource:
+            - Fn::Sub:
+              - arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/${databaseName}/*
+              - databaseName:
+                  Ref: dbStore
+            - Fn::Sub:
+              - arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/${databaseName}
+              - databaseName:
+                  Ref: dbStore
+            - Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog
+          - Action:
+            - s3:PutObject
+            Effect: Allow
+            Resource:
+            - Fn::Sub: arn:aws:s3:::${StorageBucket}/*
         PolicyName: acctPolicy
 
   dbRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
         - Effect: Allow
           Principal:
@@ -250,7 +268,7 @@ Resources:
       - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Policies:
       - PolicyDocument:
-          Version: "2012-10-17"
+          Version: '2012-10-17'
           Statement:
           - Action:
             - textract:DetectDocumentText
@@ -261,14 +279,15 @@ Resources:
             - s3:GetObject
             - s3:PutObject
             Effect: Allow
-            Resource: "*"
+            Resource:
+            - Fn::Sub: arn:aws:s3:::${StorageBucket}/*
         PolicyName: dbPolicy
 
   queryRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
         - Effect: Allow
           Principal:
@@ -284,7 +303,10 @@ Resources:
           - Action:
             - dynamodb:GetItem
             Effect: Allow
-            Resource: "*"
+            Resource:
+              Fn::GetAtt:
+              - acctTable
+              - Arn
         PolicyName: queryPolicy
 
   acctTable:
@@ -517,7 +539,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
         - Effect: Allow
           Principal:
