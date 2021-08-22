@@ -408,22 +408,12 @@ Resources:
       SourceArn:
         Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
 
-  dbFunctionAPIPermission: 
-    Type: AWS::Lambda::Permission
-    Properties: 
-      Action: lambda:InvokeFunction
-      Principal: sns.amazonaws.com
-      SourceArn:
-        Ref: fileEventsTopic 
-      FunctionName:
-        Ref: dbFunction
-
-  queryFunctionAPIPermission:
+  dbFunctionAPIPermission:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName:
         Fn::GetAtt:
-        - queryFunction
+        - dbFunction
         - Arn
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
@@ -441,6 +431,18 @@ Resources:
       Principal: sns.amazonaws.com
       SourceArn:
         Ref: fileEventsTopic
+
+  queryFunctionAPIPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+        - queryFunction
+        - Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
 
   domainName:
     Type: AWS::ApiGateway::DomainName
