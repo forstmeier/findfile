@@ -2,11 +2,11 @@
 
 # launches the infrastructure stack via AWS CloudFormation
 
-STACK_NAME=cheesesteak
-
 CONFIG_JSON=$( cat etc/config/config.json | jq )
 
-ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) 
+STACK_NAME=$( jq -r  '.app.name' <<< "${CONFIG_JSON}" ) 
+
+ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" )
 
 aws cloudformation deploy \
 	--template-file cft.yaml \

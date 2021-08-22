@@ -2,9 +2,9 @@
 
 # updates the infrastructure stack in CloudFormation
 
-STACK_NAME=cheesesteak
-
 CONFIG_JSON=$( cat etc/config/config.json | jq )
+
+STACK_NAME=$( jq -r  '.app.name' <<< "${CONFIG_JSON}" ) 
 
 ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) 
 

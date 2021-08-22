@@ -81,20 +81,20 @@ Resources:
             Fn::Join:
             - ''
             - - s3://
-            - - Ref: StorageBucket
-            - - documents
+              - Ref: StorageBucket
+              - documents
         - Path:
             Fn::Join:
             - ''
             - - s3://
-            - - Ref: StorageBucket
-            - - pages
+              - Ref: StorageBucket
+              - pages
         - Path:
             Fn::Join:
             - ''
             - - s3://
-            - - Ref: StorageBucket
-            - - lines
+              - Ref: StorageBucket
+              - lines
 
   dbStoreRole:
     Type: AWS::IAM::Role
@@ -116,6 +116,7 @@ Resources:
             - glue:*
             Effect: Allow
             Resource: "*"
+        PolicyName: storePolicy
 
   acctFunction:
     Type: AWS::Lambda::Function
@@ -292,6 +293,8 @@ Resources:
       AttributeDefinitions:
       - AttributeName: id
         AttributeType: S
+      - AttributeName: bucket_name
+        AttributeType: S
       KeySchema:
       - AttributeName: id
         KeyType: HASH
@@ -301,8 +304,8 @@ Resources:
         KeySchema:
         - AttributeName: bucket_name
           KeyType: HASH
-      Projection:
-        ProjectionType: ALL # possibly reduce later
+        Projection:
+          ProjectionType: ALL # possibly reduce later
 
   api:
     Type: AWS::ApiGateway::RestApi
@@ -434,7 +437,7 @@ Resources:
         Fn::GetAtt:
         - dbFunction
         - Arn
-      Action: lambda.InvokeFunction
+      Action: lambda:InvokeFunction
       Principal: sns.amazonaws.com
       SourceArn:
         Ref: fileEventsTopic
