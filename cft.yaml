@@ -252,6 +252,7 @@ Resources:
             Resource:
             - Fn::Sub: arn:aws:s3:::${StorageBucket}/*
         PolicyName: acctPolicy
+      RoleName: cheesesteak-acct-role
 
   dbRole:
     Type: AWS::IAM::Role
@@ -282,6 +283,7 @@ Resources:
             Resource:
             - Fn::Sub: arn:aws:s3:::${StorageBucket}/*
         PolicyName: dbPolicy
+      RoleName: cheesesteak-db-role
 
   queryRole:
     Type: AWS::IAM::Role

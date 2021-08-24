@@ -20,5 +20,5 @@ aws cloudformation deploy \
 		MetadataTableName=$( jq -r  '.aws.glue.metadata_table_name' <<< "${CONFIG_JSON}" ) \
 		CertificateARN=$( jq -r  '.aws.acm.certificate_arn' <<< "${CONFIG_JSON}" ) \
 		DomainHostedZoneID=$( jq -r  '.aws.domain.hosted_zone_id' <<< "${CONFIG_JSON}" ) \
-	--capabilities CAPABILITY_IAM \
+	--capabilities CAPABILITY_NAMED_IAM \
 	--no-fail-on-empty-changeset
