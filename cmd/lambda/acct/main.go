@@ -10,6 +10,7 @@ import (
 
 	"github.com/cheesesteakio/api/pkg/acct"
 	"github.com/cheesesteakio/api/pkg/db"
+	"github.com/cheesesteakio/api/pkg/fs"
 )
 
 func main() {
@@ -25,5 +26,11 @@ func main() {
 		os.Getenv("CATALOG_ID"),
 	)
 
-	lambda.Start(handler(acctClient, partitionerClient))
+	fsClient := fs.New(
+		newSession,
+		os.Getenv("EVENTS_TOPIC_ARN"),
+		os.Getenv("NOTIFICATION_CONFIGURATION_ID"),
+	)
+
+	lambda.Start(handler(acctClient, partitionerClient, fsClient))
 }

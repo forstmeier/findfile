@@ -12,8 +12,9 @@ type helper interface {
 }
 
 type help struct {
-	topicARN string
-	s3Client s3Client
+	topicARN        string
+	configurationID string
+	s3Client        s3Client
 }
 
 type s3Client interface {
@@ -31,6 +32,7 @@ func (h *help) addOrRemoveNotification(ctx context.Context, path string, add boo
 
 	if add {
 		config.TopicConfigurations = append(config.TopicConfigurations, &s3.TopicConfiguration{
+			Id: aws.String(h.configurationID),
 			Events: []*string{
 				aws.String("s3:ObjectCreated:*"),
 				aws.String("s3:ObjectRemoved:*"),

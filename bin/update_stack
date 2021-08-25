@@ -22,4 +22,5 @@ aws cloudformation update-stack \
 		ParameterKey=MetadataTableName,ParameterValue=$( jq -r  '.aws.glue.metadata_table_name' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=CertificateARN,ParameterValue=$( jq -r  '.aws.acm.certificate_arn' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=DomainHostedZoneID,ParameterValue=$( jq -r  '.aws.domain.hosted_zone_id' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=NotificationConfigurationID,ParameterValue=$( jq -r  '.aws.s3.notification_configuration_id' <<< "${CONFIG_JSON}" ) \
 	--capabilities CAPABILITY_NAMED_IAM \

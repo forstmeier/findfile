@@ -15,11 +15,12 @@ type Client struct {
 }
 
 // New generates a fs.Client pointer instance with an AWS S3 client.
-func New(newSession *session.Session, topicARN string) *Client {
+func New(newSession *session.Session, topicARN, configurationID string) *Client {
 	return &Client{
 		helper: &help{
-			topicARN: topicARN,
-			s3Client: s3.New(newSession),
+			configurationID: configurationID,
+			topicARN:        topicARN,
+			s3Client:        s3.New(newSession),
 		},
 	}
 }

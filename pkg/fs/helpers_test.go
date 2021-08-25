@@ -92,7 +92,7 @@ func Test_addOrRemoveNotification(t *testing.T) {
 			},
 			mockGetBucketNotificationConfigurationError: nil,
 			mockPutBucketNotificationConfigurationError: nil,
-			add: true,
+			add: false,
 			topicConfigurations: []*s3.TopicConfiguration{
 				{
 					TopicArn: aws.String("old_topic_arn"),

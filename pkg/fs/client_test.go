@@ -17,7 +17,7 @@ func (m *mockHelper) addOrRemoveNotification(ctx context.Context, path string, a
 }
 
 func TestNew(t *testing.T) {
-	client := New(session.New(), "topic arn")
+	client := New(session.New(), "topic_arn", "configuration_id")
 	if client == nil {
 		t.Error("error creating filesystem client")
 	}

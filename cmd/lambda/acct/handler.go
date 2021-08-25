@@ -12,12 +12,13 @@ import (
 
 	"github.com/cheesesteakio/api/pkg/acct"
 	"github.com/cheesesteakio/api/pkg/db"
+	"github.com/cheesesteakio/api/pkg/fs"
 	"github.com/cheesesteakio/api/util"
 )
 
 var accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
 
-func handler(acctClient acct.Accounter, partitionerClient db.Partitioner) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(acctClient acct.Accounter, partitionerClient db.Partitioner, fsClient fs.Filesystemer) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		util.Log("REQUEST_BODY", request.Body)
 		util.Log("REQUEST_METHOD", request.HTTPMethod)
@@ -37,7 +38,8 @@ func handler(acctClient acct.Accounter, partitionerClient db.Partitioner) func(c
 				}, nil
 			}
 
-			if err := acctClient.CreateAccount(ctx, accountID, requestJSON["bucket_name"]); err != nil {
+			bucketName := requestJSON["bucket_name"]
+			if err := acctClient.CreateAccount(ctx, accountID, bucketName); err != nil {
 				util.Log("CREATE_ACCOUNT_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
@@ -50,6 +52,14 @@ func handler(acctClient acct.Accounter, partitionerClient db.Partitioner) func(c
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error creating account partition"}`,
+				}, nil
+			}
+
+			if err := fsClient.CreateFileWatcher(ctx, bucketName); err != nil {
+				util.Log("CREATE_FILE_WATCHER_ERROR", err)
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       `{"error": "error creating bucket notification"}`,
 				}, nil
 			}
 
@@ -70,6 +80,15 @@ func handler(acctClient acct.Accounter, partitionerClient db.Partitioner) func(c
 				}, nil
 			}
 
+			account, err := acctClient.GetAccountByID(ctx, accountID)
+			if err != nil {
+				util.Log("GET_ACCOUNT_BY_ID_ERROR", err)
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       `{"error": "error getting user account"}`,
+				}, nil
+			}
+
 			if err := acctClient.DeleteAccount(ctx, accountID); err != nil {
 				util.Log("DELETE_ACCOUNT_ERROR", err)
 				return events.APIGatewayProxyResponse{
@@ -83,6 +102,14 @@ func handler(acctClient acct.Accounter, partitionerClient db.Partitioner) func(c
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
 					Body:       `{"error": "error removing account partition"}`,
+				}, nil
+			}
+
+			if err := fsClient.DeleteFileWatcher(ctx, account.BucketName); err != nil {
+				util.Log("DELETE_FILE_WATCHER_ERROR", err)
+				return events.APIGatewayProxyResponse{
+					StatusCode: http.StatusInternalServerError,
+					Body:       `{"error": "error deleting bucket notification"}`,
 				}, nil
 			}
 
