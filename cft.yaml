@@ -36,6 +36,9 @@ Parameters:
   DomainHostedZoneID:
     Type: String
     Description: ID for the custom domain hosted zone
+  NotificationConfigurationID:
+    Type: String
+    Description: ID for the S3 event notification configured on the user bucket
 
 Resources:
 
@@ -51,6 +54,8 @@ Resources:
         Fn::GetAtt:
         - dbFunction
         - Arn
+      # FilterPolicy:
+        # TODO
       Protocol: lambda
       TopicArn:
         Ref: fileEventsTopic
@@ -141,6 +146,10 @@ Resources:
             Ref: MetadataTableName
           CATALOG_ID:
             Ref: AWS::AccountId
+          NOTIFICATION_CONFIGURATION_ID:
+            Ref: NotificationConfigurationID
+          EVENTS_TOPIC_ARN:
+            Ref: fileEventsTopic
       FunctionName: acctFunction
       Handler: acct
       MemorySize: 128
