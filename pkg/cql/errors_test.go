@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-func TestErrorConvertCQL(t *testing.T) {
-	err := &ErrorConvertCQL{err: errors.New("mock convert cql error")}
+func TestErrorParseCQL(t *testing.T) {
+	err := &ErrorParseCQL{err: errors.New("mock parse cql error")}
 
 	recieved := err.Error()
-	expected := "cql: convert cql: mock convert cql error"
+	expected := "[cql] [convert cql]: mock parse cql error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)

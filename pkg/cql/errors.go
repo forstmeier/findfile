@@ -4,12 +4,12 @@ import "fmt"
 
 const packageName = "cql"
 
-// ErrorConvertCQL wraps errors returned by cql.parseCQL in
+// ErrorParseCQL wraps errors returned by cql.parseCQL in
 // the ConvertCQL method.
-type ErrorConvertCQL struct {
+type ErrorParseCQL struct {
 	err error
 }
 
-func (e *ErrorConvertCQL) Error() string {
-	return fmt.Sprintf("%s: convert cql: %s", packageName, e.err.Error())
+func (e *ErrorParseCQL) Error() string {
+	return fmt.Sprintf("[%s] [convert cql]: %s", packageName, e.err.Error())
 }
