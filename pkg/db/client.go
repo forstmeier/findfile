@@ -45,9 +45,10 @@ func New(newSession *session.Session, databaseName, bucketName string) *Client {
 }
 
 const (
-	documentsPath = "documents/%s/%s.json"
-	pagesPath     = "pages/%s/%s.json"
-	linesPath     = "lines/%s/%s.json"
+	documentsPath   = "documents/%s/%s.json"
+	pagesPath       = "pages/%s/%s.json"
+	linesPath       = "lines/%s/%s.json"
+	coordinatesPath = "coordinates/%s/%s.json"
 )
 
 // UpsertDocuments implements the db.Databaser.UpsertDocuments method.
@@ -71,8 +72,8 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Docume
 			Filepath:  document.Filepath,
 		}
 
-		key := fmt.Sprintf(documentsPath, accountID, documentID)
-		if err := c.helper.uploadObject(ctx, documentJSON, key); err != nil {
+		documentKey := fmt.Sprintf(documentsPath, accountID, documentID)
+		if err := c.helper.uploadObject(ctx, documentJSON, documentKey); err != nil {
 			return &ErrorUploadObject{
 				err:      err,
 				function: "upsert documents",
@@ -85,14 +86,16 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Docume
 
 			pageJSON := struct {
 				ID         string `json:"id"`
+				DocumentID string `json:"document_id"`
 				PageNumber int64  `json:"page_number"`
 			}{
 				ID:         pageID,
+				DocumentID: documentID,
 				PageNumber: page.PageNumber,
 			}
 
-			key := fmt.Sprintf(pagesPath, accountID, pageID)
-			if err := c.helper.uploadObject(ctx, pageJSON, key); err != nil {
+			pageKey := fmt.Sprintf(pagesPath, accountID, pageID)
+			if err := c.helper.uploadObject(ctx, pageJSON, pageKey); err != nil {
 				return &ErrorUploadObject{
 					err:      err,
 					function: "upsert documents",
@@ -102,23 +105,58 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Docume
 
 			for _, line := range page.Lines {
 				lineID := line.ID
+				coordinates := line.Coordinates
+				coordinatesID := coordinates.ID
 
 				lineJSON := struct {
-					ID          string              `json:"id"`
-					Text        string              `json:"text"`
-					Coordinates docpars.Coordinates `json:"coordinates"`
+					ID     string `json:"id"`
+					PageID string `json:"page_id"`
+					Text   string `json:"text"`
 				}{
-					ID:          lineID,
-					Text:        line.Text,
-					Coordinates: line.Coordinates,
+					ID:     lineID,
+					PageID: pageID,
+					Text:   line.Text,
 				}
 
-				key := fmt.Sprintf(linesPath, accountID, lineID)
-				if err := c.helper.uploadObject(ctx, lineJSON, key); err != nil {
+				lineKey := fmt.Sprintf(linesPath, accountID, lineID)
+				if err := c.helper.uploadObject(ctx, lineJSON, lineKey); err != nil {
 					return &ErrorUploadObject{
 						err:      err,
 						function: "upsert documents",
 						entity:   "line",
+					}
+				}
+
+				coordinatesJSON := struct {
+					ID           string  `json:"id"`
+					LineID       string  `json:"line_id"`
+					TopLeftX     float64 `json:"top_left_x"`
+					TopLeftY     float64 `json:"top_left_y"`
+					TopRightX    float64 `json:"top_right_x"`
+					TopRightY    float64 `json:"top_right_y"`
+					BottomLeftX  float64 `json:"bottom_left_x"`
+					BottomLeftY  float64 `json:"bottom_left_y"`
+					BottomRightX float64 `json:"bottom_right_x"`
+					BottomRightY float64 `json:"bottom_right_y"`
+				}{
+					ID:           coordinatesID,
+					LineID:       lineID,
+					TopLeftX:     coordinates.TopLeft.X,
+					TopLeftY:     coordinates.TopLeft.Y,
+					TopRightX:    coordinates.TopRight.X,
+					TopRightY:    coordinates.TopRight.Y,
+					BottomLeftX:  coordinates.BottomLeft.X,
+					BottomLeftY:  coordinates.BottomLeft.Y,
+					BottomRightX: coordinates.BottomRight.X,
+					BottomRightY: coordinates.BottomRight.Y,
+				}
+
+				coordinatesKey := fmt.Sprintf(coordinatesPath, accountID, coordinatesID)
+				if err := c.helper.uploadObject(ctx, coordinatesJSON, coordinatesKey); err != nil {
+					return &ErrorUploadObject{
+						err:      err,
+						function: "upsert documents",
+						entity:   "coordinates",
 					}
 				}
 			}
