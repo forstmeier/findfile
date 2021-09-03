@@ -28,7 +28,7 @@ func TestConvertCQL(t *testing.T) {
 			input:       map[string]interface{}{},
 			parseOutput: nil,
 			parseError:  errors.New("mock parse cql error"),
-			error:       &ErrorConvertCQL{},
+			error:       &ErrorParseCQL{},
 		},
 		{
 			description: "successful convert cql invocation",
@@ -41,7 +41,7 @@ func TestConvertCQL(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			c := &Client{
-				parseCQL: func(accountID string, cqlQuery map[string]interface{}) ([]byte, error) {
+				parseCQL: func(ctx context.Context, accountID string, cqlQuery map[string]interface{}) ([]byte, error) {
 					return test.parseOutput, test.parseError
 				},
 			}
@@ -49,11 +49,10 @@ func TestConvertCQL(t *testing.T) {
 			received, err := c.ConvertCQL(context.Background(), "account_id", test.input)
 
 			if err != nil {
-				switch test.error.(type) {
-				case *ErrorConvertCQL:
-					var testError *ErrorConvertCQL
-					if !errors.As(err, &testError) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, testError)
+				switch e := test.error.(type) {
+				case *ErrorParseCQL:
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 				default:
 					t.Fatalf("unexpected error type: %v", err)
