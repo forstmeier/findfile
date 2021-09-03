@@ -30,10 +30,11 @@ type Line struct {
 
 // Coordinates holds the four coordinate points for a piece of text.
 type Coordinates struct {
-	TopLeft     Point `json:"top_left"`
-	TopRight    Point `json:"top_right"`
-	BottomLeft  Point `json:"bottom_left"`
-	BottomRight Point `json:"bottom_right"`
+	ID          string `json:"id"`
+	TopLeft     Point  `json:"top_left"`
+	TopRight    Point  `json:"top_right"`
+	BottomLeft  Point  `json:"bottom_left"`
+	BottomRight Point  `json:"bottom_right"`
 }
 
 // Point holds the X and Y values for a point in text coordinates.

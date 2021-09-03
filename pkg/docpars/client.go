@@ -111,6 +111,7 @@ func convertToDocument(input *textract.DetectDocumentTextOutput, accountID, file
 					Entity: lineEntity,
 					Text:   *lineBlock.Text,
 					Coordinates: Coordinates{
+						ID: uuid.NewString(),
 						TopLeft: Point{
 							X: left,
 							Y: top,
