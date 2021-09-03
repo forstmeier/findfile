@@ -51,6 +51,9 @@ const (
 )
 
 // UpsertDocuments implements the db.Databaser.UpsertDocuments method.
+//
+// Note that JSON objects stored in S3 must be represented in a single line
+// in their respective files in order for Athena to be able to query correctly.
 func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Document) error {
 	for _, document := range documents {
 		accountID := document.AccountID
