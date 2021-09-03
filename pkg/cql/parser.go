@@ -3,6 +3,7 @@ package cql
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 var (
@@ -20,6 +21,34 @@ type search struct {
 	PageNumber  int64         `json:"page_number"`
 	Coordinates [2][2]float64 `json:"coordinates"`
 }
+
+const queryString = `
+select account_id, filename, filepath
+from documents
+where id in (
+	select document_id
+	from pages
+	where id in (
+		select page_id
+		from (
+			select id, page_id
+			from lines
+			where text = '%s'
+		) as lines
+		inner join (
+			select line_id
+			from coordinates
+			where %f <= top_left_y
+			and %f >= bottom_right_y
+			and %f <= top_left_x
+			and %f >= bottom_right_x
+			and partition_0 = '%s'
+		) as filtered_coordinates
+		on lines.id = filtered_coordinates.line_id
+	)
+	and page_number = %d
+);
+`
 
 func parseCQL(ctx context.Context, accountID string, cqlQuery map[string]interface{}) ([]byte, error) {
 	if len(cqlQuery) > 1 {
@@ -40,9 +69,18 @@ func parseCQL(ctx context.Context, accountID string, cqlQuery map[string]interfa
 		return nil, err
 	}
 
-	query := []byte("TEMP")
+	query := fmt.Sprintf(
+		queryString,
+		searchJSON.Text,
+		searchJSON.Coordinates[0][1],
+		searchJSON.Coordinates[1][1],
+		searchJSON.Coordinates[0][0],
+		searchJSON.Coordinates[1][0],
+		accountID,
+		searchJSON.PageNumber,
+	)
 
-	return query, nil
+	return []byte(query), nil
 }
 
 func validateSearchJSON(input search) error {

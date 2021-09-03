@@ -3,6 +3,7 @@ package cql
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"testing"
 )
 
@@ -66,9 +67,19 @@ func Test_parseCQL(t *testing.T) {
 					t.Errorf("incorrect error, received: %s, expected: %s", err.Error(), test.error.Error())
 				}
 			} else {
-				expected := []byte("TEMP")
-				if bytes.Compare(received, expected) != 0 {
-					t.Errorf("incorrect byptes, received: %v, expected: %v", received, expected)
+				expected := fmt.Sprintf(
+					queryString,
+					"lookup text",
+					0.1,
+					0.5,
+					0.1,
+					0.5,
+					"account_id",
+					1,
+				)
+
+				if bytes.Compare(received, []byte(expected)) != 0 {
+					t.Errorf("incorrect byptes, received: %s, expected: %s", received, expected)
 				}
 			}
 		})
