@@ -33,6 +33,12 @@ func (c *Client) CreateFileWatcher(ctx context.Context, path string) error {
 		}
 	}
 
+	if err := c.helper.addOrRemoveTopicPolicyBucketARN(ctx, path, true); err != nil {
+		return &ErrorAddTopicPolicyBucketARN{
+			err: err,
+		}
+	}
+
 	return nil
 }
 
@@ -40,6 +46,12 @@ func (c *Client) CreateFileWatcher(ctx context.Context, path string) error {
 func (c *Client) DeleteFileWatcher(ctx context.Context, path string) error {
 	if err := c.helper.addOrRemoveNotification(ctx, path, false); err != nil {
 		return &ErrorRemoveNotification{
+			err: err,
+		}
+	}
+
+	if err := c.helper.addOrRemoveTopicPolicyBucketARN(ctx, path, false); err != nil {
+		return &ErrorRemoveTopicPolicyBucketARN{
 			err: err,
 		}
 	}

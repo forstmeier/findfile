@@ -9,11 +9,16 @@ import (
 )
 
 type mockHelper struct {
-	mockAddOrRemoveNotificationError error
+	mockAddOrRemoveNotificationError         error
+	mockAddOrRemoveTopicPolicyBucketARNError error
 }
 
-func (m *mockHelper) addOrRemoveNotification(ctx context.Context, path string, add bool) error {
+func (m *mockHelper) addOrRemoveNotification(ctx context.Context, bucketName string, add bool) error {
 	return m.mockAddOrRemoveNotificationError
+}
+
+func (m *mockHelper) addOrRemoveTopicPolicyBucketARN(ctx context.Context, bucketName string, add bool) error {
+	return m.mockAddOrRemoveTopicPolicyBucketARNError
 }
 
 func TestNew(t *testing.T) {
@@ -25,19 +30,28 @@ func TestNew(t *testing.T) {
 
 func TestCreateFileWatcher(t *testing.T) {
 	tests := []struct {
-		description                      string
-		mockAddOrRemoveNotificationError error
-		error                            error
+		description                              string
+		mockAddOrRemoveNotificationError         error
+		mockAddOrRemoveTopicPolicyBucketARNError error
+		error                                    error
 	}{
 		{
-			description:                      "error adding notification",
-			mockAddOrRemoveNotificationError: errors.New("mock add notification error"),
-			error:                            &ErrorAddNotification{},
+			description:                              "error adding notification",
+			mockAddOrRemoveNotificationError:         errors.New("mock add notification error"),
+			mockAddOrRemoveTopicPolicyBucketARNError: nil,
+			error:                                    &ErrorAddNotification{},
 		},
 		{
-			description:                      "successful create file watcher invocation",
-			mockAddOrRemoveNotificationError: nil,
-			error:                            nil,
+			description:                              "error adding topic policy bucket arn",
+			mockAddOrRemoveNotificationError:         nil,
+			mockAddOrRemoveTopicPolicyBucketARNError: errors.New("mock add topic policy bucket arn error"),
+			error:                                    &ErrorAddTopicPolicyBucketARN{},
+		},
+		{
+			description:                              "successful create file watcher invocation",
+			mockAddOrRemoveNotificationError:         nil,
+			mockAddOrRemoveTopicPolicyBucketARNError: nil,
+			error:                                    nil,
 		},
 	}
 
@@ -45,7 +59,8 @@ func TestCreateFileWatcher(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			client := &Client{
 				helper: &mockHelper{
-					mockAddOrRemoveNotificationError: test.mockAddOrRemoveNotificationError,
+					mockAddOrRemoveNotificationError:         test.mockAddOrRemoveNotificationError,
+					mockAddOrRemoveTopicPolicyBucketARNError: test.mockAddOrRemoveTopicPolicyBucketARNError,
 				},
 			}
 
