@@ -47,6 +47,25 @@ Resources:
     Properties:
       TopicName: cheesesteak-file-events
 
+  fileEventsTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: s3.amazonaws.com
+          Action: sns:Publish
+          Resource:
+            Ref: fileEventsTopic
+          Condition:
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+      Topics:
+        - Ref: fileEventsTopic
+
   fileEventsSubscription:
     Type: AWS::SNS::Subscription
     Properties:
@@ -54,8 +73,6 @@ Resources:
         Fn::GetAtt:
         - dbFunction
         - Arn
-      # FilterPolicy:
-        # TODO
       Protocol: lambda
       TopicArn:
         Ref: fileEventsTopic
