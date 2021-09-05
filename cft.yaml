@@ -167,6 +167,8 @@ Resources:
             Ref: NotificationConfigurationID
           EVENTS_TOPIC_ARN:
             Ref: fileEventsTopic
+          CRAWLER_NAME:
+            Ref: dbCrawler
       FunctionName: acctFunction
       Handler: acct
       MemorySize: 128

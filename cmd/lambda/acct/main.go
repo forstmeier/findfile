@@ -24,6 +24,7 @@ func main() {
 		os.Getenv("METADATA_TABLE_NAME"),
 		os.Getenv("DATABASE_NAME"),
 		os.Getenv("CATALOG_ID"),
+		os.Getenv("CRAWLER_NAME"),
 	)
 
 	fsClient := fs.New(
