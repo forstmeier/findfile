@@ -64,6 +64,15 @@ func (e *ErrorCreatePartition) Error() string {
 	return fmt.Sprintf("[%s] [add partition]: %s", packageName, e.err.Error())
 }
 
+// ErrorStartCrawler wraps errors returned by glue.Glue.StartCrawler
+type ErrorStartCrawler struct {
+	err error
+}
+
+func (e *ErrorStartCrawler) Error() string {
+	return fmt.Sprintf("[%s] [add partition]: %s", packageName, e.err.Error())
+}
+
 // ErrorDeletePartition wraps errors returned by glue.Glue.DeletePartition.
 type ErrorDeletePartition struct {
 	err error

@@ -88,6 +88,19 @@ func TestErrorCreatePartition(t *testing.T) {
 	}
 }
 
+func TestErrorStartCrawler(t *testing.T) {
+	err := &ErrorStartCrawler{
+		err: errors.New("mock start crawler error"),
+	}
+
+	recieved := err.Error()
+	expected := "[db] [add partition]: mock start crawler error"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
+
 func TestErrorDeletePartition(t *testing.T) {
 	err := &ErrorDeletePartition{
 		err: errors.New("mock delete partition error"),
