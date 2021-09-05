@@ -13,7 +13,7 @@ import (
 
 	"github.com/cheesesteakio/api/pkg/acct"
 	"github.com/cheesesteakio/api/pkg/db"
-	"github.com/cheesesteakio/api/pkg/docpars"
+	"github.com/cheesesteakio/api/pkg/pars"
 )
 
 func TestMain(m *testing.M) {
@@ -50,11 +50,11 @@ type mockDocParsClient struct {
 	mockParseAccountID string
 	mockParseFilename  string
 	mockParseFilepath  string
-	mockParseOutput    *docpars.Document
+	mockParseOutput    *pars.Document
 	mockParseError     error
 }
 
-func (m *mockDocParsClient) Parse(ctx context.Context, accountID, filename, filepath string, doc []byte) (*docpars.Document, error) {
+func (m *mockDocParsClient) Parse(ctx context.Context, accountID, filename, filepath string, doc []byte) (*pars.Document, error) {
 	m.mockParseAccountID = accountID
 	m.mockParseFilename = filename
 	m.mockParseFilepath = filepath
@@ -67,7 +67,7 @@ type mockDBClient struct {
 	mockDeleteDocumentsError error
 }
 
-func (m *mockDBClient) UpsertDocuments(ctx context.Context, documents []docpars.Document) error {
+func (m *mockDBClient) UpsertDocuments(ctx context.Context, documents []pars.Document) error {
 	return m.mockUpsertDocumentsError
 }
 
@@ -75,7 +75,7 @@ func (m *mockDBClient) DeleteDocuments(ctx context.Context, documentsInfo []db.D
 	return m.mockDeleteDocumentsError
 }
 
-func (m *mockDBClient) QueryDocuments(ctx context.Context, query []byte) ([]docpars.Document, error) {
+func (m *mockDBClient) QueryDocuments(ctx context.Context, query []byte) ([]pars.Document, error) {
 	return nil, nil
 }
 
@@ -85,7 +85,7 @@ func Test_handler(t *testing.T) {
 		s3Event                           events.S3Event
 		mockGetAccountBySecondaryIDOutput *acct.Account
 		mockGetAccountBySecondaryIDError  error
-		mockParseOutput                   *docpars.Document
+		mockParseOutput                   *pars.Document
 		mockParseError                    error
 		mockUpsertDocumentsError          error
 		mockDeleteDocumentsError          error
@@ -190,7 +190,7 @@ func Test_handler(t *testing.T) {
 				ID: "account_id",
 			},
 			mockGetAccountBySecondaryIDError: nil,
-			mockParseOutput:                  &docpars.Document{},
+			mockParseOutput:                  &pars.Document{},
 			mockParseError:                   nil,
 			mockUpsertDocumentsError:         errors.New("upsert documents mock error"),
 			mockDeleteDocumentsError:         nil,
@@ -220,7 +220,7 @@ func Test_handler(t *testing.T) {
 				ID: "account_id",
 			},
 			mockGetAccountBySecondaryIDError: nil,
-			mockParseOutput:                  &docpars.Document{},
+			mockParseOutput:                  &pars.Document{},
 			mockParseError:                   nil,
 			mockUpsertDocumentsError:         nil,
 			mockDeleteDocumentsError:         errors.New("delete documents mock error"),
@@ -261,7 +261,7 @@ func Test_handler(t *testing.T) {
 				ID: "account_id",
 			},
 			mockGetAccountBySecondaryIDError: nil,
-			mockParseOutput:                  &docpars.Document{},
+			mockParseOutput:                  &pars.Document{},
 			mockParseError:                   nil,
 			mockUpsertDocumentsError:         nil,
 			mockDeleteDocumentsError:         nil,

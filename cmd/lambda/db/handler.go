@@ -9,7 +9,7 @@ import (
 
 	"github.com/cheesesteakio/api/pkg/acct"
 	"github.com/cheesesteakio/api/pkg/db"
-	"github.com/cheesesteakio/api/pkg/docpars"
+	"github.com/cheesesteakio/api/pkg/pars"
 	"github.com/cheesesteakio/api/util"
 )
 
@@ -22,7 +22,7 @@ var (
 	errorDeleteDocuments         = errors.New("delete documents error")
 )
 
-func handler(acctClient acct.Accounter, docparsClient docpars.Parser, dbClient db.Databaser) func(ctx context.Context, event events.SNSEvent) error {
+func handler(acctClient acct.Accounter, docparsClient pars.Parser, dbClient db.Databaser) func(ctx context.Context, event events.SNSEvent) error {
 	return func(ctx context.Context, event events.SNSEvent) error {
 		util.Log("EVENT_BODY", event)
 
@@ -66,7 +66,7 @@ func handler(acctClient acct.Accounter, docparsClient docpars.Parser, dbClient d
 			}
 		}
 
-		documents := make([]docpars.Document, len(createOrUpdateDocs))
+		documents := make([]pars.Document, len(createOrUpdateDocs))
 		for i, doc := range createOrUpdateDocs {
 			document, err := docparsClient.Parse(ctx, doc[0], doc[1], doc[2], nil)
 			if err != nil {

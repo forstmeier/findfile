@@ -13,7 +13,7 @@ import (
 
 	"github.com/cheesesteakio/api/pkg/acct"
 	"github.com/cheesesteakio/api/pkg/db"
-	"github.com/cheesesteakio/api/pkg/docpars"
+	"github.com/cheesesteakio/api/pkg/pars"
 )
 
 func TestMain(m *testing.M) {
@@ -56,11 +56,11 @@ func (m *mockCQLClient) ConvertCQL(ctx context.Context, accountID string, cqlQue
 }
 
 type mockDBClient struct {
-	mockQueryDocumentsOutput []docpars.Document
+	mockQueryDocumentsOutput []pars.Document
 	mockQueryDocumentsError  error
 }
 
-func (m *mockDBClient) UpsertDocuments(ctx context.Context, documents []docpars.Document) error {
+func (m *mockDBClient) UpsertDocuments(ctx context.Context, documents []pars.Document) error {
 	return nil
 }
 
@@ -68,7 +68,7 @@ func (m *mockDBClient) DeleteDocuments(ctx context.Context, documentsInfo []db.D
 	return nil
 }
 
-func (m *mockDBClient) QueryDocuments(ctx context.Context, query []byte) ([]docpars.Document, error) {
+func (m *mockDBClient) QueryDocuments(ctx context.Context, query []byte) ([]pars.Document, error) {
 	return m.mockQueryDocumentsOutput, m.mockQueryDocumentsError
 }
 
@@ -80,7 +80,7 @@ func Test_handler(t *testing.T) {
 		mockGetAccountByIDError  error
 		mockConvertCQLOutput     []byte
 		mockConvertCQLError      error
-		mockQueryDocumentsOutput []docpars.Document
+		mockQueryDocumentsOutput []pars.Document
 		mockQueryDocumentsError  error
 		statusCode               int
 		body                     string
@@ -215,7 +215,7 @@ func Test_handler(t *testing.T) {
 			mockGetAccountByIDError:  nil,
 			mockConvertCQLOutput:     []byte("test_query"),
 			mockConvertCQLError:      nil,
-			mockQueryDocumentsOutput: []docpars.Document{
+			mockQueryDocumentsOutput: []pars.Document{
 				{
 					Filename: "filename.jpg",
 				},

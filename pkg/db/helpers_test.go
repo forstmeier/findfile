@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/athena"
 	"github.com/aws/aws-sdk-go/service/s3"
 
-	"github.com/cheesesteakio/api/pkg/docpars"
+	"github.com/cheesesteakio/api/pkg/pars"
 )
 
 type mockS3Client struct {
@@ -402,7 +402,7 @@ func Test_getQueryResultDocuments(t *testing.T) {
 		executionID               string
 		mockGetQueryResultsOutput *athena.GetQueryResultsOutput
 		mockGetQueryResultsError  error
-		documents                 []docpars.Document
+		documents                 []pars.Document
 		error                     error
 	}{
 		{
@@ -447,7 +447,7 @@ func Test_getQueryResultDocuments(t *testing.T) {
 				},
 			},
 			mockGetQueryResultsError: nil,
-			documents: []docpars.Document{
+			documents: []pars.Document{
 				{
 					AccountID: "account_id",
 					Filepath:  "bucket",

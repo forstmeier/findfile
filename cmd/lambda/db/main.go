@@ -10,7 +10,7 @@ import (
 
 	"github.com/cheesesteakio/api/pkg/acct"
 	"github.com/cheesesteakio/api/pkg/db"
-	"github.com/cheesesteakio/api/pkg/docpars"
+	"github.com/cheesesteakio/api/pkg/pars"
 )
 
 func main() {
@@ -18,7 +18,7 @@ func main() {
 
 	acctClient := acct.New(newSession, os.Getenv("TABLE_NAME"))
 
-	docparsClient := docpars.New(newSession)
+	docparsClient := pars.New(newSession)
 
 	dbClient := db.New(newSession, os.Getenv("DATABASE_NAME"), os.Getenv("STORAGE_BUCKET"))
 

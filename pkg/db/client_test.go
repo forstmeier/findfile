@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 
-	"github.com/cheesesteakio/api/pkg/docpars"
+	"github.com/cheesesteakio/api/pkg/pars"
 )
 
 type mockHelper struct {
@@ -24,7 +24,7 @@ type mockHelper struct {
 	mockExecuteQueryError             error
 	mockGetQueryResultAccountIDOutput *string
 	mockGetQueryResultAccountIDError  error
-	mockGetQueryResultDocumentsOutput []docpars.Document
+	mockGetQueryResultDocumentsOutput []pars.Document
 	mockGetQueryResultDocumentsError  error
 }
 
@@ -54,7 +54,7 @@ func (m *mockHelper) getQueryResultAccountID(state, executionID string) (*string
 	return m.mockGetQueryResultAccountIDOutput, m.mockGetQueryResultAccountIDError
 }
 
-func (m *mockHelper) getQueryResultDocuments(state, executionID string) ([]docpars.Document, error) {
+func (m *mockHelper) getQueryResultDocuments(state, executionID string) ([]pars.Document, error) {
 	return m.mockGetQueryResultDocumentsOutput, m.mockGetQueryResultDocumentsError
 }
 
@@ -73,7 +73,7 @@ func TestUpsertDocuments(t *testing.T) {
 
 	tests := []struct {
 		description           string
-		documents             []docpars.Document
+		documents             []pars.Document
 		uploadKeyToError      string
 		mockUploadObjectError error
 		entity                string
@@ -81,7 +81,7 @@ func TestUpsertDocuments(t *testing.T) {
 	}{
 		{
 			description: "error uploading document entity",
-			documents: []docpars.Document{
+			documents: []pars.Document{
 				{
 					ID:        documentID,
 					AccountID: accountID,
@@ -96,13 +96,13 @@ func TestUpsertDocuments(t *testing.T) {
 		},
 		{
 			description: "error uploading page entity",
-			documents: []docpars.Document{
+			documents: []pars.Document{
 				{
 					ID:        documentID,
 					AccountID: accountID,
 					Filename:  "filename.jpg",
 					Filepath:  "filepath",
-					Pages: []docpars.Page{
+					Pages: []pars.Page{
 						{
 							ID:         pageID,
 							PageNumber: 1,
@@ -117,21 +117,21 @@ func TestUpsertDocuments(t *testing.T) {
 		},
 		{
 			description: "error uploading line entity",
-			documents: []docpars.Document{
+			documents: []pars.Document{
 				{
 					ID:        documentID,
 					AccountID: accountID,
 					Filename:  "filename.jpg",
 					Filepath:  "filepath",
-					Pages: []docpars.Page{
+					Pages: []pars.Page{
 						{
 							ID:         pageID,
 							PageNumber: 1,
-							Lines: []docpars.Line{
+							Lines: []pars.Line{
 								{
 									ID:          lineID,
 									Text:        "text",
-									Coordinates: docpars.Coordinates{},
+									Coordinates: pars.Coordinates{},
 								},
 							},
 						},
@@ -145,21 +145,21 @@ func TestUpsertDocuments(t *testing.T) {
 		},
 		{
 			description: "successful upsert documents invocation",
-			documents: []docpars.Document{
+			documents: []pars.Document{
 				{
 					ID:        documentID,
 					AccountID: accountID,
 					Filename:  "filename.jpg",
 					Filepath:  "filepath",
-					Pages: []docpars.Page{
+					Pages: []pars.Page{
 						{
 							ID:         pageID,
 							PageNumber: 1,
-							Lines: []docpars.Line{
+							Lines: []pars.Line{
 								{
 									ID:          lineID,
 									Text:        "text",
-									Coordinates: docpars.Coordinates{},
+									Coordinates: pars.Coordinates{},
 								},
 							},
 						},
@@ -283,9 +283,9 @@ func TestQueryDocuments(t *testing.T) {
 		mockExecuteQueryExecutionID       *string
 		mockExecuteQueryState             *string
 		mockExecuteQueryError             error
-		mockGetQueryResultDocumentsOutput []docpars.Document
+		mockGetQueryResultDocumentsOutput []pars.Document
 		mockGetQueryResultDocumentsError  error
-		documents                         []docpars.Document
+		documents                         []pars.Document
 		error                             error
 	}{
 		{
@@ -313,13 +313,13 @@ func TestQueryDocuments(t *testing.T) {
 			mockExecuteQueryExecutionID: aws.String("execution_id"),
 			mockExecuteQueryState:       aws.String("state"),
 			mockExecuteQueryError:       nil,
-			mockGetQueryResultDocumentsOutput: []docpars.Document{
+			mockGetQueryResultDocumentsOutput: []pars.Document{
 				{
 					AccountID: "account_id",
 				},
 			},
 			mockGetQueryResultDocumentsError: nil,
-			documents: []docpars.Document{
+			documents: []pars.Document{
 				{
 					AccountID: "account_id",
 				},

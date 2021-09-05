@@ -1,4 +1,4 @@
-package docpars
+package pars
 
 import (
 	"context"

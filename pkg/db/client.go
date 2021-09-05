@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/athena"
 	"github.com/aws/aws-sdk-go/service/s3"
 
-	"github.com/cheesesteakio/api/pkg/docpars"
+	"github.com/cheesesteakio/api/pkg/pars"
 )
 
 var _ Databaser = &Client{}
@@ -55,7 +55,7 @@ const (
 //
 // Note that JSON objects stored in S3 must be represented in a single line
 // in their respective files in order for Athena to be able to query correctly.
-func (c *Client) UpsertDocuments(ctx context.Context, documents []docpars.Document) error {
+func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document) error {
 	for _, document := range documents {
 		accountID := document.AccountID
 		documentID := document.ID
@@ -205,7 +205,7 @@ func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentIn
 //
 // This implementation only returns the account id as well as the file
 // name and path in the docpars.Document objects slice.
-func (c *Client) QueryDocuments(ctx context.Context, query []byte) ([]docpars.Document, error) {
+func (c *Client) QueryDocuments(ctx context.Context, query []byte) ([]pars.Document, error) {
 	executionID, state, err := c.helper.executeQuery(ctx, query)
 	if err != nil {
 		return nil, &ErrorExecuteQuery{

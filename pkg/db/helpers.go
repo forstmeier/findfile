@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/athena"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/cheesesteakio/api/pkg/docpars"
+	"github.com/cheesesteakio/api/pkg/pars"
 )
 
 var _ helper = &help{}
@@ -21,7 +21,7 @@ type helper interface {
 	deleteDocumentsByKeys(ctx context.Context, keys []string) error
 	executeQuery(ctx context.Context, query []byte) (*string, *string, error)
 	getQueryResultAccountID(state, executionID string) (*string, error)
-	getQueryResultDocuments(state, executionID string) ([]docpars.Document, error)
+	getQueryResultDocuments(state, executionID string) ([]pars.Document, error)
 }
 
 type help struct {
@@ -146,7 +146,7 @@ func (h *help) getQueryResultAccountID(state, executionID string) (*string, erro
 	return &accountID, nil
 }
 
-func (h *help) getQueryResultDocuments(state, executionID string) ([]docpars.Document, error) {
+func (h *help) getQueryResultDocuments(state, executionID string) ([]pars.Document, error) {
 	if state != "SUCCEEDED" {
 		return nil, fmt.Errorf("incorrect query state [%s]", state)
 	}
@@ -158,9 +158,9 @@ func (h *help) getQueryResultDocuments(state, executionID string) ([]docpars.Doc
 		return nil, err
 	}
 
-	documents := []docpars.Document{}
+	documents := []pars.Document{}
 	for _, row := range results.ResultSet.Rows {
-		document := docpars.Document{
+		document := pars.Document{
 			AccountID: *row.Data[0].VarCharValue,
 			Filepath:  *row.Data[1].VarCharValue,
 			Filename:  *row.Data[2].VarCharValue,
