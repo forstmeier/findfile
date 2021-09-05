@@ -10,8 +10,13 @@ import (
 )
 
 type mockGlueClient struct {
+	mockStartCrawlerError          error
 	mockCreatePartitionOutputError error
 	mockDeletePartitionOutputError error
+}
+
+func (m *mockGlueClient) StartCrawler(input *glue.StartCrawlerInput) (*glue.StartCrawlerOutput, error) {
+	return nil, m.mockStartCrawlerError
 }
 
 func (m *mockGlueClient) CreatePartition(input *glue.CreatePartitionInput) (*glue.CreatePartitionOutput, error) {
@@ -23,7 +28,7 @@ func (m *mockGlueClient) DeletePartition(input *glue.DeletePartitionInput) (*glu
 }
 
 func TestNewPartitioner(t *testing.T) {
-	client := NewPartitionerClient(session.New(), "bucket", "table", "database", "catalogID")
+	client := NewPartitionerClient(session.New(), "bucket", "table", "database", "catalogID", "crawler")
 	if client == nil {
 		t.Error("error partition client")
 	}
@@ -34,24 +39,35 @@ func TestAddPartition(t *testing.T) {
 		description                    string
 		mockPutObjectError             error
 		mockCreatePartitionOutputError error
+		mockStartCrawlerError          error
 		error                          error
 	}{
 		{
 			description:                    "error uploading folder",
 			mockPutObjectError:             errors.New("mock put object error"),
 			mockCreatePartitionOutputError: nil,
+			mockStartCrawlerError:          nil,
 			error:                          &ErrorPutObject{},
 		},
 		{
 			description:                    "error creating partition",
 			mockPutObjectError:             nil,
 			mockCreatePartitionOutputError: errors.New("mock create partition error"),
+			mockStartCrawlerError:          nil,
 			error:                          &ErrorCreatePartition{},
+		},
+		{
+			description:                    "error starting crawler",
+			mockPutObjectError:             nil,
+			mockCreatePartitionOutputError: nil,
+			mockStartCrawlerError:          errors.New("mock start crawler error"),
+			error:                          &ErrorStartCrawler{},
 		},
 		{
 			description:                    "successful add partition invocation",
 			mockPutObjectError:             nil,
 			mockCreatePartitionOutputError: nil,
+			mockStartCrawlerError:          nil,
 			error:                          nil,
 		},
 	}
@@ -65,6 +81,7 @@ func TestAddPartition(t *testing.T) {
 				},
 				glueClient: &mockGlueClient{
 					mockCreatePartitionOutputError: test.mockCreatePartitionOutputError,
+					mockStartCrawlerError:          test.mockStartCrawlerError,
 				},
 			}
 
@@ -77,6 +94,10 @@ func TestAddPartition(t *testing.T) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 				case *ErrorCreatePartition:
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
+					}
+				case *ErrorStartCrawler:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
