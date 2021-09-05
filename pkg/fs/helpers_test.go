@@ -182,6 +182,19 @@ func Test_addOrRemoveTopicPolicyBucketARN(t *testing.T) {
 			error:                       "invalid character '-' in numeric literal",
 		},
 		{
+			description: "error setting topic attributes",
+			mockGetTopicAttributesOutput: &sns.GetTopicAttributesOutput{
+				Attributes: map[string]*string{
+					"Policy": aws.String("{\"Version\":\"2008-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"s3.amazonaws.com\"},\"Action\":\"sns:Publish\",\"Resource\":\"arn:aws:sns:us-east-1:0000000000:topic\",\"Condition\":{\"StringEquals\":{\"aws:SourceOwner\":\"0000000000\"},\"ArnLike\":{\"aws:SourceArn\":[\"arn:aws:s3:*:*:old_bucket\"]}}}]}"),
+				},
+			},
+			mockGetTopicAttributesError: nil,
+			mockSetTopicAttributesError: errors.New("mock set topic attributes error"),
+			add:                         true,
+			attributeValue:              nil,
+			error:                       "mock set topic attributes error",
+		},
+		{
 			description: "successful add topic policy bucket arn invocation",
 			mockGetTopicAttributesOutput: &sns.GetTopicAttributesOutput{
 				Attributes: map[string]*string{
