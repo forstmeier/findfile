@@ -96,6 +96,10 @@ func (p *PartitionerClient) AddPartition(ctx context.Context, accountID string) 
 	return nil
 }
 
+// startCrawler is a partial solution that would likely be better served
+// as a standalone Lambda function that is periodically invoked by a
+// CloudWatch rule (e.g. every 5 minutes) rather than running into potential
+// collisions at run time.
 func (p *PartitionerClient) startCrawler(ctx context.Context) error {
 	count := 1
 	for count <= 3 {
