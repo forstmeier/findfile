@@ -20,44 +20,44 @@ func TestNew(t *testing.T) {
 }
 
 type mockDynamoDBClient struct {
-	putItemError    error
-	getItemOutput   *dynamodb.GetItemOutput
-	getItemError    error
-	updateItemError error
-	deleteItemError error
+	mockPutItemError    error
+	mockGetItemOutput   *dynamodb.GetItemOutput
+	mockGetItemError    error
+	mockUpdateItemError error
+	mockDeleteItemError error
 }
 
 func (m *mockDynamoDBClient) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error) {
-	return nil, m.putItemError
+	return nil, m.mockPutItemError
 }
 
 func (m *mockDynamoDBClient) GetItem(input *dynamodb.GetItemInput) (*dynamodb.GetItemOutput, error) {
-	return m.getItemOutput, m.getItemError
+	return m.mockGetItemOutput, m.mockGetItemError
 }
 
 func (m *mockDynamoDBClient) UpdateItem(input *dynamodb.UpdateItemInput) (*dynamodb.UpdateItemOutput, error) {
-	return nil, m.updateItemError
+	return nil, m.mockUpdateItemError
 }
 
 func (m *mockDynamoDBClient) DeleteItem(input *dynamodb.DeleteItemInput) (*dynamodb.DeleteItemOutput, error) {
-	return nil, m.deleteItemError
+	return nil, m.mockDeleteItemError
 }
 
 func TestCreateAccount(t *testing.T) {
 	tests := []struct {
-		description  string
-		putItemError error
-		error        error
+		description      string
+		mockPutItemError error
+		error            error
 	}{
 		{
-			description:  "dynamodb client put item error",
-			putItemError: errors.New("mock put item error"),
-			error:        &ErrorPutItem{},
+			description:      "dynamodb client put item error",
+			mockPutItemError: errors.New("mock put item error"),
+			error:            &ErrorPutItem{},
 		},
 		{
-			description:  "successful create account invocation",
-			putItemError: nil,
-			error:        nil,
+			description:      "successful create account invocation",
+			mockPutItemError: nil,
+			error:            nil,
 		},
 	}
 
@@ -65,7 +65,7 @@ func TestCreateAccount(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			client := &Client{
 				dynamoDBClient: &mockDynamoDBClient{
-					putItemError: test.putItemError,
+					mockPutItemError: test.mockPutItemError,
 				},
 			}
 
@@ -91,29 +91,29 @@ func TestCreateAccount(t *testing.T) {
 
 func TestGetAccountByID(t *testing.T) {
 	tests := []struct {
-		description   string
-		getItemOutput *dynamodb.GetItemOutput
-		getItemError  error
-		account       *Account
-		error         error
+		description       string
+		mockGetItemOutput *dynamodb.GetItemOutput
+		mockGetItemError  error
+		account           *Account
+		error             error
 	}{
 		{
-			description:   "dynamodb client get item error",
-			getItemOutput: nil,
-			getItemError:  errors.New("mock get item error"),
-			account:       nil,
-			error:         &ErrorGetItem{},
+			description:       "dynamodb client get item error",
+			mockGetItemOutput: nil,
+			mockGetItemError:  errors.New("mock get item error"),
+			account:           nil,
+			error:             &ErrorGetItem{},
 		},
 		{
 			description: "successful read account invocation",
-			getItemOutput: &dynamodb.GetItemOutput{
+			mockGetItemOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{
 					AccountIDKey: {
 						S: aws.String("account_id"),
 					},
 				},
 			},
-			getItemError: nil,
+			mockGetItemError: nil,
 			account: &Account{
 				ID: "account_id",
 			},
@@ -125,8 +125,8 @@ func TestGetAccountByID(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			client := &Client{
 				dynamoDBClient: &mockDynamoDBClient{
-					getItemOutput: test.getItemOutput,
-					getItemError:  test.getItemError,
+					mockGetItemOutput: test.mockGetItemOutput,
+					mockGetItemError:  test.mockGetItemError,
 				},
 			}
 
@@ -156,29 +156,29 @@ func TestGetAccountByID(t *testing.T) {
 
 func TestGetAccountBySecondaryID(t *testing.T) {
 	tests := []struct {
-		description   string
-		getItemOutput *dynamodb.GetItemOutput
-		getItemError  error
-		account       *Account
-		error         error
+		description       string
+		mockGetItemOutput *dynamodb.GetItemOutput
+		mockGetItemError  error
+		account           *Account
+		error             error
 	}{
 		{
-			description:   "dynamodb client get item error",
-			getItemOutput: nil,
-			getItemError:  errors.New("mock get item error"),
-			account:       nil,
-			error:         &ErrorGetItem{},
+			description:       "dynamodb client get item error",
+			mockGetItemOutput: nil,
+			mockGetItemError:  errors.New("mock get item error"),
+			account:           nil,
+			error:             &ErrorGetItem{},
 		},
 		{
 			description: "successful read account invocation",
-			getItemOutput: &dynamodb.GetItemOutput{
+			mockGetItemOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{
 					AccountIDKey: {
 						S: aws.String("account_id"),
 					},
 				},
 			},
-			getItemError: nil,
+			mockGetItemError: nil,
 			account: &Account{
 				ID: "account_id",
 			},
@@ -190,8 +190,8 @@ func TestGetAccountBySecondaryID(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			client := &Client{
 				dynamoDBClient: &mockDynamoDBClient{
-					getItemOutput: test.getItemOutput,
-					getItemError:  test.getItemError,
+					mockGetItemOutput: test.mockGetItemOutput,
+					mockGetItemError:  test.mockGetItemError,
 				},
 			}
 
@@ -221,34 +221,34 @@ func TestGetAccountBySecondaryID(t *testing.T) {
 
 func TestUpdateAccount(t *testing.T) {
 	tests := []struct {
-		description     string
-		values          map[string]string
-		updateItemError error
-		error           error
+		description         string
+		values              map[string]string
+		mockUpdateItemError error
+		error               error
 	}{
 		{
 			description: "incorrect update value key received",
 			values: map[string]string{
 				"not_supported_key": "value",
 			},
-			updateItemError: nil,
-			error:           &ErrorIncorrectValue{},
+			mockUpdateItemError: nil,
+			error:               &ErrorIncorrectValue{},
 		},
 		{
 			description: "dynamodb client update item error",
 			values: map[string]string{
 				AccountIDKey: "account_id",
 			},
-			updateItemError: errors.New("mock update item error"),
-			error:           &ErrorUpdateItem{},
+			mockUpdateItemError: errors.New("mock update item error"),
+			error:               &ErrorUpdateItem{},
 		},
 		{
 			description: "successful update account invocation",
 			values: map[string]string{
 				AccountIDKey: "account_id",
 			},
-			updateItemError: nil,
-			error:           nil,
+			mockUpdateItemError: nil,
+			error:               nil,
 		},
 	}
 
@@ -256,7 +256,7 @@ func TestUpdateAccount(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			client := &Client{
 				dynamoDBClient: &mockDynamoDBClient{
-					updateItemError: test.updateItemError,
+					mockUpdateItemError: test.mockUpdateItemError,
 				},
 			}
 
@@ -288,19 +288,19 @@ func TestUpdateAccount(t *testing.T) {
 
 func TestDeleteAccount(t *testing.T) {
 	tests := []struct {
-		description     string
-		deleteItemError error
-		error           error
+		description         string
+		mockDeleteItemError error
+		error               error
 	}{
 		{
-			description:     "dynamodb client delete item error",
-			deleteItemError: errors.New("mock delete item error"),
-			error:           &ErrorDeleteItem{},
+			description:         "dynamodb client delete item error",
+			mockDeleteItemError: errors.New("mock delete item error"),
+			error:               &ErrorDeleteItem{},
 		},
 		{
-			description:     "successful delete account invocation",
-			deleteItemError: nil,
-			error:           nil,
+			description:         "successful delete account invocation",
+			mockDeleteItemError: nil,
+			error:               nil,
 		},
 	}
 
@@ -308,7 +308,7 @@ func TestDeleteAccount(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			client := &Client{
 				dynamoDBClient: &mockDynamoDBClient{
-					deleteItemError: test.deleteItemError,
+					mockDeleteItemError: test.mockDeleteItemError,
 				},
 			}
 

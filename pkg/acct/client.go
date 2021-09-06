@@ -85,6 +85,8 @@ func (c *Client) GetAccountByID(ctx context.Context, accountID string) (*Account
 }
 
 // GetAccountBySecondaryID implements the acct.Accounter.GetAccountBySecondaryID method.
+//
+// This DynamoDB implementation uses the user bucket name as the secondaryID value.
 func (c *Client) GetAccountBySecondaryID(ctx context.Context, secondaryID string) (*Account, error) {
 	input := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
