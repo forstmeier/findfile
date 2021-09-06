@@ -8,7 +8,7 @@ import (
 const packageName = "subscr"
 
 // ErrorMissingFields is returned if any SubscriptionInfo fields are
-// not populated.
+// not populated in the subscr.Subscriber.CreateSubscription method.
 type ErrorMissingFields struct {
 	fields []string
 }
@@ -19,7 +19,7 @@ func (e *ErrorMissingFields) Error() string {
 }
 
 // ErrorNewPaymentMethod wraps errors returned by stripe.paymentmethod.New
-// in the CreateSubscription method.
+// in the subscr.Subscriber.CreateSubscription method.
 type ErrorNewPaymentMethod struct {
 	err error
 }
@@ -29,7 +29,7 @@ func (e *ErrorNewPaymentMethod) Error() string {
 }
 
 // ErrorNewCustomer wraps errors returned by stripe.customer.New
-// in the CreateSubscription method.
+// in the subscr.Subscriber.CreateSubscription method.
 type ErrorNewCustomer struct {
 	err error
 }
@@ -39,7 +39,7 @@ func (e *ErrorNewCustomer) Error() string {
 }
 
 // ErrorNewSubscription wraps errors returned by stripe.subscription.New
-// in the CreateSubscription method.
+// in the subscr.Subscriber.CreateSubscription method.
 type ErrorNewSubscription struct {
 	err error
 }
@@ -49,7 +49,7 @@ func (e *ErrorNewSubscription) Error() string {
 }
 
 // ErrorDeleteCustomer wraps errors returned by stripe.customer.Del
-// in the RemoveSubscription method.
+// in the subscr.Subscriber.RemoveSubscription method.
 type ErrorDeleteCustomer struct {
 	err error
 }
@@ -59,7 +59,7 @@ func (e *ErrorDeleteCustomer) Error() string {
 }
 
 // ErrorCreateUsageRecord wraps errors returned by stripe.usagerecord.New
-// in the AddUsage method.
+// in the subscr.Subscriber.AddUsage method.
 type ErrorCreateUsageRecord struct {
 	err error
 }

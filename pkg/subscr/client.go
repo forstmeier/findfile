@@ -41,8 +41,8 @@ func New(stripeAPIKey string, stripeMonthlyPriceID, stripeMeteredPriceID string)
 	}
 }
 
-// CreateSubscription implements the Subscriber.CreateSubscription
-// method and adds the required customer, subscription, and
+// CreateSubscription implements the subscr.Subscriber.CreateSubscription
+// method using Stripe and adds the required customer, subscription, and
 // payment information to Stripe.
 func (c *Client) CreateSubscription(ctx context.Context, accountID string, info SubscriberInfo) (*Subscription, error) {
 	fields := checkInfoFields(info)
@@ -150,8 +150,9 @@ func checkInfoFields(info SubscriberInfo) []string {
 	return fields
 }
 
-// RemoveSubscription implements the Subscriber.RemoveSubscription
-// and removes the customer and cancels the subscription in Stripe.
+// RemoveSubscription implements the subscr.Subscriber.RemoveSubscription
+// using Stripeand removes the customer and cancels the
+// subscription in Stripe.
 func (c *Client) RemoveSubscription(ctx context.Context, subscription Subscription) error {
 	_, err := c.deleteCustomer(subscription.StripeCustomerID, nil)
 	if err != nil {
@@ -161,9 +162,9 @@ func (c *Client) RemoveSubscription(ctx context.Context, subscription Subscripti
 	return nil
 }
 
-// AddUsage implements the Subscriber.AddUsage method and adds a
-// usage record for metered billing in Stripe for the provided
-// subscription item id.
+// AddUsage implements the subscr.Subscriber.AddUsage method
+// using Stripe and adds a usage record for metered billing in
+// Stripe for the provided subscription item id.
 func (c *Client) AddUsage(ctx context.Context, itemID string, itemQuantity int64) error {
 	params := &stripe.UsageRecordParams{
 		Quantity:         stripe.Int64(itemQuantity),
