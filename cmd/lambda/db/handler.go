@@ -31,7 +31,6 @@ func handler(acctClient acct.Accounter, docparsClient pars.Parser, dbClient db.D
 
 		for _, snsRecord := range event.Records {
 			s3Event := events.S3Event{}
-
 			if err := json.Unmarshal([]byte(snsRecord.SNS.Message), &s3Event); err != nil {
 				return errorUnmarshalEvent
 			}

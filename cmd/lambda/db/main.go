@@ -20,7 +20,11 @@ func main() {
 
 	docparsClient := pars.New(newSession)
 
-	dbClient := db.New(newSession, os.Getenv("DATABASE_NAME"), os.Getenv("STORAGE_BUCKET"))
+	dbClient := db.New(
+		newSession,
+		os.Getenv("DATABASE_NAME"),
+		os.Getenv("STORAGE_BUCKET"),
+	)
 
 	lambda.Start(handler(acctClient, docparsClient, dbClient))
 }
