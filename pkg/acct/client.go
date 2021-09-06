@@ -20,7 +20,7 @@ const (
 
 var _ Accounter = &Client{}
 
-// Client implements the acct.Accounter methods using DynamoDB.
+// Client implements the acct.Accounter methods using AWS DynamoDB.
 type Client struct {
 	tableName      string
 	dynamoDBClient dynamoDBClient
@@ -33,7 +33,8 @@ type dynamoDBClient interface {
 	DeleteItem(input *dynamodb.DeleteItemInput) (*dynamodb.DeleteItemOutput, error)
 }
 
-// New generates a acct.Client pointer instance with a DynamoDB client.
+// New generates a acct.Client pointer instance with an AWS DynamoDB
+// client.
 func New(newSession *session.Session, tableName string) *Client {
 	dynamoDBClient := dynamodb.New(newSession)
 
@@ -43,7 +44,8 @@ func New(newSession *session.Session, tableName string) *Client {
 	}
 }
 
-// CreateAccount implements the acct.Accounter.CreateAccount method.
+// CreateAccount implements the acct.Accounter.CreateAccount method
+// using AWS DynamoDB.
 func (c *Client) CreateAccount(ctx context.Context, accountID, bucketName string) error {
 	input := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
@@ -65,7 +67,8 @@ func (c *Client) CreateAccount(ctx context.Context, accountID, bucketName string
 	return nil
 }
 
-// GetAccountByID implements the acct.Accounter.GetAccountByID method.
+// GetAccountByID implements the acct.Accounter.GetAccountByID method
+// using AWS DynamoDB.
 func (c *Client) GetAccountByID(ctx context.Context, accountID string) (*Account, error) {
 	input := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
@@ -84,9 +87,11 @@ func (c *Client) GetAccountByID(ctx context.Context, accountID string) (*Account
 	return itemToAccountObject(output.Item), nil
 }
 
-// GetAccountBySecondaryID implements the acct.Accounter.GetAccountBySecondaryID method.
+// GetAccountBySecondaryID implements the acct.Accounter.GetAccountBySecondaryID
+// method using AWS DynamoDB.
 //
-// This DynamoDB implementation uses the user bucket name as the secondaryID value.
+// This DynamoDB implementation uses the user bucket name as the
+// secondaryID value.
 func (c *Client) GetAccountBySecondaryID(ctx context.Context, secondaryID string) (*Account, error) {
 	input := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
@@ -105,7 +110,8 @@ func (c *Client) GetAccountBySecondaryID(ctx context.Context, secondaryID string
 	return itemToAccountObject(output.Item), nil
 }
 
-// UpdateAccount implements the acct.Accounter.UpdateAccount method.
+// UpdateAccount implements the acct.Accounter.UpdateAccount method
+// using AWS DynamoDB.
 func (c *Client) UpdateAccount(ctx context.Context, accountID string, values map[string]string) error {
 	ok, key := checkValues(values)
 	if !ok {
@@ -134,7 +140,8 @@ func (c *Client) UpdateAccount(ctx context.Context, accountID string, values map
 	return nil
 }
 
-// DeleteAccount implements the acct.Accounter.DeleteAccount method.
+// DeleteAccount implements the acct.Accounter.DeleteAccount method
+// using AWS DynamoDB.
 func (c *Client) DeleteAccount(ctx context.Context, accountID string) error {
 	input := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{

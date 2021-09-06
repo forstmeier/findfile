@@ -17,7 +17,8 @@ func New() *Client {
 	}
 }
 
-// ConvertCQL implements the cql.CQLer.ConvertCQL method.
+// ConvertCQL implements the cql.CQLer.ConvertCQL method
+// using AWS Athena.
 func (c *Client) ConvertCQL(ctx context.Context, accountID string, cqlQuery map[string]interface{}) ([]byte, error) {
 	query, err := c.parseCQL(ctx, accountID, cqlQuery)
 	if err != nil {

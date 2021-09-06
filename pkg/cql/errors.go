@@ -5,7 +5,7 @@ import "fmt"
 const packageName = "cql"
 
 // ErrorParseCQL wraps errors returned by cql.parseCQL in
-// the ConvertCQL method.
+// the cql.CQLer.ConvertCQL method.
 type ErrorParseCQL struct {
 	err error
 }

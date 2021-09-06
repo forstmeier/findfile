@@ -20,7 +20,8 @@ var paths = []string{
 
 var _ Databaser = &Client{}
 
-// Client implements the db.Databaser methods using AWS Athena.
+// Client implements the db.Databaser methods using AWS Athena
+// and AWS S3.
 type Client struct {
 	bucketName string
 	helper     helper
@@ -38,7 +39,8 @@ type s3Client interface {
 	DeleteObjects(input *s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
 }
 
-// New generates a db.Client pointer instance with an AWS Athena client.
+// New generates a db.Client pointer instance with AWS Athena and
+// AWS S3 clients.
 func New(newSession *session.Session, databaseName, bucketName string) *Client {
 	return &Client{
 		bucketName: bucketName,
@@ -58,7 +60,8 @@ const (
 	coordinatesPath = "coordinates/%s/%s.json"
 )
 
-// UpsertDocuments implements the db.Databaser.UpsertDocuments method.
+// UpsertDocuments implements the db.Databaser.UpsertDocuments method
+// using AWS S3.
 //
 // Note that JSON objects stored in S3 must be represented in a single line
 // in their respective files in order for Athena to be able to query correctly.
@@ -173,7 +176,8 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 	return nil
 }
 
-// DeleteDocuments implements the db.Databaser.DeleteDocuments method.
+// DeleteDocuments implements the db.Databaser.DeleteDocuments method
+// using AWS S3.
 func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentInfo) error {
 	for _, documentInfo := range documentsInfo {
 		deleteKeys := []string{}
@@ -207,7 +211,8 @@ func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentIn
 	return nil
 }
 
-// QueryDocuments implements the db.Databaser.QueryDocuments method.
+// QueryDocuments implements the db.Databaser.QueryDocuments method
+// using AWS Athena.
 //
 // This implementation only returns the account id as well as the file
 // name and path in the docpars.Document objects slice.
