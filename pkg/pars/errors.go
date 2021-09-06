@@ -2,10 +2,11 @@ package pars
 
 import "fmt"
 
-const packageName = "docpars"
+const packageName = "pars"
 
-// ErrorAnalyzeDocument wraps errors returned by textract.Textract.AnalyzeDocument
-// in the Convert method.
+// ErrorAnalyzeDocument wraps errors returned by
+// textract.Textract.AnalyzeDocument in the pars.Parser.Parse
+// method.
 type ErrorAnalyzeDocument struct {
 	err error
 }

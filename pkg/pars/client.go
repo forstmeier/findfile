@@ -37,7 +37,8 @@ func New(newSession *session.Session) *Client {
 	}
 }
 
-// Parse implements the docparser.Parser.Parse interface method.
+// Parse implements the docparser.Parser.Parse interface method
+// using AWS Textract.
 //
 // Arguments filename and filepath are overloaded with the AWS Textract
 // implementation to represent S3 object key and S3 bucket name
