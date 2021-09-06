@@ -11,6 +11,13 @@ import (
 	"github.com/cheesesteakio/api/pkg/pars"
 )
 
+var paths = []string{
+	"documents",
+	"pages",
+	"lines",
+	"coordinates",
+}
+
 var _ Databaser = &Client{}
 
 // Client implements the db.Databaser methods using AWS Athena.
@@ -171,7 +178,6 @@ func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentIn
 	for _, documentInfo := range documentsInfo {
 		deleteKeys := []string{}
 
-		paths := []string{"documents", "pages", "lines"}
 		for _, path := range paths {
 			pathDeleteKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("%s/%s", path, documentInfo.AccountID))
 			if err != nil {

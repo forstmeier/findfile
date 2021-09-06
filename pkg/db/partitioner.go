@@ -35,13 +35,6 @@ type PartitionerClient struct {
 	glueClient   glueClient
 }
 
-var paths = []string{
-	"documents",
-	"pages",
-	"lines",
-	"coordinates",
-}
-
 // NewPartitionerClient returns a db.Partitioner pointer instance.
 func NewPartitionerClient(newSession *session.Session, bucketName, tableName, databaseName, catalogID, crawlerName string) Partitioner {
 	return &PartitionerClient{
