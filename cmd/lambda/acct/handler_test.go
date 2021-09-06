@@ -139,7 +139,7 @@ func Test_handler(t *testing.T) {
 			body:                       `{"error": "error creating user account"}`,
 		},
 		{
-			description: "error creating account partition",
+			description: "error add account partition",
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodPost,
 				Body:       `{"bucket_name": "bucket"}`,
@@ -153,7 +153,7 @@ func Test_handler(t *testing.T) {
 			mockCreateFileWatcherError: nil,
 			mockDeleteFileWatcherError: nil,
 			statusCode:                 http.StatusInternalServerError,
-			body:                       `{"error": "error creating account partition"}`,
+			body:                       `{"error": "error adding account partition"}`,
 		},
 		{
 			description: "error creating file watcher",
@@ -225,7 +225,7 @@ func Test_handler(t *testing.T) {
 			body:                       `{"error": "error getting user account"}`,
 		},
 		{
-			description: "dynamodb client error removing account from database",
+			description: "error removing account from database",
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodDelete,
 				Headers: map[string]string{

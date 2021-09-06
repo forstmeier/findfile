@@ -48,10 +48,10 @@ func handler(acctClient acct.Accounter, partitionerClient db.Partitioner, fsClie
 			}
 
 			if err := partitionerClient.AddPartition(ctx, accountID); err != nil {
-				util.Log("CREATE_PARTITION_ERROR", err)
+				util.Log("ADD_PARTITION_ERROR", err)
 				return events.APIGatewayProxyResponse{
 					StatusCode: http.StatusInternalServerError,
-					Body:       `{"error": "error creating account partition"}`,
+					Body:       `{"error": "error adding account partition"}`,
 				}, nil
 			}
 
