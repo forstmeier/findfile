@@ -84,19 +84,28 @@ func TestCreateFileWatcher(t *testing.T) {
 
 func TestDeleteFileWatcher(t *testing.T) {
 	tests := []struct {
-		description                      string
-		mockAddOrRemoveNotificationError error
-		error                            error
+		description                              string
+		mockAddOrRemoveNotificationError         error
+		mockAddOrRemoveTopicPolicyBucketARNError error
+		error                                    error
 	}{
 		{
-			description:                      "error removing notification",
-			mockAddOrRemoveNotificationError: errors.New("mock remove notification error"),
-			error:                            &ErrorAddNotification{},
+			description:                              "error removing notification",
+			mockAddOrRemoveNotificationError:         errors.New("mock remove notification error"),
+			mockAddOrRemoveTopicPolicyBucketARNError: nil,
+			error:                                    &ErrorAddNotification{},
 		},
 		{
-			description:                      "successful delete file watcher invocation",
-			mockAddOrRemoveNotificationError: nil,
-			error:                            nil,
+			description:                              "error removing topic policy bucket arn",
+			mockAddOrRemoveNotificationError:         nil,
+			mockAddOrRemoveTopicPolicyBucketARNError: errors.New("mock remove topic policy bucket arn error"),
+			error:                                    &ErrorAddNotification{},
+		},
+		{
+			description:                              "successful delete file watcher invocation",
+			mockAddOrRemoveNotificationError:         nil,
+			mockAddOrRemoveTopicPolicyBucketARNError: nil,
+			error:                                    nil,
 		},
 	}
 
@@ -104,7 +113,8 @@ func TestDeleteFileWatcher(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			client := &Client{
 				helper: &mockHelper{
-					mockAddOrRemoveNotificationError: test.mockAddOrRemoveNotificationError,
+					mockAddOrRemoveNotificationError:         test.mockAddOrRemoveNotificationError,
+					mockAddOrRemoveTopicPolicyBucketARNError: test.mockAddOrRemoveTopicPolicyBucketARNError,
 				},
 			}
 

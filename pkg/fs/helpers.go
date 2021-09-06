@@ -32,8 +32,8 @@ type snsClient interface {
 	SetTopicAttributes(input *sns.SetTopicAttributesInput) (*sns.SetTopicAttributesOutput, error)
 }
 
-// addOrRemoveNotification updates the target user S3 bucket with the required
-// notification configuration
+// addOrRemoveNotification updates the target user S3 bucket with
+// the required notification configuration
 func (h *help) addOrRemoveNotification(ctx context.Context, bucketName string, add bool) error {
 	config, err := h.s3Client.GetBucketNotificationConfiguration(&s3.GetBucketNotificationConfigurationRequest{
 		Bucket: aws.String(bucketName),
@@ -91,8 +91,8 @@ type condition struct {
 	ArnLike      map[string][]string `json:"ArnLike"`
 }
 
-// addOrRemoveTopicPolicyBucketARN updates the SNS topic policy with the ARN of
-// the provided bucketName.
+// addOrRemoveTopicPolicyBucketARN updates the SNS topic policy with
+// the ARN of the provided bucketName.
 func (h *help) addOrRemoveTopicPolicyBucketARN(ctx context.Context, bucketName string, add bool) error {
 	topicAttributes, err := h.snsClient.GetTopicAttributes(&sns.GetTopicAttributesInput{
 		TopicArn: aws.String(h.topicARN),

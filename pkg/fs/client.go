@@ -5,6 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sns"
 )
 
 var _ Filesystemer = &Client{}
@@ -14,18 +15,21 @@ type Client struct {
 	helper helper
 }
 
-// New generates a fs.Client pointer instance with an AWS S3 client.
+// New generates a fs.Client pointer instance with AWS S3 and
+// AWS SNS clients.
 func New(newSession *session.Session, topicARN, configurationID string) *Client {
 	return &Client{
 		helper: &help{
 			configurationID: configurationID,
 			topicARN:        topicARN,
 			s3Client:        s3.New(newSession),
+			snsClient:       sns.New(newSession),
 		},
 	}
 }
 
-// CreateFileWatcher implements the fs.Filesystemer.CreateFileWatcher method.
+// CreateFileWatcher implements the fs.Filesystemer.CreateFileWatcher
+// method using AWS S3 and AWS SNS.
 func (c *Client) CreateFileWatcher(ctx context.Context, path string) error {
 	if err := c.helper.addOrRemoveNotification(ctx, path, true); err != nil {
 		return &ErrorAddNotification{
@@ -42,7 +46,8 @@ func (c *Client) CreateFileWatcher(ctx context.Context, path string) error {
 	return nil
 }
 
-// DeleteFileWatcher implements the fs.Filesystemer.DeleteFileWatcher method.
+// DeleteFileWatcher implements the fs.Filesystemer.DeleteFileWatcher
+// method using AWS S3 and AWS SNS.
 func (c *Client) DeleteFileWatcher(ctx context.Context, path string) error {
 	if err := c.helper.addOrRemoveNotification(ctx, path, false); err != nil {
 		return &ErrorRemoveNotification{
