@@ -115,7 +115,7 @@ func Test_handler(t *testing.T) {
 			body:                     `{"error": "http method [GET] not supported"}`,
 		},
 		{
-			description: "dynamodb client error reading account from database",
+			description: "error reading account from database",
 			request: events.APIGatewayProxyRequest{
 				Headers: map[string]string{
 					accountIDHeader: "account_id",
@@ -132,7 +132,7 @@ func Test_handler(t *testing.T) {
 			body:                     `{"error": "error getting account values"}`,
 		},
 		{
-			description: "dynamodb client account not found in database",
+			description: "account not found in database",
 			request: events.APIGatewayProxyRequest{
 				Headers: map[string]string{
 					accountIDHeader: "account_id",
@@ -185,7 +185,7 @@ func Test_handler(t *testing.T) {
 			body:                     `{"error": "error converting cql to query"}`,
 		},
 		{
-			description: "documentdb client error querying documents in database",
+			description: "error querying documents in database",
 			request: events.APIGatewayProxyRequest{
 				Headers: map[string]string{
 					accountIDHeader: "account_id",
