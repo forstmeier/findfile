@@ -1,4 +1,4 @@
-package cql
+package fql
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestConvertCQL(t *testing.T) {
+func TestConvertFQL(t *testing.T) {
 	tests := []struct {
 		description string
 		input       map[string]interface{}
@@ -24,14 +24,14 @@ func TestConvertCQL(t *testing.T) {
 		error       error
 	}{
 		{
-			description: "error from parse cql helper function",
+			description: "error from parse fql helper function",
 			input:       map[string]interface{}{},
 			parseOutput: nil,
-			parseError:  errors.New("mock parse cql error"),
-			error:       &ErrorParseCQL{},
+			parseError:  errors.New("mock parse fql error"),
+			error:       &ErrorParseFQL{},
 		},
 		{
-			description: "successful convert cql invocation",
+			description: "successful convert fql invocation",
 			input:       map[string]interface{}{},
 			parseOutput: []byte("test byte output"),
 			error:       nil,
@@ -41,16 +41,16 @@ func TestConvertCQL(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			c := &Client{
-				parseCQL: func(ctx context.Context, accountID string, cqlQuery map[string]interface{}) ([]byte, error) {
+				parseFQL: func(ctx context.Context, accountID string, fqlQuery map[string]interface{}) ([]byte, error) {
 					return test.parseOutput, test.parseError
 				},
 			}
 
-			received, err := c.ConvertCQL(context.Background(), "account_id", test.input)
+			received, err := c.ConvertFQL(context.Background(), "account_id", test.input)
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *ErrorParseCQL:
+				case *ErrorParseFQL:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}

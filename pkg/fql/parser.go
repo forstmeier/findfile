@@ -1,4 +1,4 @@
-package cql
+package fql
 
 import (
 	"context"
@@ -50,12 +50,12 @@ where id in (
 );
 `
 
-func parseCQL(ctx context.Context, accountID string, cqlQuery map[string]interface{}) ([]byte, error) {
-	if len(cqlQuery) > 1 {
+func parseFQL(ctx context.Context, accountID string, fqlQuery map[string]interface{}) ([]byte, error) {
+	if len(fqlQuery) > 1 {
 		return nil, errorTooManyAttributes
 	}
 
-	searchValue, searchOK := cqlQuery["search"]
+	searchValue, searchOK := fqlQuery["search"]
 	if !searchOK {
 		return nil, errorKeyNotSupported
 	}

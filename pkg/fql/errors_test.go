@@ -1,15 +1,15 @@
-package cql
+package fql
 
 import (
 	"errors"
 	"testing"
 )
 
-func TestErrorParseCQL(t *testing.T) {
-	err := &ErrorParseCQL{err: errors.New("mock parse cql error")}
+func TestErrorParseFQL(t *testing.T) {
+	err := &ErrorParseFQL{err: errors.New("mock parse fql error")}
 
 	recieved := err.Error()
-	expected := "[cql] [convert cql]: mock parse cql error"
+	expected := "[fql] [convert fql]: mock parse fql error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
