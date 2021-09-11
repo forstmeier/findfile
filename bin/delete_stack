@@ -2,8 +2,8 @@
 
 # removes the infrastructure stack via AWS CloudFormation
 
-STACK_NAME=cheesesteak
+STACK_NAME=$( jq -r  '.app.name' <<< "${CONFIG_JSON}" ) 
 
-aws s3 rm s3://cheesesteak-storage --recursive
+aws s3 rm s3://$STACK_NAME-storage --recursive
 
 aws cloudformation delete-stack --stack-name $STACK_NAME

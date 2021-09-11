@@ -12,14 +12,11 @@ aws cloudformation deploy \
 	--template-file cft.yaml \
 	--stack-name $STACK_NAME \
 	--parameter-overrides \
+		ProjectName=$( jq -r  '.app.name' <<< "${CONFIG_JSON}" ) \
 		ProjectEmail=$( jq -r  '.app.email' <<< "${CONFIG_JSON}" ) \
 		AccountIDHTTPHeader=$( jq -r  '.app.account_id_http_header' <<< "${CONFIG_JSON}" ) \
 		ArtifactBucket=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) \
 		StorageBucket=$( jq -r  '.aws.s3.storage_bucket' <<< "${CONFIG_JSON}" ) \
 		DatabaseName=$( jq -r  '.aws.glue.database_name' <<< "${CONFIG_JSON}" ) \
-		MetadataTableName=$( jq -r  '.aws.glue.metadata_table_name' <<< "${CONFIG_JSON}" ) \
-		CertificateARN=$( jq -r  '.aws.acm.certificate_arn' <<< "${CONFIG_JSON}" ) \
-		DomainHostedZoneID=$( jq -r  '.aws.domain.hosted_zone_id' <<< "${CONFIG_JSON}" ) \
-		NotificationConfigurationID=$( jq -r  '.aws.s3.notification_configuration_id' <<< "${CONFIG_JSON}" ) \
 	--capabilities CAPABILITY_NAMED_IAM \
 	--no-fail-on-empty-changeset

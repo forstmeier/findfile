@@ -2,8 +2,6 @@
 
 # uploads the pre-ZIPed AWS Lambda code files to S3
 
-cp etc/aws/rds-combined-ca-bundle.pem .
-
 ARTIFACT_BUCKET=$( cat etc/config/config.json | jq -r '.aws.s3.artifact_bucket' )
 
 aws s3 mv acct.zip s3://$ARTIFACT_BUCKET/
