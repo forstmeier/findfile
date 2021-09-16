@@ -2,6 +2,8 @@
 
 # removes the infrastructure stack via AWS CloudFormation
 
+CONFIG_JSON=$( cat etc/config/config.json | jq )
+
 STACK_NAME=$( jq -r  '.app.name' <<< "${CONFIG_JSON}" ) 
 
 aws s3 rm s3://$STACK_NAME-storage --recursive
