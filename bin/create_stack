@@ -6,17 +6,18 @@ CONFIG_JSON=$( cat etc/config/config.json | jq )
 
 STACK_NAME=$( jq -r  '.app.name' <<< "${CONFIG_JSON}" ) 
 
-ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" )
+ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) 
+
+HTTP_SECURITY_KEY=$(uuidgen)
 
 aws cloudformation deploy \
 	--template-file cft.yaml \
+	--s3-bucket $ARTIFACT_BUCKET \
 	--stack-name $STACK_NAME \
 	--parameter-overrides \
 		ProjectName=$( jq -r  '.app.name' <<< "${CONFIG_JSON}" ) \
-		ProjectEmail=$( jq -r  '.app.email' <<< "${CONFIG_JSON}" ) \
-		AccountIDHTTPHeader=$( jq -r  '.app.account_id_http_header' <<< "${CONFIG_JSON}" ) \
+		HTTPSecurityKey=$HTTP_SECURITY_KEY \
 		ArtifactBucket=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) \
-		StorageBucket=$( jq -r  '.aws.s3.storage_bucket' <<< "${CONFIG_JSON}" ) \
-		DatabaseName=$( jq -r  '.aws.glue.database_name' <<< "${CONFIG_JSON}" ) \
+		DatabaseBucket=$( jq -r  '.aws.s3.database_bucket' <<< "${CONFIG_JSON}" ) \
 	--capabilities CAPABILITY_NAMED_IAM \
 	--no-fail-on-empty-changeset

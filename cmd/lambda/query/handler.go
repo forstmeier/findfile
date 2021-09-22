@@ -5,59 +5,46 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/cheesesteakio/api/pkg/acct"
-	"github.com/cheesesteakio/api/pkg/cql"
-	"github.com/cheesesteakio/api/pkg/db"
-	"github.com/cheesesteakio/api/util"
+	"github.com/findfiledev/api/pkg/db"
+	"github.com/findfiledev/api/pkg/fql"
+	"github.com/findfiledev/api/util"
 )
 
-var accountIDHeader = os.Getenv("ACCOUNT_ID_HTTP_HEADER")
-
-func handler(acctClient acct.Accounter, cqlClient cql.CQLer, dbClient db.Databaser) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, httpSecurityKey string) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		util.Log("REQUEST_BODY", request.Body)
 		util.Log("REQUEST_METHOD", request.HTTPMethod)
 
-		accountID, ok := request.Headers[accountIDHeader]
+		httpSecurityKeyReceived, ok := request.Headers[httpSecurityHeader]
 		if !ok {
-			util.Log("ACCOUNT_ID_ERROR", "account id not provided")
+			util.Log("SECURITY_KEY_HEADER_ERROR", "security key header not provided")
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       `{"error": "account id not provided"}`,
+				Body:       `{"error": "security key header not provided"}`,
+			}, nil
+		}
+
+		if httpSecurityKeyReceived != httpSecurityKey {
+			util.Log("SECURITY_KEY_VALUE_ERROR", fmt.Sprintf("security key [%s] incorrect", httpSecurityKey))
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusBadRequest,
+				Body:       `{"error": "security key value incorrect"}`,
 			}, nil
 		}
 
 		if request.HTTPMethod != http.MethodPost {
-			util.Log("HTTP_METHOD_ERROR", "http method not supported")
+			util.Log("HTTP_METHOD_ERROR", fmt.Sprintf(`{"error": "http method [%s] not supported"}`, request.HTTPMethod))
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
 				Body:       fmt.Sprintf(`{"error": "http method [%s] not supported"}`, request.HTTPMethod),
 			}, nil
 		}
 
-		account, err := acctClient.GetAccountByID(ctx, accountID)
-		if err != nil {
-			util.Log("READ_ACCOUNT_ERROR", err)
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "error getting account values"}`,
-			}, nil
-		}
-
-		if account == nil {
-			util.Log("ACCOUNT_ERROR", "nil account value")
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Body:       fmt.Sprintf(`{"error": "account [%s] not found}`, accountID),
-			}, nil
-		}
-
-		cqlJSON := map[string]interface{}{}
-		if err := json.Unmarshal([]byte(request.Body), &cqlJSON); err != nil {
+		fqlJSON := map[string]interface{}{}
+		if err := json.Unmarshal([]byte(request.Body), &fqlJSON); err != nil {
 			util.Log("UNMARSHAL_REQUEST_BODY_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
@@ -65,16 +52,16 @@ func handler(acctClient acct.Accounter, cqlClient cql.CQLer, dbClient db.Databas
 			}, nil
 		}
 
-		query, err := cqlClient.ConvertCQL(ctx, accountID, cqlJSON)
+		query, err := fqlClient.ConvertFQL(ctx, fqlJSON)
 		if err != nil {
-			util.Log("CONVERT_CQL_ERROR", err)
+			util.Log("CONVERT_FQL_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "error converting cql to query"}`,
+				Body:       `{"error": "error converting fql to query"}`,
 			}, nil
 		}
 
-		documents, err := dbClient.QueryDocuments(ctx, query)
+		documents, err := dbClient.QueryDocumentsByFQL(ctx, query)
 		if err != nil {
 			util.Log("QUERY_DOCUMENTS_ERROR", err)
 			return events.APIGatewayProxyResponse{
@@ -83,17 +70,21 @@ func handler(acctClient acct.Accounter, cqlClient cql.CQLer, dbClient db.Databas
 			}, nil
 		}
 
-		filenames := make([]string, len(documents))
-		for i, document := range documents {
-			filenames[i] = document.Filename
+		data := map[string][]string{}
+		for _, document := range documents {
+			if _, ok := data[document.FileBucket]; ok {
+				data[document.FileBucket] = append(data[document.FileBucket], document.FileKey)
+			} else {
+				data[document.FileBucket] = []string{document.FileKey}
+			}
 		}
 
 		output := struct {
-			Message   string   `json:"message"`
-			Filenames []string `json:"filenames"`
+			Message string              `json:"message"`
+			Data    map[string][]string `json:"data"`
 		}{
-			Message:   "success",
-			Filenames: filenames,
+			Message: "success",
+			Data:    data,
 		}
 
 		outputBytes, err := json.Marshal(output)
@@ -101,7 +92,7 @@ func handler(acctClient acct.Accounter, cqlClient cql.CQLer, dbClient db.Databas
 			util.Log("MARSHAL_OUTPUT_ERROR", err)
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "error marshalling presigned urls"}`,
+				Body:       `{"error": "error marshalling file information"}`,
 			}, nil
 		}
 

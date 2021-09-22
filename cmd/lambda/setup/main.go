@@ -7,15 +7,11 @@ import (
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
-
 	"github.com/findfiledev/api/pkg/db"
-	"github.com/findfiledev/api/pkg/fql"
 )
 
 func main() {
 	newSession := session.New()
-
-	fqlClient := fql.New()
 
 	dbClient := db.New(
 		newSession,
@@ -24,8 +20,5 @@ func main() {
 		os.Getenv("CRAWLER_NAME"),
 	)
 
-	httpSecurityHeader := os.Getenv("HTTP_SECURITY_HEADER")
-	httpSecurityKey := os.Getenv("HTTP_SECURITY_KEY")
-
-	lambda.Start(handler(fqlClient, dbClient, httpSecurityHeader, httpSecurityKey))
+	lambda.Start(handler(dbClient, sendResponse))
 }

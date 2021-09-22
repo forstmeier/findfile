@@ -28,9 +28,8 @@ func (m *mockTextractClient) DetectDocumentText(input *textract.DetectDocumentTe
 }
 
 func TestParse(t *testing.T) {
-	accountID := "account_id"
-	filename := "test.pdf"
-	filepath := "s3://bucket/path"
+	fileKey := "test.pdf"
+	fileBucket := "s3://bucket/path"
 
 	tests := []struct {
 		description          string
@@ -47,8 +46,8 @@ func TestParse(t *testing.T) {
 			error:                &ErrorAnalyzeDocument{},
 		},
 		{
-			textractClientOutput: &textract.DetectDocumentTextOutput{},
 			description:          "no pages/lines returned",
+			textractClientOutput: &textract.DetectDocumentTextOutput{},
 			textractClientError:  nil,
 			document: Document{
 				ID: "document_0",
@@ -56,14 +55,13 @@ func TestParse(t *testing.T) {
 			error: nil,
 		},
 		{
-			textractClientOutput: &textract.DetectDocumentTextOutput{},
 			description:          "one page and one line returned",
+			textractClientOutput: &textract.DetectDocumentTextOutput{},
 			textractClientError:  nil,
 			document: Document{
-				ID:        "document_0",
-				AccountID: accountID,
-				Filename:  filename,
-				Filepath:  filepath,
+				ID:         "document_0",
+				FileKey:    fileKey,
+				FileBucket: fileBucket,
 				Pages: []Page{
 					{
 						Lines: []Line{
@@ -103,17 +101,16 @@ func TestParse(t *testing.T) {
 					textractClientOutput: test.textractClientOutput,
 					textractClientError:  test.textractClientError,
 				},
-				convertToDocument: func(input *textract.DetectDocumentTextOutput, accountID, filename, filepath string) Document {
-					test.document.AccountID = accountID
-					test.document.Filename = filename
-					test.document.Filepath = filepath
+				convertToDocument: func(input *textract.DetectDocumentTextOutput, fileKey, fileBucket string) Document {
+					test.document.FileKey = fileKey
+					test.document.FileBucket = fileBucket
 					return test.document
 				},
 			}
 
 			ctx := context.Background()
 
-			document, err := client.Parse(ctx, accountID, filename, filepath, nil)
+			document, err := client.Parse(ctx, fileKey, fileBucket)
 
 			if err != nil {
 				switch e := test.error.(type) {
@@ -156,9 +153,8 @@ func TestParse(t *testing.T) {
 }
 
 func Test_convertToContent(t *testing.T) {
-	accountID := "account_id"
-	filename := "test.pdf"
-	filepath := "s3://bucket/path"
+	fileKey := "test.pdf"
+	fileBucket := "s3://bucket/path"
 
 	tests := []struct {
 		description string
@@ -196,9 +192,8 @@ func Test_convertToContent(t *testing.T) {
 				},
 			},
 			document: Document{
-				AccountID: accountID,
-				Filename:  filename,
-				Filepath:  filepath,
+				FileKey:    fileKey,
+				FileBucket: fileBucket,
 				Pages: []Page{
 					{
 						PageNumber: 1,
@@ -273,9 +268,8 @@ func Test_convertToContent(t *testing.T) {
 				},
 			},
 			document: Document{
-				AccountID: accountID,
-				Filename:  filename,
-				Filepath:  filepath,
+				FileKey:    fileKey,
+				FileBucket: fileBucket,
 				Pages: []Page{
 					{
 						PageNumber: 1,
@@ -384,9 +378,8 @@ func Test_convertToContent(t *testing.T) {
 				},
 			},
 			document: Document{
-				AccountID: accountID,
-				Filename:  filename,
-				Filepath:  filepath,
+				FileKey:    fileKey,
+				FileBucket: fileBucket,
 				Pages: []Page{
 					{
 						PageNumber: 1,
@@ -447,18 +440,14 @@ func Test_convertToContent(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			document := convertToDocument(test.input, accountID, filename, filepath)
+			document := convertToDocument(test.input, fileKey, fileBucket)
 
-			if document.AccountID != accountID {
-				t.Errorf("incorrect document account id, received: %s, expected: %s", document.AccountID, accountID)
+			if document.FileKey != fileKey {
+				t.Errorf("incorrect document file key, received: %s, expected: %s", document.FileKey, fileKey)
 			}
 
-			if document.Filename != filename {
-				t.Errorf("incorrect document filename, received: %s, expected: %s", document.Filename, filename)
-			}
-
-			if document.Filepath != filepath {
-				t.Errorf("incorrect document filepath, received: %s, expected: %s", document.Filepath, filepath)
+			if document.FileBucket != fileBucket {
+				t.Errorf("incorrect document file bucket, received: %s, expected: %s", document.FileBucket, fileBucket)
 			}
 
 			if len(document.Pages) != len(test.document.Pages) {

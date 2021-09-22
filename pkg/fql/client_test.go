@@ -41,12 +41,12 @@ func TestConvertFQL(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			c := &Client{
-				parseFQL: func(ctx context.Context, accountID string, fqlQuery map[string]interface{}) ([]byte, error) {
+				parseFQL: func(ctx context.Context, fqlQuery map[string]interface{}) ([]byte, error) {
 					return test.parseOutput, test.parseError
 				},
 			}
 
-			received, err := c.ConvertFQL(context.Background(), "account_id", test.input)
+			received, err := c.ConvertFQL(context.Background(), test.input)
 
 			if err != nil {
 				switch e := test.error.(type) {

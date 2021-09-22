@@ -23,7 +23,7 @@ type search struct {
 }
 
 const queryString = `
-select account_id, filename, filepath
+select id, file_key, file_bucket
 from documents
 where id in (
 	select document_id
@@ -42,7 +42,6 @@ where id in (
 			and %f >= bottom_right_y
 			and %f <= top_left_x
 			and %f >= bottom_right_x
-			and partition_0 = '%s'
 		) as filtered_coordinates
 		on lines.id = filtered_coordinates.line_id
 	)
@@ -50,7 +49,7 @@ where id in (
 );
 `
 
-func parseFQL(ctx context.Context, accountID string, fqlQuery map[string]interface{}) ([]byte, error) {
+func parseFQL(ctx context.Context, fqlQuery map[string]interface{}) ([]byte, error) {
 	if len(fqlQuery) > 1 {
 		return nil, errorTooManyAttributes
 	}
@@ -76,7 +75,6 @@ func parseFQL(ctx context.Context, accountID string, fqlQuery map[string]interfa
 		searchJSON.Coordinates[1][1],
 		searchJSON.Coordinates[0][0],
 		searchJSON.Coordinates[1][0],
-		accountID,
 		searchJSON.PageNumber,
 	)
 

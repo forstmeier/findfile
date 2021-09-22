@@ -60,7 +60,7 @@ func Test_parseFQL(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			received, err := parseFQL(context.Background(), "account_id", test.input)
+			received, err := parseFQL(context.Background(), test.input)
 
 			if err != nil {
 				if err != test.error {
@@ -74,7 +74,6 @@ func Test_parseFQL(t *testing.T) {
 					0.5,
 					0.1,
 					0.5,
-					"account_id",
 					1,
 				)
 

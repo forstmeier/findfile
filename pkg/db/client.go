@@ -6,12 +6,15 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/athena"
+	"github.com/aws/aws-sdk-go/service/glue"
 	"github.com/aws/aws-sdk-go/service/s3"
 
-	"github.com/cheesesteakio/api/pkg/pars"
+	"github.com/findfiledev/api/pkg/pars"
 )
 
-var paths = []string{
+// Paths represent the locations within the S3 database bucket
+// where different data types are stored.
+var Paths = []string{
 	"documents",
 	"pages",
 	"lines",
@@ -23,42 +26,50 @@ var _ Databaser = &Client{}
 // Client implements the db.Databaser methods using AWS Athena
 // and AWS S3.
 type Client struct {
-	bucketName string
-	helper     helper
+	helper helper
 }
 
-type athenaClient interface {
-	StartQueryExecution(input *athena.StartQueryExecutionInput) (*athena.StartQueryExecutionOutput, error)
-	GetQueryExecution(input *athena.GetQueryExecutionInput) (*athena.GetQueryExecutionOutput, error)
-	GetQueryResults(input *athena.GetQueryResultsInput) (*athena.GetQueryResultsOutput, error)
-}
-
-type s3Client interface {
-	ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
-	PutObject(input *s3.PutObjectInput) (*s3.PutObjectOutput, error)
-	DeleteObjects(input *s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
-}
-
-// New generates a db.Client pointer instance with AWS Athena and
-// AWS S3 clients.
-func New(newSession *session.Session, databaseName, bucketName string) *Client {
+// New generates a db.Client pointer instance with AWS Athena,
+// AWS S3, and AWS Glue clients.
+func New(newSession *session.Session, databaseName, databaseBucket, crawlerName string) *Client {
 	return &Client{
-		bucketName: bucketName,
 		helper: &help{
-			databaseName: databaseName,
-			bucketName:   bucketName,
-			athenaClient: athena.New(newSession),
-			s3Client:     s3.New(newSession),
+			databaseName:   databaseName,
+			databaseBucket: databaseBucket,
+			crawlerName:    crawlerName,
+			athenaClient:   athena.New(newSession),
+			s3Client:       s3.New(newSession),
+			glueClient:     glue.New(newSession),
 		},
 	}
 }
 
 const (
-	documentsPath   = "documents/%s/%s.json"
-	pagesPath       = "pages/%s/%s.json"
-	linesPath       = "lines/%s/%s.json"
-	coordinatesPath = "coordinates/%s/%s.json"
+	documentsPath   = "documents/%s.json"
+	pagesPath       = "pages/%s.json"
+	linesPath       = "lines/%s.json"
+	coordinatesPath = "coordinates/%s.json"
 )
+
+// SetupDatabase implements the db.Databaser.SetupDatabase method
+// using AWS S3 and AWS Glue.
+func (c *Client) SetupDatabase(ctx context.Context) error {
+	for _, path := range Paths {
+		if err := c.helper.addFolder(ctx, path); err != nil {
+			return &ErrorAddFolder{
+				err: err,
+			}
+		}
+	}
+
+	if err := c.helper.startCrawler(ctx); err != nil {
+		return &ErrorStartCrawler{
+			err: err,
+		}
+	}
+
+	return nil
+}
 
 // UpsertDocuments implements the db.Databaser.UpsertDocuments method
 // using AWS S3.
@@ -67,22 +78,21 @@ const (
 // in their respective files in order for Athena to be able to query correctly.
 func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document) error {
 	for _, document := range documents {
-		accountID := document.AccountID
 		documentID := document.ID
 
 		documentJSON := struct {
-			ID        string `json:"id"`
-			AccountID string `json:"account_id"`
-			Filename  string `json:"filename"`
-			Filepath  string `json:"filepath"`
+			ID         string `json:"id"`
+			Entity     string `json:"entity"`
+			FileKey    string `json:"file_key"`
+			FileBucket string `json:"file_bucket"`
 		}{
-			ID:        documentID,
-			AccountID: accountID,
-			Filename:  document.Filename,
-			Filepath:  document.Filepath,
+			ID:         documentID,
+			Entity:     "document",
+			FileKey:    document.FileKey,
+			FileBucket: document.FileBucket,
 		}
 
-		documentKey := fmt.Sprintf(documentsPath, accountID, documentID)
+		documentKey := fmt.Sprintf(documentsPath, documentID)
 		if err := c.helper.uploadObject(ctx, documentJSON, documentKey); err != nil {
 			return &ErrorUploadObject{
 				err:      err,
@@ -96,15 +106,17 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 
 			pageJSON := struct {
 				ID         string `json:"id"`
+				Entity     string `json:"entity"`
 				DocumentID string `json:"document_id"`
 				PageNumber int64  `json:"page_number"`
 			}{
 				ID:         pageID,
+				Entity:     "page",
 				DocumentID: documentID,
 				PageNumber: page.PageNumber,
 			}
 
-			pageKey := fmt.Sprintf(pagesPath, accountID, pageID)
+			pageKey := fmt.Sprintf(pagesPath, pageID)
 			if err := c.helper.uploadObject(ctx, pageJSON, pageKey); err != nil {
 				return &ErrorUploadObject{
 					err:      err,
@@ -120,15 +132,17 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 
 				lineJSON := struct {
 					ID     string `json:"id"`
+					Entity string `json:"entity"`
 					PageID string `json:"page_id"`
 					Text   string `json:"text"`
 				}{
 					ID:     lineID,
+					Entity: "line",
 					PageID: pageID,
 					Text:   line.Text,
 				}
 
-				lineKey := fmt.Sprintf(linesPath, accountID, lineID)
+				lineKey := fmt.Sprintf(linesPath, lineID)
 				if err := c.helper.uploadObject(ctx, lineJSON, lineKey); err != nil {
 					return &ErrorUploadObject{
 						err:      err,
@@ -139,6 +153,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 
 				coordinatesJSON := struct {
 					ID           string  `json:"id"`
+					Entity       string  `json:"entity"`
 					LineID       string  `json:"line_id"`
 					TopLeftX     float64 `json:"top_left_x"`
 					TopLeftY     float64 `json:"top_left_y"`
@@ -150,6 +165,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 					BottomRightY float64 `json:"bottom_right_y"`
 				}{
 					ID:           coordinatesID,
+					Entity:       "coordinates",
 					LineID:       lineID,
 					TopLeftX:     coordinates.TopLeft.X,
 					TopLeftY:     coordinates.TopLeft.Y,
@@ -161,7 +177,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 					BottomRightY: coordinates.BottomRight.Y,
 				}
 
-				coordinatesKey := fmt.Sprintf(coordinatesPath, accountID, coordinatesID)
+				coordinatesKey := fmt.Sprintf(coordinatesPath, coordinatesID)
 				if err := c.helper.uploadObject(ctx, coordinatesJSON, coordinatesKey); err != nil {
 					return &ErrorUploadObject{
 						err:      err,
@@ -178,32 +194,18 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 
 // DeleteDocuments implements the db.Databaser.DeleteDocuments method
 // using AWS S3.
-func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentInfo) error {
-	for _, documentInfo := range documentsInfo {
-		deleteKeys := []string{}
-
-		for _, path := range paths {
-			pathDeleteKeys, err := c.helper.listDocumentKeys(ctx, c.bucketName, fmt.Sprintf("%s/%s", path, documentInfo.AccountID))
-			if err != nil {
-				return &ErrorListDocumentKeys{
-					err: err,
-				}
-			}
-			deleteKeys = append(deleteKeys, pathDeleteKeys...)
+func (c *Client) DeleteDocuments(ctx context.Context, documentKeys []string) error {
+	chunkSize := 1000 // S3 max delete objects count
+	for i := 0; i < len(documentKeys); i += chunkSize {
+		end := i + chunkSize
+		if end > len(documentKeys) {
+			end = len(documentKeys)
 		}
 
-		chunkSize := 1000 // S3 max delete objects count
-		for i := 0; i < len(deleteKeys); i += chunkSize {
-			end := i + chunkSize
-			if end > len(deleteKeys) {
-				end = len(deleteKeys)
-			}
-
-			deleteKeysSubset := deleteKeys[i:end]
-			if err := c.helper.deleteDocumentsByKeys(ctx, deleteKeysSubset); err != nil {
-				return &ErrorDeleteDocumentsByKeys{
-					err: err,
-				}
+		documentKeysSubset := documentKeys[i:end]
+		if err := c.helper.deleteDocumentsByKeys(ctx, documentKeysSubset); err != nil {
+			return &ErrorDeleteDocumentsByKeys{
+				err: err,
 			}
 		}
 	}
@@ -211,12 +213,9 @@ func (c *Client) DeleteDocuments(ctx context.Context, documentsInfo []DocumentIn
 	return nil
 }
 
-// QueryDocuments implements the db.Databaser.QueryDocuments method
+// QueryDocumentsByFQL implements the db.Databaser.QueryDocumentsByFQL method
 // using AWS Athena.
-//
-// This implementation only returns the account id as well as the file
-// name and path in the docpars.Document objects slice.
-func (c *Client) QueryDocuments(ctx context.Context, query []byte) ([]pars.Document, error) {
+func (c *Client) QueryDocumentsByFQL(ctx context.Context, query []byte) ([]pars.Document, error) {
 	executionID, state, err := c.helper.executeQuery(ctx, query)
 	if err != nil {
 		return nil, &ErrorExecuteQuery{
@@ -225,7 +224,7 @@ func (c *Client) QueryDocuments(ctx context.Context, query []byte) ([]pars.Docum
 		}
 	}
 
-	documents, err := c.helper.getQueryResultDocuments(*state, *executionID)
+	documents, err := c.helper.getQueryResultDocuments(ctx, *state, *executionID)
 	if err != nil {
 		return nil, &ErrorGetQueryResults{
 			err:         err,
@@ -235,4 +234,27 @@ func (c *Client) QueryDocuments(ctx context.Context, query []byte) ([]pars.Docum
 	}
 
 	return documents, nil
+}
+
+// QueryDocumentKeysByFileInfo implements the db.Databaser.QueryDocumentKeysByFileInfo
+// method using AWS Athena.
+func (c *Client) QueryDocumentKeysByFileInfo(ctx context.Context, query []byte) ([]string, error) {
+	executionID, state, err := c.helper.executeQuery(ctx, query)
+	if err != nil {
+		return nil, &ErrorExecuteQuery{
+			err:      err,
+			function: "query documents",
+		}
+	}
+
+	keys, err := c.helper.getQueryResultKeys(ctx, *state, *executionID)
+	if err != nil {
+		return nil, &ErrorGetQueryResults{
+			err:         err,
+			function:    "query documents",
+			subfunction: "get query result keys",
+		}
+	}
+
+	return keys, nil
 }

@@ -15,9 +15,6 @@ aws cloudformation update-stack \
 	--template-url https://s3.amazonaws.com/$ARTIFACT_BUCKET/cft.yaml \
 	--parameters \
 		ParameterKey=ProjectName,ParameterValue=$( jq -r  '.app.name' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=ProjectEmail,ParameterValue=$( jq -r  '.app.email' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=AccountIDHTTPHeader,ParameterValue=$( jq -r  '.app.account_id_http_header' <<< "${CONFIG_JSON}" ) \
 		ParameterKey=ArtifactBucket,ParameterValue=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=StorageBucket,ParameterValue=$( jq -r  '.aws.s3.storage_bucket' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=DatabaseName,ParameterValue=$( jq -r  '.aws.glue.database_name' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=DatabaseBucket,ParameterValue=$( jq -r  '.aws.s3.database_bucket' <<< "${CONFIG_JSON}" ) \
 	--capabilities CAPABILITY_NAMED_IAM \

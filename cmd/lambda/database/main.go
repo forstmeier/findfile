@@ -9,13 +9,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/findfiledev/api/pkg/db"
-	"github.com/findfiledev/api/pkg/fql"
+	"github.com/findfiledev/api/pkg/pars"
 )
 
 func main() {
 	newSession := session.New()
 
-	fqlClient := fql.New()
+	parsClient := pars.New(newSession)
 
 	dbClient := db.New(
 		newSession,
@@ -24,8 +24,5 @@ func main() {
 		os.Getenv("CRAWLER_NAME"),
 	)
 
-	httpSecurityHeader := os.Getenv("HTTP_SECURITY_HEADER")
-	httpSecurityKey := os.Getenv("HTTP_SECURITY_KEY")
-
-	lambda.Start(handler(fqlClient, dbClient, httpSecurityHeader, httpSecurityKey))
+	lambda.Start(handler(parsClient, dbClient))
 }

@@ -6,5 +6,5 @@ import "context"
 // into database implementation-compatible queries as
 // a byte array.
 type FQLer interface {
-	ConvertFQL(ctx context.Context, accountID string, fqlQuery map[string]interface{}) ([]byte, error)
+	ConvertFQL(ctx context.Context, fqlQuery map[string]interface{}) ([]byte, error)
 }

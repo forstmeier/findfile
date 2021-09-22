@@ -2,12 +2,12 @@
 
 # builds AWS Lambda packages and generates ZIP files
 
-GOARCH=amd64 GOOS=linux go build -o acct ./cmd/lambda/acct
-GOARCH=amd64 GOOS=linux go build -o db ./cmd/lambda/db
+GOARCH=amd64 GOOS=linux go build -o database ./cmd/lambda/database
 GOARCH=amd64 GOOS=linux go build -o query ./cmd/lambda/query
+GOARCH=amd64 GOOS=linux go build -o setup ./cmd/lambda/setup
 
-zip acct.zip acct
-zip db.zip db
+zip database.zip database
 zip query.zip query
+zip setup.zip setup
 
-rm acct db query
+rm database query setup

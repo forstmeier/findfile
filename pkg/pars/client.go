@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	documentEntity = "document"
-	pageEntity     = "page"
-	lineEntity     = "line"
+	documentEntity    = "document"
+	pageEntity        = "page"
+	lineEntity        = "line"
+	coordinatesEntity = "coordinates"
 )
 
 var _ Parser = &Client{}
@@ -20,7 +21,7 @@ var _ Parser = &Client{}
 // Client implements the docparser.Parser methods using AWS Textract.
 type Client struct {
 	textractClient    textractClient
-	convertToDocument func(input *textract.DetectDocumentTextOutput, accountID, filename, filepath string) Document
+	convertToDocument func(input *textract.DetectDocumentTextOutput, filename, filepath string) Document
 }
 
 type textractClient interface {
@@ -39,17 +40,12 @@ func New(newSession *session.Session) *Client {
 
 // Parse implements the docparser.Parser.Parse interface method
 // using AWS Textract.
-//
-// Arguments filename and filepath are overloaded with the AWS Textract
-// implementation to represent S3 object key and S3 bucket name
-// respectively; the doc argument is ignored since the target file
-// is being directly referenced.
-func (c *Client) Parse(ctx context.Context, accountID, filename, filepath string, doc []byte) (*Document, error) {
+func (c *Client) Parse(ctx context.Context, fileKey, fileBucket string) (*Document, error) {
 	input := &textract.DetectDocumentTextInput{
 		Document: &textract.Document{
 			S3Object: &textract.S3Object{
-				Bucket: aws.String(filepath),
-				Name:   aws.String(filename),
+				Bucket: aws.String(fileBucket),
+				Name:   aws.String(fileKey),
 			},
 		},
 	}
@@ -59,18 +55,17 @@ func (c *Client) Parse(ctx context.Context, accountID, filename, filepath string
 		return nil, &ErrorAnalyzeDocument{err: err}
 	}
 
-	document := c.convertToDocument(output, accountID, filename, filepath)
+	document := c.convertToDocument(output, fileKey, fileBucket)
 
 	return &document, nil
 }
 
-func convertToDocument(input *textract.DetectDocumentTextOutput, accountID, filename, filepath string) Document {
+func convertToDocument(input *textract.DetectDocumentTextOutput, fileKey, fileBucket string) Document {
 	document := Document{
-		ID:        uuid.NewString(),
-		Entity:    documentEntity,
-		AccountID: accountID,
-		Filename:  filename,
-		Filepath:  filepath,
+		ID:         uuid.NewString(),
+		Entity:     documentEntity,
+		FileKey:    fileKey,
+		FileBucket: fileBucket,
 	}
 
 	pages := []*textract.Block{}
@@ -112,7 +107,8 @@ func convertToDocument(input *textract.DetectDocumentTextOutput, accountID, file
 					Entity: lineEntity,
 					Text:   *lineBlock.Text,
 					Coordinates: Coordinates{
-						ID: uuid.NewString(),
+						ID:     uuid.NewString(),
+						Entity: coordinatesEntity,
 						TopLeft: Point{
 							X: left,
 							Y: top,

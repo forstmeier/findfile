@@ -3,20 +3,15 @@ package db
 import (
 	"context"
 
-	"github.com/cheesesteakio/api/pkg/pars"
+	"github.com/findfiledev/api/pkg/pars"
 )
 
 // Databaser defines the methods for interacting with the parsed
 // documents in the database.
 type Databaser interface {
+	SetupDatabase(ctx context.Context) error
 	UpsertDocuments(ctx context.Context, documents []pars.Document) error
-	DeleteDocuments(ctx context.Context, documentsInfo []DocumentInfo) error
-	QueryDocuments(ctx context.Context, query []byte) ([]pars.Document, error)
-}
-
-// DocumentInfo holds data related to a document.
-type DocumentInfo struct {
-	AccountID string
-	Filename  string
-	Filepath  string
+	DeleteDocuments(ctx context.Context, documentKeys []string) error
+	QueryDocumentsByFQL(ctx context.Context, query []byte) ([]pars.Document, error)
+	QueryDocumentKeysByFileInfo(ctx context.Context, query []byte) ([]string, error)
 }

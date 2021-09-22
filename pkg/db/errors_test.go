@@ -5,6 +5,32 @@ import (
 	"testing"
 )
 
+func TestErrorAddFolder(t *testing.T) {
+	err := &ErrorAddFolder{
+		err: errors.New("mock add folder error"),
+	}
+
+	recieved := err.Error()
+	expected := "[db] [setup database] [add folder]: mock add folder error"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
+
+func TestErrorStartCrawler(t *testing.T) {
+	err := &ErrorStartCrawler{
+		err: errors.New("mock start crawler error"),
+	}
+
+	recieved := err.Error()
+	expected := "[db] [add partition]: mock start crawler error"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
+
 func TestErrorUploadObject(t *testing.T) {
 	err := &ErrorUploadObject{
 		err:      errors.New("mock upload object error"),
@@ -49,19 +75,6 @@ func TestErrorGetQueryResults(t *testing.T) {
 	}
 }
 
-func TestErrorListDocumentKeys(t *testing.T) {
-	err := &ErrorListDocumentKeys{
-		err: errors.New("mock list document keys error"),
-	}
-
-	recieved := err.Error()
-	expected := "[db] [delete documents] [list document keys]: mock list document keys error"
-
-	if recieved != expected {
-		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
-	}
-}
-
 func TestErrorDeleteDocumentsByKeys(t *testing.T) {
 	err := &ErrorDeleteDocumentsByKeys{
 		err: errors.New("mock delete documents by keys error"),
@@ -69,59 +82,6 @@ func TestErrorDeleteDocumentsByKeys(t *testing.T) {
 
 	recieved := err.Error()
 	expected := "[db] [delete documents] [delete documents by keys]: mock delete documents by keys error"
-
-	if recieved != expected {
-		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
-	}
-}
-
-func TestErrorCreatePartition(t *testing.T) {
-	err := &ErrorCreatePartition{
-		err: errors.New("mock create partition error"),
-	}
-
-	recieved := err.Error()
-	expected := "[db] [add partition]: mock create partition error"
-
-	if recieved != expected {
-		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
-	}
-}
-
-func TestErrorStartCrawler(t *testing.T) {
-	err := &ErrorStartCrawler{
-		err: errors.New("mock start crawler error"),
-	}
-
-	recieved := err.Error()
-	expected := "[db] [add partition]: mock start crawler error"
-
-	if recieved != expected {
-		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
-	}
-}
-
-func TestErrorDeletePartition(t *testing.T) {
-	err := &ErrorDeletePartition{
-		err: errors.New("mock delete partition error"),
-	}
-
-	recieved := err.Error()
-	expected := "[db] [remove partition]: mock delete partition error"
-
-	if recieved != expected {
-		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
-	}
-}
-
-func TestErrorPutObject(t *testing.T) {
-	err := &ErrorPutObject{
-		err:  errors.New("mock put object error"),
-		path: "path",
-	}
-
-	recieved := err.Error()
-	expected := "[db] [add partition] [path: path]: mock put object error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)

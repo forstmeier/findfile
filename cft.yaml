@@ -2,208 +2,223 @@ Description: API resources definition
 
 Parameters:
 
-  ProjectEmail:
+  ProjectName:
     Type: String
-    Description: Email address for the project owner
-  AccountIDHTTPHeader:
+    Description: Name for the project and stack resources
+  HTTPSecurityKey:
     Type: String
-    Description: HTTP header for receiving account IDs in the API
+    Description: UUID to use in query request header
   ArtifactBucket:
     Type: String
-    Description: Storage location for all code and application artifacts - built separate from stack
-  StorageBucket:
+    Description: Storage location for all code and application artifacts
+  DatabaseBucket:
     Type: String
-    Description: Storage location for all user files in application - built separate from stack
-  DatabaseName:
-    Type: String
-    Description: Glue database name for querying document data
-  MetadataTableName:
-    Type: String
-    Description: Glue metadata table name for querying document data
-  CertificateARN:
-    Type: String
-    Description: Certificate ARN for the project domain name
-  DomainName:
-    Type: String
-    Description: Custom domain name for project API
-    Default: api.cheesesteak.io
+    Description: Storage location for all application database documents
   StageName:
     Type: String
-    Description: Stage the API is deployed on
+    Description: Stage the API is deployed to
     Default: production
     AllowedValues:
-    - production
-  DomainHostedZoneID:
-    Type: String
-    Description: ID for the custom domain hosted zone
-  NotificationConfigurationID:
-    Type: String
-    Description: ID for the S3 event notification configured on the user bucket
+      - production
 
 Resources:
 
-  fileEventsTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: cheesesteak-file-events
-
-  fileEventsTopicPolicy:
-    Type: AWS::SNS::TopicPolicy
-    Properties:
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service: s3.amazonaws.com
-          Action: sns:Publish
-          Resource:
-            Ref: fileEventsTopic
-          Condition:
-            StringEquals:
-              aws:SourceAccount:
-                Ref: AWS::AccountId
-      Topics:
-        - Ref: fileEventsTopic
-
-  fileEventsSubscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      Endpoint:
-        Fn::GetAtt:
-        - dbFunction
-        - Arn
-      Protocol: lambda
-      TopicArn:
-        Ref: fileEventsTopic
-
-  dbStore:
+  database:
     Type: AWS::Glue::Database
     Properties:
       CatalogId:
         Ref: AWS::AccountId
       DatabaseInput:
         Name:
-          Ref: DatabaseName
+          Fn::Sub: ${ProjectName}_database
 
-  dbCrawler:
+  databaseBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: DatabaseBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: s3:*
+            Resource:
+              Fn::Sub: arn:aws:s3:::${DatabaseBucket}
+            Principal:
+              AWS:
+                - Fn::GetAtt:
+                    - databaseFunctionRole
+                    - Arn
+                - Fn::GetAtt:
+                    - setupFunctionRole
+                    - Arn
+    DependsOn:
+      - databaseFunction
+      - setupFunction
+
+  documentsTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId:
+        Ref: AWS::AccountId
+      DatabaseName:
+        Ref: database
+      TableInput:
+        Name: documents
+        StorageDescriptor:
+          Columns:
+            - Name: id
+            - Name: entity
+            - Name: file_key
+            - Name: file_bucket
+          Location:
+            Fn::Sub: s3://${DatabaseBucket}/documents/
+    DependsOn: database
+
+  pagesTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId:
+        Ref: AWS::AccountId
+      DatabaseName:
+        Ref: database
+      TableInput:
+        Name: pages
+        StorageDescriptor:
+          Columns:
+            - Name: id
+            - Name: entity
+            - Name: page_number
+          Location:
+            Fn::Sub: s3://${DatabaseBucket}/pages/
+    DependsOn: database
+
+  linesTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId:
+        Ref: AWS::AccountId
+      DatabaseName:
+        Ref: database
+      TableInput:
+        Name: lines
+        StorageDescriptor:
+          Columns:
+            - Name: id
+            - Name: entity
+            - Name: text
+          Location:
+            Fn::Sub: s3://${DatabaseBucket}/lines/
+    DependsOn: database
+
+  coordinatesTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId:
+        Ref: AWS::AccountId
+      DatabaseName:
+        Ref: database
+      TableInput:
+        Name: coordinates
+        StorageDescriptor:
+          Columns:
+            - Name: id
+            - Name: top_left
+            - Name: top_right
+            - Name: bottom_left
+            - Name: bottom_right
+          Location:
+            Fn::Sub: s3://${DatabaseBucket}/coordinates/
+    DependsOn: database
+
+  databaseCrawler:
     Type: AWS::Glue::Crawler
     Properties:
       DatabaseName:
-        Ref: dbStore
+        Ref: database
       RecrawlPolicy:
         RecrawlBehavior: CRAWL_NEW_FOLDERS_ONLY
       Role:
         Fn::GetAtt:
-        - dbStoreRole
-        - Arn
+          - databaseRole
+          - Arn
       Targets:
         S3Targets:
-        - Path:
-            Fn::Join:
-            - ''
-            - - s3://
-              - Ref: StorageBucket
-              - documents
-        - Path:
-            Fn::Join:
-            - ''
-            - - s3://
-              - Ref: StorageBucket
-              - pages
-        - Path:
-            Fn::Join:
-            - ''
-            - - s3://
-              - Ref: StorageBucket
-              - lines
+          - Path:
+              Fn::Sub: s3://${DatabaseBucket}/documents
+          - Path:
+              Fn::Sub: s3://${DatabaseBucket}/pages
+          - Path:
+              Fn::Sub: s3://${DatabaseBucket}/lines
+          - Path:
+              Fn::Sub: s3://${DatabaseBucket}/coordinates
+    DependsOn: database
 
-  dbStoreRole:
+  databaseRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: glue.amazonaws.com
-          Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: sts:AssumeRole
       Description: Role for allowing Glue crawler actions
       Path: /
       Policies:
-      - PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Action:
-            - glue:*
-            Effect: Allow
-            Resource: 
-              Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:*
-        PolicyName: dbStorePolicy
+        - PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - glue:*
+                Effect: Allow
+                Resource: 
+                  Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:*
+          PolicyName: databasePolicy
 
-  acctFunction:
-    Type: AWS::Lambda::Function
+  setupCustomResource:
+    Type: AWS::CloudFormation::CustomResource
     Properties:
-      Code: 
-        S3Bucket:
-          Ref: ArtifactBucket 
-        S3Key: acct.zip
-      Description: Function providing user account management
-      Environment:
-        Variables:
-          DATABASE_NAME:
-            Ref: DatabaseName
-          STORAGE_BUCKET:
-            Ref: StorageBucket
-          ACCOUNT_ID_HTTP_HEADER:
-            Ref: AccountIDHTTPHeader
-          TABLE_NAME:
-            Ref: acctTable
-          METADATA_TABLE_NAME:
-            Ref: MetadataTableName
-          CATALOG_ID:
-            Ref: AWS::AccountId
-          NOTIFICATION_CONFIGURATION_ID:
-            Ref: NotificationConfigurationID
-          EVENTS_TOPIC_ARN:
-            Ref: fileEventsTopic
-          CRAWLER_NAME:
-            Ref: dbCrawler
-      FunctionName: acctFunction
-      Handler: acct
-      MemorySize: 128
-      Role:
+      ServiceToken:
         Fn::GetAtt:
-        - acctRole
-        - Arn
-      Runtime: go1.x
-      Timeout: 5
+          - setupFunction
+          - Arn
+      DATABASE_NAME:
+        Ref: database
+      DATABASE_BUCKET:
+        Ref: DatabaseBucket
+      CRAWLER_NAME:
+        Ref: databaseCrawler
+    DependsOn: setupFunction
 
-  dbFunction:
+  databaseFunction:
     Type: AWS::Lambda::Function
     Properties:
       Code:
         S3Bucket:
           Ref: ArtifactBucket
-        S3Key: db.zip
+        S3Key: database.zip
       Description: Function providing parsed user document management
       Environment:
         Variables:
           DATABASE_NAME:
-            Ref: DatabaseName
-          STORAGE_BUCKET:
-            Ref: StorageBucket
-          TABLE_NAME:
-            Ref: acctTable
-      FunctionName: dbFunction
-      Handler: db
+            Ref: database
+          DATABASE_BUCKET:
+            Ref: DatabaseBucket
+          CRAWLER_NAME:
+            Ref: databaseCrawler
+      FunctionName: databaseFunction
+      Handler: database
       MemorySize: 256
       Role:
         Fn::GetAtt:
-        - dbRole
-        - Arn
+          - databaseFunctionRole
+          - Arn
       Runtime: go1.x
       Timeout: 10
+    DependsOn:
+      - databaseFunctionRole
 
   queryFunction:
     Type: AWS::Lambda::Function
@@ -216,211 +231,148 @@ Resources:
       Environment:
         Variables:
           DATABASE_NAME:
-            Ref: DatabaseName
-          STORAGE_BUCKET:
-            Ref: StorageBucket
-          ACCOUNT_ID_HTTP_HEADER:
-            Ref: AccountIDHTTPHeader
-          TABLE_NAME:
-            Ref: acctTable
+            Ref: database
+          DATABASE_BUCKET:
+            Ref: DatabaseBucket
+          HTTP_SECURITY_HEADER:
+            Fn::Sub: x-${ProjectName}-security-key
+          HTTP_SECURITY_KEY:
+            Ref: HTTPSecurityKey
+          CRAWLER_NAME:
+            Ref: databaseCrawler
       FunctionName: queryFunction
       Handler: query
       MemorySize: 128
       Role:
         Fn::GetAtt:
-        - queryRole
-        - Arn
+          - queryFunctionRole
+          - Arn
       Runtime: go1.x
       Timeout: 5
 
-  acctRole:
-    Type: AWS::IAM::Role
+  setupFunction:
+    Type: AWS::Lambda::Function
     Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
-      Description: Role for managing user accounts in acctFunction
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-      Policies:
-      - PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Action:
-            - dynamodb:DeleteItem
-            - dynamodb:GetItem
-            - dynamodb:PutItem
-            - dynamodb:UpdateItem
-            Effect: Allow
-            Resource:
-              Fn::GetAtt:
-              - acctTable
-              - Arn
-          - Action:
-            - glue:CreatePartition
-            - glue:DeletePartition
-            Effect: Allow
-            Resource:
-            - Fn::Sub:
-              - arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/${databaseName}/*
-              - databaseName:
-                  Ref: dbStore
-            - Fn::Sub:
-              - arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/${databaseName}
-              - databaseName:
-                  Ref: dbStore
-            - Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog
-          - Action:
-            - s3:PutObject
-            Effect: Allow
-            Resource:
-            - Fn::Sub: arn:aws:s3:::${StorageBucket}/*
-        PolicyName: acctPolicy
-      RoleName: cheesesteak-acct-role
+      Code:
+        S3Bucket:
+          Ref: ArtifactBucket
+        S3Key: setup.zip
+      Description: Function providing database setup logic
+      Environment:
+        Variables:
+          DATABASE_NAME:
+            Ref: database
+          DATABASE_BUCKET:
+            Ref: DatabaseBucket
+          CRAWLER_NAME:
+            Ref: databaseCrawler
+      FunctionName: setupFunction
+      Handler: setup
+      MemorySize: 128
+      Role:
+        Fn::GetAtt:
+          - setupFunctionRole
+          - Arn
+      Runtime: go1.x
+      Timeout: 5
+    DependsOn: setupFunctionRole
 
-  dbRole:
+  databaseFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
       Description: Role for parsing provided files into documents in dbFunction
       ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Policies:
-      - PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Action:
-            - textract:DetectDocumentText
-            Effect: Allow
-            Resource: "*"
-          - Action:
-            - s3:DeleteObject
-            - s3:GetObject
-            - s3:PutObject
-            Effect: Allow
-            Resource:
-            - Fn::Sub: arn:aws:s3:::${StorageBucket}/*
-        PolicyName: dbPolicy
-      RoleName: cheesesteak-db-role
+        - PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - textract:DetectDocumentText
+                Effect: Allow
+                Resource: "*"
+              - Action:
+                  - s3:DeleteObject
+                  - s3:GetObject
+                  - s3:PutObject
+                Effect: Allow
+                Resource:
+                  - Fn::Sub: arn:aws:s3:::${DatabaseBucket}/*
+          PolicyName: databaseFunctionPolicy
+      RoleName:
+        Fn::Sub: ${ProjectName}-database-role
 
-  queryRole:
+  queryFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
       Description: Role for querying stored documents in queryFunction
       ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-      Policies:
-      - PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Action:
-            - dynamodb:GetItem
-            Effect: Allow
-            Resource:
-              Fn::GetAtt:
-              - acctTable
-              - Arn
-        PolicyName: queryPolicy
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
 
-  acctTable:
-    Type: AWS::DynamoDB::Table
+  setupFunctionRole:
+    Type: AWS::IAM::Role
     Properties:
-      AttributeDefinitions:
-      - AttributeName: id
-        AttributeType: S
-      - AttributeName: bucket_name
-        AttributeType: S
-      KeySchema:
-      - AttributeName: id
-        KeyType: HASH
-      BillingMode: PAY_PER_REQUEST
-      GlobalSecondaryIndexes:
-      - IndexName: bucketNameIndex
-        KeySchema:
-        - AttributeName: bucket_name
-          KeyType: HASH
-        Projection:
-          ProjectionType: ALL # possibly reduce later
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Description: Role for creating folders and starting the Glue cralwer in setupFunction
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Policies:
+        - PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - glue:StartCrawler
+                Effect: Allow
+                Resource:
+                  - Fn::Sub:
+                      - arn:aws:glue:${AWS::Region}:${AWS::AccountId}:crawler/${crawlerName}
+                      - crawlerName:
+                          Ref: databaseCrawler
+              - Action:
+                  - s3:PutObject
+                Effect: Allow
+                Resource:
+                  - Fn::Sub: arn:aws:s3:::${DatabaseBucket}
+          PolicyName: setupFunctionPolicy
 
   api:
     Type: AWS::ApiGateway::RestApi
     Properties:
+      Parameters:
+        endpointConfigurationTypes: REGIONAL
       Body:
         swagger: "2.0"
         info:
-          title: Cheesesteak API
+          title:
+            Fn::Sub: ${ProjectName} API
           version: "0.1"
         schemes:
-        - https
+          - https
         paths:
-          /account:
-            post:
-              produces:
-              - application/json
-              responses:
-                "200":
-                  description: Successful account POST request
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-                      acount_id:
-                        type: string
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${acctFunction.Arn}/invocations
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: when_no_match
-                contentHandling: CONVERT_TO_TEXT
-                type: AWS_PROXY
-            delete:
-              produces:
-              - application/json
-              responses:
-                "200":
-                  description: Successful account DELETE request
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-                      acount_id:
-                        type: string
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${acctFunction.Arn}/invocations
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: when_no_match
-                contentHandling: CONVERT_TO_TEXT
-                type: AWS_PROXY
           /query:
             post:
               produces:
-              - application/json
+                - application/json
               responses:
                 "200":
                   description: Successful query POST request
@@ -448,103 +400,29 @@ Resources:
                 contentHandling: CONVERT_TO_TEXT
                 type: AWS_PROXY
 
-  acctFunctionAPIPermission:
+  databaseFunctionEventPermission:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName:
         Fn::GetAtt:
-        - acctFunction
-        - Arn
+          - databaseFunction
+          - Arn
       Action: lambda:InvokeFunction
-      Principal: apigateway.amazonaws.com
+      Principal: s3.amazonaws.com
       SourceArn:
-        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
-
-  dbFunctionAPIPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName:
-        Fn::GetAtt:
-        - dbFunction
-        - Arn
-      Action: lambda:InvokeFunction
-      Principal: apigateway.amazonaws.com
-      SourceArn:
-        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
-
-  dbFunctionEventPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName:
-        Fn::GetAtt:
-        - dbFunction
-        - Arn
-      Action: lambda:InvokeFunction
-      Principal: sns.amazonaws.com
-      SourceArn:
-        Ref: fileEventsTopic
+        Fn::Sub: arn:aws:s3:::${DatabaseBucket}
 
   queryFunctionAPIPermission:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName:
         Fn::GetAtt:
-        - queryFunction
-        - Arn
+          - queryFunction
+          - Arn
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn:
         Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
-
-  domainName:
-    Type: AWS::ApiGateway::DomainName
-    Properties: 
-      CertificateArn:
-        Ref: CertificateARN
-      DomainName:
-        Ref: DomainName
-      SecurityPolicy: TLS_1_2
-
-  domainCertificate:
-    Type: AWS::CertificateManager::Certificate
-    Properties:
-      DomainName:
-        Ref: DomainName
-      ValidationMethod: DNS
-      DomainValidationOptions:
-      - DomainName:
-          Ref: DomainName
-        HostedZoneId:
-          Ref: DomainHostedZoneID
-
-  domainRecordSet:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      HostedZoneId:
-        Ref: DomainHostedZoneID
-      Name:
-        Ref: DomainName
-      Type: A
-      AliasTarget:
-        HostedZoneId:
-          Fn::GetAtt:
-          - domainName
-          - DistributionHostedZoneId
-        DNSName:
-          Fn::GetAtt:
-          - domainName
-          - DistributionDomainName
-
-  domainBasePathMapping:
-    Type: AWS::ApiGateway::BasePathMapping
-    Properties:
-      DomainName:
-        Ref: DomainName
-      RestApiId:
-        Ref: api
-      Stage:
-        Ref: StageName
-    DependsOn: apiDeployment
 
   apiDeployment:
     Type: AWS::ApiGateway::Deployment
@@ -562,47 +440,23 @@ Resources:
     Properties: 
       CloudWatchRoleArn:
         Fn::GetAtt:
-        - accountRole
-        - Arn
+          - apiAccountRole
+          - Arn
 
-  accountRole:
+  apiAccountRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - apigateway.amazonaws.com
-          Action: sts:AssumeRole        
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action: sts:AssumeRole        
       Description: Role for allowing API Gateway to write logs to CloudWatch
       ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
-
-  budget:
-    Type: AWS::Budgets::Budget
-    Properties:
-      Budget: 
-        BudgetLimit: 
-          Amount: 50.00
-          Unit: USD
-        BudgetName:
-          Fn::Join:
-          - '-'
-          - - Ref: AWS::StackName
-            - budget
-        BudgetType: COST
-        TimeUnit: MONTHLY
-      NotificationsWithSubscribers:
-      - Notification: 
-          ComparisonOperator: EQUAL_TO
-          NotificationType: ACTUAL
-          Threshold: 100.00
-        Subscribers: 
-        - Address:
-            Ref: ProjectEmail
-          SubscriptionType: EMAIL
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
 
 Outputs:
   Stackname:
@@ -611,21 +465,26 @@ Outputs:
   ArtifactBucketName:
     Value:
       Ref: ArtifactBucket
-  StorageBucketName:
+  DatabaseBucketName:
     Value:
-      Ref: StorageBucket
-  FileEventsTopicARN:
+      Ref: DatabaseBucket
+  HTTPSecurityKey:
     Value:
-      Ref: fileEventsTopic
-  ExternalAPIEndpoint:
+      Ref: HTTPSecurityKey
+  QueryFunctionRoleARN:
     Value:
-      Fn::Join:
-      - ''
-      - - https://
-        - Ref: DomainName
-  InternalAPIEndpoint:
+      Fn::GetAtt:
+        - queryFunctionRole
+        - Arn
+  RootAPIEndpoint:
     Value:
       Fn::Sub:
-      - https://${api}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
-      - Stage:
-          Ref: StageName
+        - https://${api}.execute-api.${AWS::Region}.amazonaws.com/${stage}
+        - stage:
+            Ref: StageName
+  QueryAPIEndpoint:
+    Value:
+      Fn::Sub:
+        - https://${api}.execute-api.${AWS::Region}.amazonaws.com/${stage}/query
+        - stage:
+            Ref: StageName

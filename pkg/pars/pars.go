@@ -4,12 +4,11 @@ import "context"
 
 // Document holds the output of parsing the provided image file.
 type Document struct {
-	ID        string `json:"id"`
-	Entity    string `json:"entity"`
-	AccountID string `json:"account_id"`
-	Filename  string `json:"filename"`
-	Filepath  string `json:"filepath"`
-	Pages     []Page `json:"pages"`
+	ID         string `json:"id"`
+	Entity     string `json:"entity"`
+	FileKey    string `json:"file_key"`
+	FileBucket string `json:"file_bucket"`
+	Pages      []Page `json:"pages"`
 }
 
 // Page holds the output of parsing the pages of the provided image file.
@@ -31,6 +30,7 @@ type Line struct {
 // Coordinates holds the four coordinate points for a piece of text.
 type Coordinates struct {
 	ID          string `json:"id"`
+	Entity      string `json:"entity"`
 	TopLeft     Point  `json:"top_left"`
 	TopRight    Point  `json:"top_right"`
 	BottomLeft  Point  `json:"bottom_left"`
@@ -44,7 +44,7 @@ type Point struct {
 }
 
 // Parser defines the method needed for converting the provided
-// doc image into database content.
+// image file into database content.
 type Parser interface {
-	Parse(ctx context.Context, accountID, filename, filepath string, doc []byte) (*Document, error)
+	Parse(ctx context.Context, fileKey, fileBucket string) (*Document, error)
 }

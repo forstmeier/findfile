@@ -11,9 +11,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/cheesesteakio/api/pkg/acct"
-	"github.com/cheesesteakio/api/pkg/db"
-	"github.com/cheesesteakio/api/pkg/pars"
+	"github.com/findfiledev/api/pkg/pars"
 )
 
 func TestMain(m *testing.M) {
@@ -21,229 +19,175 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-type mockAcctClient struct {
-	mockGetAccountByIDOutput *acct.Account
-	mockGetAccountByIDError  error
+type mockFQLClient struct {
+	mockConvertFQLOutput []byte
+	mockConvertFQLError  error
 }
 
-func (m *mockAcctClient) CreateAccount(ctx context.Context, accountID, bucketName string) error {
-	return nil
-}
-
-func (m *mockAcctClient) GetAccountByID(ctx context.Context, accountID string) (*acct.Account, error) {
-	return m.mockGetAccountByIDOutput, m.mockGetAccountByIDError
-}
-
-func (m *mockAcctClient) GetAccountBySecondaryID(ctx context.Context, secondaryID string) (*acct.Account, error) {
-	return nil, nil
-}
-
-func (m *mockAcctClient) UpdateAccount(ctx context.Context, accountID string, values map[string]string) error {
-	return nil
-}
-
-func (m *mockAcctClient) DeleteAccount(ctx context.Context, accountID string) error {
-	return nil
-}
-
-type mockCQLClient struct {
-	mockConvertCQLOutput []byte
-	mockConvertCQLError  error
-}
-
-func (m *mockCQLClient) ConvertCQL(ctx context.Context, accountID string, cqlQuery map[string]interface{}) ([]byte, error) {
-	return m.mockConvertCQLOutput, m.mockConvertCQLError
+func (m *mockFQLClient) ConvertFQL(ctx context.Context, fqlQuery map[string]interface{}) ([]byte, error) {
+	return m.mockConvertFQLOutput, m.mockConvertFQLError
 }
 
 type mockDBClient struct {
-	mockQueryDocumentsOutput []pars.Document
-	mockQueryDocumentsError  error
+	mockDeleteDocumentsError      error
+	mockQueryDocumentsByFQLOutput []pars.Document
+	mockQueryDocumentsByFQLError  error
+}
+
+func (m *mockDBClient) SetupDatabase(ctx context.Context) error {
+	return nil
 }
 
 func (m *mockDBClient) UpsertDocuments(ctx context.Context, documents []pars.Document) error {
 	return nil
 }
 
-func (m *mockDBClient) DeleteDocuments(ctx context.Context, documentsInfo []db.DocumentInfo) error {
-	return nil
+func (m *mockDBClient) DeleteDocuments(ctx context.Context, documentIDs []string) error {
+	return m.mockDeleteDocumentsError
 }
 
-func (m *mockDBClient) QueryDocuments(ctx context.Context, query []byte) ([]pars.Document, error) {
-	return m.mockQueryDocumentsOutput, m.mockQueryDocumentsError
+func (m *mockDBClient) QueryDocumentsByFQL(ctx context.Context, query []byte) ([]pars.Document, error) {
+	return m.mockQueryDocumentsByFQLOutput, m.mockQueryDocumentsByFQLError
+}
+
+func (m *mockDBClient) QueryDocumentKeysByFileInfo(ctx context.Context, query []byte) ([]string, error) {
+	return nil, nil
 }
 
 func Test_handler(t *testing.T) {
 	tests := []struct {
-		description              string
-		request                  events.APIGatewayProxyRequest
-		mockGetAccountByIDOutput *acct.Account
-		mockGetAccountByIDError  error
-		mockConvertCQLOutput     []byte
-		mockConvertCQLError      error
-		mockQueryDocumentsOutput []pars.Document
-		mockQueryDocumentsError  error
-		statusCode               int
-		body                     string
+		description                   string
+		request                       events.APIGatewayProxyRequest
+		mockConvertFQLOutput          []byte
+		mockConvertFQLError           error
+		mockQueryDocumentsByFQLOutput []pars.Document
+		mockQueryDocumentsByFQLError  error
+		statusCode                    int
+		body                          string
 	}{
 		{
-			description:              "no account id in request",
-			request:                  events.APIGatewayProxyRequest{},
-			mockGetAccountByIDOutput: nil,
-			mockGetAccountByIDError:  nil,
-			mockConvertCQLOutput:     nil,
-			mockConvertCQLError:      nil,
-			mockQueryDocumentsOutput: nil,
-			mockQueryDocumentsError:  nil,
-			statusCode:               http.StatusBadRequest,
-			body:                     `{"error": "account id not provided"}`,
+			description:                   "no security key header in request",
+			request:                       events.APIGatewayProxyRequest{},
+			mockConvertFQLOutput:          nil,
+			mockConvertFQLError:           nil,
+			mockQueryDocumentsByFQLOutput: nil,
+			mockQueryDocumentsByFQLError:  nil,
+			statusCode:                    http.StatusBadRequest,
+			body:                          `{"error": "security key header not provided"}`,
+		},
+		{
+			description: "incorrect security key header value in request",
+			request: events.APIGatewayProxyRequest{
+				Headers: map[string]string{
+					"security_header": "not_key",
+				},
+			},
+			mockConvertFQLOutput:          nil,
+			mockConvertFQLError:           nil,
+			mockQueryDocumentsByFQLOutput: nil,
+			mockQueryDocumentsByFQLError:  nil,
+			statusCode:                    http.StatusBadRequest,
+			body:                          `{"error": "security key value incorrect"}`,
 		},
 		{
 			description: "unsupported http method",
 			request: events.APIGatewayProxyRequest{
 				Headers: map[string]string{
-					accountIDHeader: "account_id",
+					"security_header": "security_key",
 				},
 				HTTPMethod: http.MethodGet,
 			},
-			mockGetAccountByIDOutput: nil,
-			mockGetAccountByIDError:  nil,
-			mockConvertCQLOutput:     nil,
-			mockConvertCQLError:      nil,
-			mockQueryDocumentsOutput: nil,
-			mockQueryDocumentsError:  nil,
-			statusCode:               http.StatusBadRequest,
-			body:                     `{"error": "http method [GET] not supported"}`,
+			mockConvertFQLOutput:          nil,
+			mockConvertFQLError:           nil,
+			mockQueryDocumentsByFQLOutput: nil,
+			mockQueryDocumentsByFQLError:  nil,
+			statusCode:                    http.StatusBadRequest,
+			body:                          `{"error": "http method [GET] not supported"}`,
 		},
 		{
-			description: "error reading account from database",
+			description: "error unmarshalling request body fql query",
 			request: events.APIGatewayProxyRequest{
 				Headers: map[string]string{
-					accountIDHeader: "account_id",
-				},
-				HTTPMethod: http.MethodPost,
-			},
-			mockGetAccountByIDOutput: nil,
-			mockGetAccountByIDError:  errors.New("mock read account error"),
-			mockConvertCQLOutput:     nil,
-			mockConvertCQLError:      nil,
-			mockQueryDocumentsOutput: nil,
-			mockQueryDocumentsError:  nil,
-			statusCode:               http.StatusInternalServerError,
-			body:                     `{"error": "error getting account values"}`,
-		},
-		{
-			description: "account not found in database",
-			request: events.APIGatewayProxyRequest{
-				Headers: map[string]string{
-					accountIDHeader: "account_id",
-				},
-				HTTPMethod: http.MethodPost,
-			},
-			mockGetAccountByIDOutput: nil,
-			mockGetAccountByIDError:  nil,
-			mockConvertCQLOutput:     nil,
-			mockConvertCQLError:      nil,
-			mockQueryDocumentsOutput: nil,
-			mockQueryDocumentsError:  nil,
-			statusCode:               http.StatusInternalServerError,
-			body:                     `{"error": "account [account_id] not found}`,
-		},
-		{
-			description: "error unmarshalling request body cql query",
-			request: events.APIGatewayProxyRequest{
-				Headers: map[string]string{
-					accountIDHeader: "account_id",
+					"security_header": "security_key",
 				},
 				HTTPMethod: http.MethodPost,
 				Body:       "---------",
 			},
-			mockGetAccountByIDOutput: &acct.Account{},
-			mockGetAccountByIDError:  nil,
-			mockConvertCQLOutput:     nil,
-			mockConvertCQLError:      nil,
-			mockQueryDocumentsOutput: nil,
-			mockQueryDocumentsError:  nil,
-			statusCode:               http.StatusInternalServerError,
-			body:                     `{"error": "error unmarshalling query"}`,
+			mockConvertFQLOutput:          nil,
+			mockConvertFQLError:           nil,
+			mockQueryDocumentsByFQLOutput: nil,
+			mockQueryDocumentsByFQLError:  nil,
+			statusCode:                    http.StatusInternalServerError,
+			body:                          `{"error": "error unmarshalling query"}`,
 		},
 		{
-			description: "cql client error converting cql query",
+			description: "fql client error converting fql query",
 			request: events.APIGatewayProxyRequest{
 				Headers: map[string]string{
-					accountIDHeader: "account_id",
+					"security_header": "security_key",
 				},
 				HTTPMethod: http.MethodPost,
 				Body:       `{"test": "query"}`,
 			},
-			mockGetAccountByIDOutput: &acct.Account{},
-			mockGetAccountByIDError:  nil,
-			mockConvertCQLOutput:     nil,
-			mockConvertCQLError:      errors.New("mock convert cql error"),
-			mockQueryDocumentsOutput: nil,
-			mockQueryDocumentsError:  nil,
-			statusCode:               http.StatusInternalServerError,
-			body:                     `{"error": "error converting cql to query"}`,
+			mockConvertFQLOutput:          nil,
+			mockConvertFQLError:           errors.New("mock convert fql error"),
+			mockQueryDocumentsByFQLOutput: nil,
+			mockQueryDocumentsByFQLError:  nil,
+			statusCode:                    http.StatusInternalServerError,
+			body:                          `{"error": "error converting fql to query"}`,
 		},
 		{
 			description: "error querying documents in database",
 			request: events.APIGatewayProxyRequest{
 				Headers: map[string]string{
-					accountIDHeader: "account_id",
+					"security_header": "security_key",
 				},
 				HTTPMethod: http.MethodPost,
 				Body:       `{"test": "query"}`,
 			},
-			mockGetAccountByIDOutput: &acct.Account{},
-			mockGetAccountByIDError:  nil,
-			mockConvertCQLOutput:     []byte("test_query"),
-			mockConvertCQLError:      nil,
-			mockQueryDocumentsOutput: nil,
-			mockQueryDocumentsError:  errors.New("mock query documents error"),
-			statusCode:               http.StatusInternalServerError,
-			body:                     `{"error": "error running query"}`,
+			mockConvertFQLOutput:          []byte("test_query"),
+			mockConvertFQLError:           nil,
+			mockQueryDocumentsByFQLOutput: nil,
+			mockQueryDocumentsByFQLError:  errors.New("mock query documents error"),
+			statusCode:                    http.StatusInternalServerError,
+			body:                          `{"error": "error running query"}`,
 		},
 		{
 			description: "successful handler invocation",
 			request: events.APIGatewayProxyRequest{
 				Headers: map[string]string{
-					accountIDHeader: "account_id",
+					"security_header": "security_key",
 				},
 				HTTPMethod: http.MethodPost,
 				Body:       `{"test": "query"}`,
 			},
-			mockGetAccountByIDOutput: &acct.Account{},
-			mockGetAccountByIDError:  nil,
-			mockConvertCQLOutput:     []byte("test_query"),
-			mockConvertCQLError:      nil,
-			mockQueryDocumentsOutput: []pars.Document{
+			mockConvertFQLOutput: []byte("test_query"),
+			mockConvertFQLError:  nil,
+			mockQueryDocumentsByFQLOutput: []pars.Document{
 				{
-					Filename: "filename.jpg",
+					FileKey:    "key.jpg",
+					FileBucket: "bucket",
 				},
 			},
-			mockQueryDocumentsError: nil,
-			statusCode:              http.StatusOK,
-			body:                    `{"message":"success","filenames":["filename.jpg"]}`,
+			mockQueryDocumentsByFQLError: nil,
+			statusCode:                   http.StatusOK,
+			body:                         `{"message":"success","data":{"bucket":["key.jpg"]}}`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			acctClient := &mockAcctClient{
-				mockGetAccountByIDOutput: test.mockGetAccountByIDOutput,
-				mockGetAccountByIDError:  test.mockGetAccountByIDError,
-			}
-
-			cqlClient := &mockCQLClient{
-				mockConvertCQLOutput: test.mockConvertCQLOutput,
-				mockConvertCQLError:  test.mockConvertCQLError,
+			fqlClient := &mockFQLClient{
+				mockConvertFQLOutput: test.mockConvertFQLOutput,
+				mockConvertFQLError:  test.mockConvertFQLError,
 			}
 
 			dbClient := &mockDBClient{
-				mockQueryDocumentsOutput: test.mockQueryDocumentsOutput,
-				mockQueryDocumentsError:  test.mockQueryDocumentsError,
+				mockQueryDocumentsByFQLOutput: test.mockQueryDocumentsByFQLOutput,
+				mockQueryDocumentsByFQLError:  test.mockQueryDocumentsByFQLError,
 			}
 
-			handlerFunc := handler(acctClient, cqlClient, dbClient)
+			handlerFunc := handler(fqlClient, dbClient, "security_header", "security_key")
 
 			response, _ := handlerFunc(context.Background(), test.request)
 

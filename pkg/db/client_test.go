@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 
-	"github.com/cheesesteakio/api/pkg/pars"
+	"github.com/findfiledev/api/pkg/pars"
 )
 
 type mockHelper struct {
@@ -22,10 +22,12 @@ type mockHelper struct {
 	mockExecuteQueryExecutionID       *string
 	mockExecuteQueryState             *string
 	mockExecuteQueryError             error
-	mockGetQueryResultAccountIDOutput *string
-	mockGetQueryResultAccountIDError  error
 	mockGetQueryResultDocumentsOutput []pars.Document
 	mockGetQueryResultDocumentsError  error
+	mockGetQueryResultKeysOutput      []string
+	mockGetQueryResultKeysError       error
+	mockAddFolderError                error
+	mockStartCrawlerError             error
 }
 
 func (m *mockHelper) uploadObject(ctx context.Context, body interface{}, key string) error {
@@ -34,10 +36,6 @@ func (m *mockHelper) uploadObject(ctx context.Context, body interface{}, key str
 	}
 
 	return nil
-}
-
-func (m *mockHelper) listDocumentKeys(ctx context.Context, bucket, prefix string) ([]string, error) {
-	return m.mockListDocumentKeysOutput, m.mockListDocumentKeysError
 }
 
 func (m *mockHelper) deleteDocumentsByKeys(ctx context.Context, keys []string) error {
@@ -50,23 +48,90 @@ func (m *mockHelper) executeQuery(ctx context.Context, query []byte) (*string, *
 	return m.mockExecuteQueryExecutionID, m.mockExecuteQueryState, m.mockExecuteQueryError
 }
 
-func (m *mockHelper) getQueryResultAccountID(state, executionID string) (*string, error) {
-	return m.mockGetQueryResultAccountIDOutput, m.mockGetQueryResultAccountIDError
-}
-
-func (m *mockHelper) getQueryResultDocuments(state, executionID string) ([]pars.Document, error) {
+func (m *mockHelper) getQueryResultDocuments(ctx context.Context, state, executionID string) ([]pars.Document, error) {
 	return m.mockGetQueryResultDocumentsOutput, m.mockGetQueryResultDocumentsError
 }
 
+func (m *mockHelper) getQueryResultKeys(ctx context.Context, state, executionID string) ([]string, error) {
+	return m.mockGetQueryResultKeysOutput, m.mockGetQueryResultKeysError
+}
+
+func (m *mockHelper) addFolder(ctx context.Context, folder string) error {
+	return m.mockAddFolderError
+}
+
+func (m *mockHelper) startCrawler(ctx context.Context) error {
+	return m.mockStartCrawlerError
+}
+
 func TestNew(t *testing.T) {
-	client := New(session.New(), "database", "bucket")
+	client := New(session.New(), "database", "bucket", "crawler")
 	if client == nil {
 		t.Error("error creating database client")
 	}
 }
 
+func TestSetupDatabase(t *testing.T) {
+	tests := []struct {
+		description           string
+		mockAddFolderError    error
+		mockStartCrawlerError error
+		error                 error
+	}{
+		{
+			description:           "error adding folders to database",
+			mockAddFolderError:    errors.New("mock add folder error"),
+			mockStartCrawlerError: nil,
+			error:                 &ErrorAddFolder{},
+		},
+		{
+			description:           "error starting database crawler",
+			mockAddFolderError:    nil,
+			mockStartCrawlerError: errors.New("mock start crawler error"),
+			error:                 &ErrorStartCrawler{},
+		},
+		{
+			description:           "successful invocation",
+			mockAddFolderError:    nil,
+			mockStartCrawlerError: nil,
+			error:                 nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			client := &Client{
+				helper: &mockHelper{
+					mockAddFolderError:    test.mockAddFolderError,
+					mockStartCrawlerError: test.mockStartCrawlerError,
+				},
+			}
+
+			err := client.SetupDatabase(context.Background())
+
+			if err != nil {
+				switch e := test.error.(type) {
+				case *ErrorAddFolder:
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
+					}
+				case *ErrorStartCrawler:
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
+					}
+				default:
+					t.Fatalf("unexpected error type: %v", err)
+				}
+			} else {
+				if test.error != nil {
+					t.Errorf("incorrect error, received: nil, expected: %s", test.error.Error())
+				}
+			}
+		})
+	}
+}
+
 func TestUpsertDocuments(t *testing.T) {
-	accountID := "account_id"
 	documentID := "document_id"
 	pageID := "page_id"
 	lineID := "line_id"
@@ -83,13 +148,12 @@ func TestUpsertDocuments(t *testing.T) {
 			description: "error uploading document entity",
 			documents: []pars.Document{
 				{
-					ID:        documentID,
-					AccountID: accountID,
-					Filename:  "filename.jpg",
-					Filepath:  "filepath",
+					ID:         documentID,
+					FileKey:    "key.jpg",
+					FileBucket: "bucket",
 				},
 			},
-			uploadKeyToError:      fmt.Sprintf("documents/%s/%s.json", accountID, documentID),
+			uploadKeyToError:      fmt.Sprintf("documents/%s.json", documentID),
 			mockUploadObjectError: errors.New("mock upload object error"),
 			entity:                "document",
 			error:                 &ErrorUploadObject{},
@@ -98,10 +162,9 @@ func TestUpsertDocuments(t *testing.T) {
 			description: "error uploading page entity",
 			documents: []pars.Document{
 				{
-					ID:        documentID,
-					AccountID: accountID,
-					Filename:  "filename.jpg",
-					Filepath:  "filepath",
+					ID:         documentID,
+					FileKey:    "key.jpg",
+					FileBucket: "bucket",
 					Pages: []pars.Page{
 						{
 							ID:         pageID,
@@ -110,7 +173,7 @@ func TestUpsertDocuments(t *testing.T) {
 					},
 				},
 			},
-			uploadKeyToError:      fmt.Sprintf("pages/%s/%s.json", accountID, pageID),
+			uploadKeyToError:      fmt.Sprintf("pages/%s.json", pageID),
 			mockUploadObjectError: errors.New("mock upload object error"),
 			entity:                "page",
 			error:                 &ErrorUploadObject{},
@@ -119,10 +182,9 @@ func TestUpsertDocuments(t *testing.T) {
 			description: "error uploading line entity",
 			documents: []pars.Document{
 				{
-					ID:        documentID,
-					AccountID: accountID,
-					Filename:  "filename.jpg",
-					Filepath:  "filepath",
+					ID:         documentID,
+					FileKey:    "key.jpg",
+					FileBucket: "bucket",
 					Pages: []pars.Page{
 						{
 							ID:         pageID,
@@ -138,7 +200,7 @@ func TestUpsertDocuments(t *testing.T) {
 					},
 				},
 			},
-			uploadKeyToError:      fmt.Sprintf("lines/%s/%s.json", accountID, lineID),
+			uploadKeyToError:      fmt.Sprintf("lines/%s.json", lineID),
 			mockUploadObjectError: errors.New("mock upload object error"),
 			entity:                "line",
 			error:                 &ErrorUploadObject{},
@@ -147,10 +209,9 @@ func TestUpsertDocuments(t *testing.T) {
 			description: "successful upsert documents invocation",
 			documents: []pars.Document{
 				{
-					ID:        documentID,
-					AccountID: accountID,
-					Filename:  "filename.jpg",
-					Filepath:  "filepath",
+					ID:         documentID,
+					FileKey:    "key.jpg",
+					FileBucket: "bucket",
 					Pages: []pars.Page{
 						{
 							ID:         pageID,
@@ -209,29 +270,16 @@ func TestUpsertDocuments(t *testing.T) {
 func TestDeleteDocuments(t *testing.T) {
 	tests := []struct {
 		description                    string
-		mockListDocumentKeysOutput     []string
-		mockListDocumentKeysError      error
 		mockDeleteDocumentsByKeysError error
 		error                          error
 	}{
 		{
-			description:                    "error listing document keys",
-			mockListDocumentKeysOutput:     nil,
-			mockListDocumentKeysError:      errors.New("mock list document keys error"),
-			mockDeleteDocumentsByKeysError: nil,
-			error:                          &ErrorListDocumentKeys{},
-		},
-		{
 			description:                    "error deleting documents by keys",
-			mockListDocumentKeysOutput:     []string{"key.json"},
-			mockListDocumentKeysError:      nil,
 			mockDeleteDocumentsByKeysError: errors.New("mock delete documents by keys error"),
 			error:                          &ErrorDeleteDocumentsByKeys{},
 		},
 		{
 			description:                    "successful delete documents invocation",
-			mockListDocumentKeysOutput:     []string{"key.json"},
-			mockListDocumentKeysError:      nil,
 			mockDeleteDocumentsByKeysError: nil,
 			error:                          nil,
 		},
@@ -241,26 +289,14 @@ func TestDeleteDocuments(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			client := &Client{
 				helper: &mockHelper{
-					mockListDocumentKeysOutput:     test.mockListDocumentKeysOutput,
-					mockListDocumentKeysError:      test.mockListDocumentKeysError,
 					mockDeleteDocumentsByKeysError: test.mockDeleteDocumentsByKeysError,
 				},
 			}
 
-			err := client.DeleteDocuments(context.Background(), []DocumentInfo{
-				{
-					Filename: "filename.jpg",
-					Filepath: "filepath",
-				},
-			})
+			err := client.DeleteDocuments(context.Background(), []string{"document_id"})
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *ErrorListDocumentKeys:
-					if !errors.As(err, &e) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
-					}
-
 				case *ErrorDeleteDocumentsByKeys:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
@@ -277,7 +313,7 @@ func TestDeleteDocuments(t *testing.T) {
 	}
 }
 
-func TestQueryDocuments(t *testing.T) {
+func TestQueryDocumentsByFQL(t *testing.T) {
 	tests := []struct {
 		description                       string
 		mockExecuteQueryExecutionID       *string
@@ -315,13 +351,13 @@ func TestQueryDocuments(t *testing.T) {
 			mockExecuteQueryError:       nil,
 			mockGetQueryResultDocumentsOutput: []pars.Document{
 				{
-					AccountID: "account_id",
+					Entity: "document",
 				},
 			},
 			mockGetQueryResultDocumentsError: nil,
 			documents: []pars.Document{
 				{
-					AccountID: "account_id",
+					Entity: "document",
 				},
 			},
 			error: nil,
@@ -340,7 +376,7 @@ func TestQueryDocuments(t *testing.T) {
 				},
 			}
 
-			documents, err := client.QueryDocuments(context.Background(), []byte("query"))
+			documents, err := client.QueryDocumentsByFQL(context.Background(), []byte("query"))
 
 			if err != nil {
 				switch e := test.error.(type) {
@@ -356,10 +392,105 @@ func TestQueryDocuments(t *testing.T) {
 					t.Fatalf("unexpected error type: %v", err)
 				}
 			} else {
-				receivedAccountID := documents[0].AccountID
-				expectedAccountID := test.documents[0].AccountID
-				if receivedAccountID != expectedAccountID {
-					t.Errorf("incorrect account id, received: %s, expected: %s", receivedAccountID, expectedAccountID)
+				receivedEntity := documents[0].Entity
+				expectedEntity := test.documents[0].Entity
+				if receivedEntity != expectedEntity {
+					t.Errorf("incorrect entity, received: %s, expected: %s", receivedEntity, expectedEntity)
+				}
+			}
+		})
+	}
+}
+
+func TestQueryDocumentKeysByFileInfo(t *testing.T) {
+	tests := []struct {
+		description                  string
+		mockExecuteQueryExecutionID  *string
+		mockExecuteQueryState        *string
+		mockExecuteQueryError        error
+		mockGetQueryResultKeysOutput []string
+		mockGetQueryResultKeysError  error
+		keys                         []string
+		error                        error
+	}{
+		{
+			description:                  "error executing query",
+			mockExecuteQueryExecutionID:  nil,
+			mockExecuteQueryState:        nil,
+			mockExecuteQueryError:        errors.New("mock execute query error"),
+			mockGetQueryResultKeysOutput: nil,
+			mockGetQueryResultKeysError:  nil,
+			keys:                         nil,
+			error:                        &ErrorExecuteQuery{},
+		},
+		{
+			description:                  "error getting query result keys",
+			mockExecuteQueryExecutionID:  aws.String("execution_id"),
+			mockExecuteQueryState:        aws.String("state"),
+			mockExecuteQueryError:        nil,
+			mockGetQueryResultKeysOutput: nil,
+			mockGetQueryResultKeysError:  errors.New("mock get query result keys error"),
+			keys:                         nil,
+			error:                        &ErrorGetQueryResults{},
+		},
+		{
+			description:                 "successful queyr keys invocation",
+			mockExecuteQueryExecutionID: aws.String("execution_id"),
+			mockExecuteQueryState:       aws.String("state"),
+			mockExecuteQueryError:       nil,
+			mockGetQueryResultKeysOutput: []string{
+				"documents/document_id.json",
+				"pages/page_id.json",
+				"lines/line_id.json",
+				"coordinates/coordinates_id.json",
+			},
+			mockGetQueryResultKeysError: nil,
+			keys: []string{
+				"documents/document_id.json",
+				"pages/page_id.json",
+				"lines/line_id.json",
+				"coordinates/coordinates_id.json",
+			},
+			error: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			client := &Client{
+				helper: &mockHelper{
+					mockExecuteQueryExecutionID:  test.mockExecuteQueryExecutionID,
+					mockExecuteQueryState:        test.mockExecuteQueryState,
+					mockExecuteQueryError:        test.mockExecuteQueryError,
+					mockGetQueryResultKeysOutput: test.mockGetQueryResultKeysOutput,
+					mockGetQueryResultKeysError:  test.mockGetQueryResultKeysError,
+				},
+			}
+
+			keys, err := client.QueryDocumentKeysByFileInfo(context.Background(), []byte("query"))
+
+			if err != nil {
+				switch e := test.error.(type) {
+				case *ErrorExecuteQuery:
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
+					}
+				case *ErrorGetQueryResults:
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
+					}
+				default:
+					t.Fatalf("unexpected error type: %v", err)
+				}
+			} else {
+				if len(keys) != len(test.keys) {
+					t.Errorf("incorrect keys count, received: %d, expected: %d", len(keys), len(test.keys))
+				}
+
+				for i, key := range keys {
+					if key != test.keys[i] {
+						t.Errorf("incorrect key, received: %s, expected: %s", key, test.keys[i])
+					}
 				}
 			}
 		})
