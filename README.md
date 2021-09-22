@@ -56,6 +56,7 @@ S3 buckets containing image files are the data source the `api` package consumes
 - **S3 console**: in the [S3 console](https://s3.console.aws.amazon.com/s3), on the **Permissions** tab for the target bucket, the user can manually add a JSON-structured **Bucket policy**
 - **Helper script**: the `create_policy` script in the `bin/` folder can be run with the required arguments to programmatically apply a policy with the required permissions
 
+**Note**: pre-existing files in a bucket are not added to the database; only files uploaded after launching the `api` stack and adding the bucket policy are indexed
 **Note**: for both options, the required query Lambda role ARN is available in the CloudFormation stack outputs
 **Note**: the role ARN is obfuscated by AWS in the bucket policy if the role is deleted as a safety precaution
 
