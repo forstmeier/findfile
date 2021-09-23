@@ -5,6 +5,7 @@ Parameters:
   ProjectName:
     Type: String
     Description: Name for the project and stack resources
+    Default: findfile
   HTTPSecurityKey:
     Type: String
     Description: UUID to use in query request header
@@ -29,8 +30,7 @@ Resources:
       CatalogId:
         Ref: AWS::AccountId
       DatabaseInput:
-        Name:
-          Fn::Sub: ${ProjectName}_database
+        Description: Main database for querying functionality
 
   databaseBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -175,7 +175,8 @@ Resources:
                 Effect: Allow
                 Resource: 
                   Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:*
-          PolicyName: databasePolicy
+          PolicyName:
+            Fn::Sub: ${ProjectName}-database-policy
 
   setupCustomResource:
     Type: AWS::CloudFormation::CustomResource
@@ -208,7 +209,6 @@ Resources:
             Ref: DatabaseBucket
           CRAWLER_NAME:
             Ref: databaseCrawler
-      FunctionName: databaseFunction
       Handler: database
       MemorySize: 256
       Role:
@@ -240,7 +240,6 @@ Resources:
             Ref: HTTPSecurityKey
           CRAWLER_NAME:
             Ref: databaseCrawler
-      FunctionName: queryFunction
       Handler: query
       MemorySize: 128
       Role:
@@ -266,7 +265,6 @@ Resources:
             Ref: DatabaseBucket
           CRAWLER_NAME:
             Ref: databaseCrawler
-      FunctionName: setupFunction
       Handler: setup
       MemorySize: 128
       Role:
@@ -305,9 +303,8 @@ Resources:
                 Effect: Allow
                 Resource:
                   - Fn::Sub: arn:aws:s3:::${DatabaseBucket}/*
-          PolicyName: databaseFunctionPolicy
-      RoleName:
-        Fn::Sub: ${ProjectName}-database-role
+          PolicyName:
+            Fn::Sub: ${ProjectName}-database-function-policy
 
   queryFunctionRole:
     Type: AWS::IAM::Role
@@ -353,7 +350,8 @@ Resources:
                 Effect: Allow
                 Resource:
                   - Fn::Sub: arn:aws:s3:::${DatabaseBucket}
-          PolicyName: setupFunctionPolicy
+          PolicyName:
+            Fn::Sub: ${ProjectName}-setup-function-policy
 
   api:
     Type: AWS::ApiGateway::RestApi
@@ -409,8 +407,10 @@ Resources:
           - Arn
       Action: lambda:InvokeFunction
       Principal: s3.amazonaws.com
+      SourceAccount:
+        Ref: AWS::AccountId
       SourceArn:
-        Fn::Sub: arn:aws:s3:::${DatabaseBucket}
+        Fn::Sub: arn:aws:s3:::*
 
   queryFunctionAPIPermission:
     Type: AWS::Lambda::Permission
@@ -471,6 +471,11 @@ Outputs:
   HTTPSecurityKey:
     Value:
       Ref: HTTPSecurityKey
+  DatabaseFunctionARN:
+    Value:
+      Fn::GetAtt:
+        - databaseFunction
+        - Arn
   QueryFunctionRoleARN:
     Value:
       Fn::GetAtt:
@@ -478,13 +483,7 @@ Outputs:
         - Arn
   RootAPIEndpoint:
     Value:
-      Fn::Sub:
-        - https://${api}.execute-api.${AWS::Region}.amazonaws.com/${stage}
-        - stage:
-            Ref: StageName
+      Fn::Sub: https://${api}.execute-api.${AWS::Region}.amazonaws.com/${StageName}
   QueryAPIEndpoint:
     Value:
-      Fn::Sub:
-        - https://${api}.execute-api.${AWS::Region}.amazonaws.com/${stage}/query
-        - stage:
-            Ref: StageName
+      Fn::Sub: https://${api}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/query

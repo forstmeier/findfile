@@ -51,19 +51,31 @@ The `api` CloudFormation stack can be created in two ways.
 
 ### sources
 
-S3 buckets containing image files are the data source the `api` package consumes and exposes for querying. Users can configure buckets for the `api` to listen on in two ways.
+Any S3 buckets containing image files are the data source that the `api` package consumes for the database - these are called **source buckets**.
 
-- **S3 console**: in the [S3 console](https://s3.console.aws.amazon.com/s3), on the **Permissions** tab for the target bucket, the user can manually add a JSON-structured **Bucket policy**
-- **Helper script**: the `create_policy` script in the `bin/` folder can be run with the required arguments to programmatically apply a policy with the required permissions
+In order to be setup for the `api`, they require a [bucket policy](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html) and [event notifications](https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html) to be configured. The recommended way to do this is to run the `add_source` script from the root directory (e.g. `./bin/add_source`) with the necessary flags.
 
-**Note**: pre-existing files in a bucket are not added to the database; only files uploaded after launching the `api` stack and adding the bucket policy are indexed
-**Note**: for both options, the required query Lambda role ARN is available in the CloudFormation stack outputs
+- `-s`: name of the stack the user provided to the CloudFormation template
+- `-b`: name of the target source bucket the user wishes to add
+
+**Note**: any existing bucket policy will be overwritten by this script
+**Note**: there may be collisions with existing event notification configurations
+**Note**: this script applies the event notifications to the full bucket not a prefix
+**Note**: pre-existing files in the source bucket will not be added to the `api`; only files uploaded after launching the stack and configuring the bucket policy and event notifications will be added
+
+### database
+
+The S3 bucket added as the `DatabaseBucket` parameter in the stack creation holds the data queried by the `api` - this is called the **database bucket**.
+
+This should be a pre-existing bucket that will be retained despite the stack being torn down. As part of the stack creation a [bucket policy](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html) is placed on the `DatabaseBucket` to provide the required access for the `api`.
+
+**Note**: the stack may overwrite any existing bucket policies on `DatabaseBucket`
 **Note**: the role ARN is obfuscated by AWS in the bucket policy if the role is deleted as a safety precaution
 
 ## future
 
 Some potential future expansions include:
 
-- Bulk file ingestion on adding a new target bucket
-- Providing multiple or nested FQL queries per request
-- TBD
+- _Bulk file ingestion_ on adding a new **source bucket**
+- Providing _multiple or nested FQL_ queries per request
+- _TBD_!

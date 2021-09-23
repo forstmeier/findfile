@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# add_source updates the provided source bucket with the
+# required event notification and bucket policy
+# configurations
+# 
+# -s: stack name
+# -b: source bucket name
+
+while getopts "s:b:p:" option
+do
+    case "${option}"
+		in
+		s) STACK_NAME=${OPTARG};;
+		b) SOURCE_BUCKET_NAME=${OPTARG};;
+	esac
+done
+
+if [ -z $STACK_NAME ]
+then
+	echo "stack name (\"-s\") required"
+	exit 1
+fi
+
+if [ -z $SOURCE_BUCKET_NAME ]
+then
+	echo "source bucket (\"-b\") required"
+	exit 1
+fi
+
+STACKS_INFO=$(aws cloudformation describe-stacks --stack-name $STACK_NAME)
+
+STACK_OUTPUTS=$( jq -r  '.Stacks[0].Outputs' <<< "${STACKS_INFO}" ) 
+
+QUERY_FUNCTION_ROLE_ARN=$( jq -r 'map(select(.OutputKey == "QueryFunctionRoleARN")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+DATABASE_FUNCTION_ARN=$( jq -r 'map(select(.OutputKey == "DatabaseFunctionARN")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+
+SOURCE_BUCKET_ARN="arn:aws:s3:::$SOURCE_BUCKET_NAME"
+
+POLICY_DOCUMENT=$( jq -n \
+--arg bucket_resource $SOURCE_BUCKET_ARN \
+--arg lambda_role_arn $QUERY_FUNCTION_ROLE_ARN \
+'{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Principal": {
+				"AWS": [
+					$lambda_role_arn
+				]
+			},
+			"Action": [
+				"s3:*"
+			],
+			"Resource": $bucket_resource
+		}
+	]
+}'
+)
+
+echo $POLICY_DOCUMENT > policy.json
+
+aws s3api put-bucket-policy \
+	--bucket $SOURCE_BUCKET_NAME \
+	--policy file://policy.json
+
+rm policy.json
+
+
+EVENT_NOTIFICATION_DOCUMENT=$( jq -n \
+--arg function_arn $DATABASE_FUNCTION_ARN \
+'{
+	"LambdaFunctionConfigurations": [
+		{
+			"LambdaFunctionArn": $function_arn,
+			"Events": [
+				"s3:ObjectCreated:*",
+				"s3:ObjectRemoved:*"
+			]
+		}
+	]
+}'
+)
+
+echo $EVENT_NOTIFICATION_DOCUMENT > notification.json
+
+aws s3api put-bucket-notification-configuration \
+	--bucket $SOURCE_BUCKET_NAME \
+	--notification-configuration file://notification.json
+
+rm notification.json
+
+echo 'configured bucket policy and event notifications'
