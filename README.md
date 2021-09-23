@@ -20,16 +20,17 @@ All infrastructure is defined in pure [AWS CloudFormation](https://aws.amazon.co
 
 Below is an overview of how to start using the `api` package.
 
-### launch
+### stack
 
 The `api` CloudFormation stack can be created in two ways.
 
 - **Release package**
 	- Download the most recent package from the [releases](https://github.com/findfiledev/api/releases) page and extract the resources
-	- This contains the CloudFormation template (`cft.yaml`), three Lambda binaries (`database`, `query`, and `setup`), and the starter script `start_api`
+	- This contains the CloudFormation template (`cft.yaml`), three Lambda binaries (`database.zip`, `query.zip`, and `setup.zip`), a config file (`config.json`) and two helper scripts (`start_api`, and `add_source`)
+	- Update `config.json` fields marked `"REPLACE"` with your pre-existing `ArtifactBucket` and `DatabaseBucket` names and optionally set the stack name field (defaulting to "findfile")
 	- Run the `start_api` script with the required arguments to launch the stack
 - **Helper scripts**
-	- Add a `config.json` file to the existing `etc/config/` directory (see below for an example)
+	- Add a `config.json` file to the existing `etc/config/` directory in this repository (see below for an example)
 	- Change the permissions on the scripts to allow execution by running `chmod +x bin/`
 	- Run the scripts in the `bin/` folder from the root directory (e.g. `./bin/build_lambdas`) to manually construct the stack in stages
 
@@ -53,10 +54,9 @@ The `api` CloudFormation stack can be created in two ways.
 
 Any S3 buckets containing image files are the data source that the `api` package consumes for the database - these are called **source buckets**.
 
-In order to be setup for the `api`, they require a [bucket policy](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html) and [event notifications](https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html) to be configured. The recommended way to do this is to run the `add_source` script from the root directory (e.g. `./bin/add_source`) with the necessary flags.
+In order to be setup for the `api`, they require a [bucket policy](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html) and [event notifications](https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html) to be configured. The recommended way to do this is to run the `add_source` script from the release package.
 
-- `-s`: name of the stack the user provided to the CloudFormation template
-- `-b`: name of the target source bucket the user wishes to add
+The target source bucket bucket name is a required argument for the script (e.g. `./add_source new_source_bucket_name`).
 
 **Note**: any existing bucket policy will be overwritten by this script
 **Note**: there may be collisions with existing event notification configurations

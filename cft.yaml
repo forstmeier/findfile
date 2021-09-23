@@ -2,7 +2,7 @@ Description: API resources definition
 
 Parameters:
 
-  ProjectName:
+  StackName:
     Type: String
     Description: Name for the project and stack resources
     Default: findfile
@@ -176,7 +176,7 @@ Resources:
                 Resource: 
                   Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:*
           PolicyName:
-            Fn::Sub: ${ProjectName}-database-policy
+            Fn::Sub: ${StackName}-database-policy
 
   setupCustomResource:
     Type: AWS::CloudFormation::CustomResource
@@ -235,7 +235,7 @@ Resources:
           DATABASE_BUCKET:
             Ref: DatabaseBucket
           HTTP_SECURITY_HEADER:
-            Fn::Sub: x-${ProjectName}-security-key
+            Fn::Sub: x-${StackName}-security-key
           HTTP_SECURITY_KEY:
             Ref: HTTPSecurityKey
           CRAWLER_NAME:
@@ -304,7 +304,7 @@ Resources:
                 Resource:
                   - Fn::Sub: arn:aws:s3:::${DatabaseBucket}/*
           PolicyName:
-            Fn::Sub: ${ProjectName}-database-function-policy
+            Fn::Sub: ${StackName}-database-function-policy
 
   queryFunctionRole:
     Type: AWS::IAM::Role
@@ -351,7 +351,7 @@ Resources:
                 Resource:
                   - Fn::Sub: arn:aws:s3:::${DatabaseBucket}
           PolicyName:
-            Fn::Sub: ${ProjectName}-setup-function-policy
+            Fn::Sub: ${StackName}-setup-function-policy
 
   api:
     Type: AWS::ApiGateway::RestApi
@@ -362,7 +362,7 @@ Resources:
         swagger: "2.0"
         info:
           title:
-            Fn::Sub: ${ProjectName} API
+            Fn::Sub: ${StackName} API
           version: "0.1"
         schemes:
           - https

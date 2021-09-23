@@ -4,8 +4,6 @@
 
 CONFIG_JSON=$( cat etc/config/config.json | jq )
 
-STACK_NAME=$( jq -r  '.app.name' <<< "${CONFIG_JSON}" ) 
-
-aws s3 rm s3://$STACK_NAME-storage --recursive
+STACK_NAME=$( jq -r  '.aws.cloudformation.stack_name' <<< "${CONFIG_JSON}" ) 
 
 aws cloudformation delete-stack --stack-name $STACK_NAME

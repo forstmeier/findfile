@@ -1,0 +1,25 @@
+#!/bin/bash
+
+/bin/bash ./bin/build_lambdas
+
+cp etc/scripts/* .
+
+CONFIG_DOCUMENT=$( jq -n \
+'{
+	"aws": {
+		"cloudformation": {
+			"stack_name": "findfile"
+		},
+		"s3": {
+			"artifact_bucket": "REPLACE",
+			"database_bucket": "REPLACE"
+		}
+	}
+}'
+)
+
+echo $CONFIG_DOCUMENT > config.json
+
+zip release.zip database.zip query.zip setup.zip start_api add_bucket cft.yaml config.json
+
+rm database.zip query.zip setup.zip start_api add_bucket config.json

@@ -1,32 +1,20 @@
 #!/bin/bash
 
-# add_source updates the provided source bucket with the
-# required event notification and bucket policy
-# configurations
-# 
-# -s: stack name
-# -b: source bucket name
+# add_source allows users to add the required 
+# event notification and bucket policy configurations
+# to their source buckets
 
-while getopts "s:b:p:" option
-do
-    case "${option}"
-		in
-		s) STACK_NAME=${OPTARG};;
-		b) SOURCE_BUCKET_NAME=${OPTARG};;
-	esac
-done
-
-if [ -z $STACK_NAME ]
-then
-	echo "stack name (\"-s\") required"
-	exit 1
-fi
+SOURCE_BUCKET_NAME=$1
 
 if [ -z $SOURCE_BUCKET_NAME ]
 then
-	echo "source bucket (\"-b\") required"
+	echo "source bucket name argument required"
 	exit 1
 fi
+
+CONFIG_JSON=$( cat config.json | jq )
+
+STACK_NAME=$( jq -r  '.aws.cloudformation.stack_name' <<< "${CONFIG_JSON}" )
 
 STACKS_INFO=$(aws cloudformation describe-stacks --stack-name $STACK_NAME)
 

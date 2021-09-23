@@ -4,9 +4,10 @@
 
 CONFIG_JSON=$( cat etc/config/config.json | jq )
 
-STACK_NAME=$( jq -r  '.app.name' <<< "${CONFIG_JSON}" ) 
+STACK_NAME=$( jq -r  '.aws.cloudformation.stack_name' <<< "${CONFIG_JSON}" ) 
 
 ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) 
+DATABASE_BUCKET=$( jq -r  '.aws.s3.database_bucket' <<< "${CONFIG_JSON}" ) 
 
 aws s3 cp cft.yaml s3://$ARTIFACT_BUCKET/cft.yaml
 
@@ -14,7 +15,8 @@ aws cloudformation update-stack \
 	--stack-name $STACK_NAME \
 	--template-url https://s3.amazonaws.com/$ARTIFACT_BUCKET/cft.yaml \
 	--parameters \
-		ParameterKey=ProjectName,ParameterValue=$( jq -r  '.app.name' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=ArtifactBucket,ParameterValue=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) \
-		ParameterKey=DatabaseBucket,ParameterValue=$( jq -r  '.aws.s3.database_bucket' <<< "${CONFIG_JSON}" ) \
+		ParameterKey=StackName,ParameterValue=$STACK_NAME \
+		ParameterKey=HTTPSecurityKey,UsePreviousValue=true \
+		ParameterKey=ArtifactBucket,ParameterValue=$ARTIFACT_BUCKET \
+		ParameterKey=DatabaseBucket,ParameterValue=$DATABASE_BUCKET \
 	--capabilities CAPABILITY_NAMED_IAM \
