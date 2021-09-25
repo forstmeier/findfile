@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/athena"
-	"github.com/aws/aws-sdk-go/service/glue"
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/findfiledev/api/pkg/pars"
@@ -24,7 +23,6 @@ type helper interface {
 	getQueryResultDocuments(ctx context.Context, state, executionID string) ([]pars.Document, error)
 	getQueryResultKeys(ctx context.Context, state, executionID string) ([]string, error)
 	addFolder(ctx context.Context, folder string) error
-	startCrawler(ctx context.Context) error
 }
 
 type athenaClient interface {
@@ -38,17 +36,11 @@ type s3Client interface {
 	DeleteObjects(input *s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
 }
 
-type glueClient interface {
-	StartCrawler(input *glue.StartCrawlerInput) (*glue.StartCrawlerOutput, error)
-}
-
 type help struct {
 	databaseName   string
 	databaseBucket string
-	crawlerName    string
 	athenaClient   athenaClient
 	s3Client       s3Client
-	glueClient     glueClient
 }
 
 func (h *help) uploadObject(ctx context.Context, body interface{}, key string) error {
@@ -194,14 +186,6 @@ func (h *help) addFolder(ctx context.Context, folder string) error {
 	_, err := h.s3Client.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(h.databaseBucket),
 		Key:    aws.String(folder),
-	})
-
-	return err
-}
-
-func (h *help) startCrawler(ctx context.Context) error {
-	_, err := h.glueClient.StartCrawler(&glue.StartCrawlerInput{
-		Name: aws.String(h.crawlerName),
 	})
 
 	return err

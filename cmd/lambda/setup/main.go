@@ -17,7 +17,6 @@ func main() {
 		newSession,
 		os.Getenv("DATABASE_NAME"),
 		os.Getenv("DATABASE_BUCKET"),
-		os.Getenv("CRAWLER_NAME"),
 	)
 
 	lambda.Start(handler(dbClient, sendResponse))

@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/athena"
-	"github.com/aws/aws-sdk-go/service/glue"
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/findfiledev/api/pkg/pars"
@@ -31,15 +30,13 @@ type Client struct {
 
 // New generates a db.Client pointer instance with AWS Athena,
 // AWS S3, and AWS Glue clients.
-func New(newSession *session.Session, databaseName, databaseBucket, crawlerName string) *Client {
+func New(newSession *session.Session, databaseName, databaseBucket string) *Client {
 	return &Client{
 		helper: &help{
 			databaseName:   databaseName,
 			databaseBucket: databaseBucket,
-			crawlerName:    crawlerName,
 			athenaClient:   athena.New(newSession),
 			s3Client:       s3.New(newSession),
-			glueClient:     glue.New(newSession),
 		},
 	}
 }
@@ -59,12 +56,6 @@ func (c *Client) SetupDatabase(ctx context.Context) error {
 			return &ErrorAddFolder{
 				err: err,
 			}
-		}
-	}
-
-	if err := c.helper.startCrawler(ctx); err != nil {
-		return &ErrorStartCrawler{
-			err: err,
 		}
 	}
 

@@ -32,6 +32,116 @@ Resources:
       DatabaseInput:
         Description: Main database for querying functionality
 
+  documentsTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId:
+        Ref: AWS::AccountId
+      DatabaseName:
+        Ref: database
+      TableInput:
+        Name: documents
+        StorageDescriptor:
+          Columns:
+            - Name: id
+              Type: string
+            - Name: entity
+              Type: string
+            - Name: file_key
+              Type: string
+            - Name: file_bucket
+              Type: string
+          Location:
+            Fn::Sub: s3://${DatabaseBucket}/documents/
+        TableType: EXTERNAL_TABLE
+    DependsOn: database
+
+  pagesTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId:
+        Ref: AWS::AccountId
+      DatabaseName:
+        Ref: database
+      TableInput:
+        Name: pages
+        StorageDescriptor:
+          Columns:
+            - Name: id
+              Type: string
+            - Name: document_id
+              Type: string
+            - Name: entity
+              Type: string
+            - Name: page_number
+              Type: int
+          Location:
+            Fn::Sub: s3://${DatabaseBucket}/pages/
+        TableType: EXTERNAL_TABLE
+    DependsOn: database
+
+  linesTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId:
+        Ref: AWS::AccountId
+      DatabaseName:
+        Ref: database
+      TableInput:
+        Name: lines
+        StorageDescriptor:
+          Columns:
+            - Name: id
+              Type: string
+            - Name: page_id
+              Type: string
+            - Name: entity
+              Type: string
+            - Name: text
+              Type: string
+          Location:
+            Fn::Sub: s3://${DatabaseBucket}/lines/
+        TableType: EXTERNAL_TABLE
+    DependsOn: database
+
+  coordinatesTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId:
+        Ref: AWS::AccountId
+      DatabaseName:
+        Ref: database
+      TableInput:
+        Name: coordinates
+        StorageDescriptor:
+          Columns:
+            - Name: id
+              Type: string
+            - Name: line_id
+              Type: string
+            - Name: entity
+              Type: string
+            - Name: top_left_x
+              Type: float
+            - Name: top_left_y
+              Type: float
+            - Name: top_right_x
+              Type: float
+            - Name: top_right_y
+              Type: float
+            - Name: bottom_left_x
+              Type: float
+            - Name: bottom_left_y
+              Type: float
+            - Name: bottom_right_x
+              Type: float
+            - Name: bottom_right_y
+              Type: float
+          Location:
+            Fn::Sub: s3://${DatabaseBucket}/coordinates/
+        TableType: EXTERNAL_TABLE
+    DependsOn: database
+
   databaseBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -56,128 +166,6 @@ Resources:
       - databaseFunction
       - setupFunction
 
-  documentsTable:
-    Type: AWS::Glue::Table
-    Properties:
-      CatalogId:
-        Ref: AWS::AccountId
-      DatabaseName:
-        Ref: database
-      TableInput:
-        Name: documents
-        StorageDescriptor:
-          Columns:
-            - Name: id
-            - Name: entity
-            - Name: file_key
-            - Name: file_bucket
-          Location:
-            Fn::Sub: s3://${DatabaseBucket}/documents/
-    DependsOn: database
-
-  pagesTable:
-    Type: AWS::Glue::Table
-    Properties:
-      CatalogId:
-        Ref: AWS::AccountId
-      DatabaseName:
-        Ref: database
-      TableInput:
-        Name: pages
-        StorageDescriptor:
-          Columns:
-            - Name: id
-            - Name: entity
-            - Name: page_number
-          Location:
-            Fn::Sub: s3://${DatabaseBucket}/pages/
-    DependsOn: database
-
-  linesTable:
-    Type: AWS::Glue::Table
-    Properties:
-      CatalogId:
-        Ref: AWS::AccountId
-      DatabaseName:
-        Ref: database
-      TableInput:
-        Name: lines
-        StorageDescriptor:
-          Columns:
-            - Name: id
-            - Name: entity
-            - Name: text
-          Location:
-            Fn::Sub: s3://${DatabaseBucket}/lines/
-    DependsOn: database
-
-  coordinatesTable:
-    Type: AWS::Glue::Table
-    Properties:
-      CatalogId:
-        Ref: AWS::AccountId
-      DatabaseName:
-        Ref: database
-      TableInput:
-        Name: coordinates
-        StorageDescriptor:
-          Columns:
-            - Name: id
-            - Name: top_left
-            - Name: top_right
-            - Name: bottom_left
-            - Name: bottom_right
-          Location:
-            Fn::Sub: s3://${DatabaseBucket}/coordinates/
-    DependsOn: database
-
-  databaseCrawler:
-    Type: AWS::Glue::Crawler
-    Properties:
-      DatabaseName:
-        Ref: database
-      RecrawlPolicy:
-        RecrawlBehavior: CRAWL_NEW_FOLDERS_ONLY
-      Role:
-        Fn::GetAtt:
-          - databaseRole
-          - Arn
-      Targets:
-        S3Targets:
-          - Path:
-              Fn::Sub: s3://${DatabaseBucket}/documents
-          - Path:
-              Fn::Sub: s3://${DatabaseBucket}/pages
-          - Path:
-              Fn::Sub: s3://${DatabaseBucket}/lines
-          - Path:
-              Fn::Sub: s3://${DatabaseBucket}/coordinates
-    DependsOn: database
-
-  databaseRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: glue.amazonaws.com
-            Action: sts:AssumeRole
-      Description: Role for allowing Glue crawler actions
-      Path: /
-      Policies:
-        - PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Action:
-                  - glue:*
-                Effect: Allow
-                Resource: 
-                  Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:*
-          PolicyName:
-            Fn::Sub: ${StackName}-database-policy
-
   setupCustomResource:
     Type: AWS::CloudFormation::CustomResource
     Properties:
@@ -189,8 +177,6 @@ Resources:
         Ref: database
       DATABASE_BUCKET:
         Ref: DatabaseBucket
-      CRAWLER_NAME:
-        Ref: databaseCrawler
     DependsOn: setupFunction
 
   databaseFunction:
@@ -207,8 +193,6 @@ Resources:
             Ref: database
           DATABASE_BUCKET:
             Ref: DatabaseBucket
-          CRAWLER_NAME:
-            Ref: databaseCrawler
       Handler: database
       MemorySize: 256
       Role:
@@ -238,8 +222,6 @@ Resources:
             Fn::Sub: x-${StackName}-security-key
           HTTP_SECURITY_KEY:
             Ref: HTTPSecurityKey
-          CRAWLER_NAME:
-            Ref: databaseCrawler
       Handler: query
       MemorySize: 128
       Role:
@@ -263,8 +245,6 @@ Resources:
             Ref: database
           DATABASE_BUCKET:
             Ref: DatabaseBucket
-          CRAWLER_NAME:
-            Ref: databaseCrawler
       Handler: setup
       MemorySize: 128
       Role:
@@ -338,18 +318,10 @@ Resources:
             Version: '2012-10-17'
             Statement:
               - Action:
-                  - glue:StartCrawler
-                Effect: Allow
-                Resource:
-                  - Fn::Sub:
-                      - arn:aws:glue:${AWS::Region}:${AWS::AccountId}:crawler/${crawlerName}
-                      - crawlerName:
-                          Ref: databaseCrawler
-              - Action:
                   - s3:PutObject
                 Effect: Allow
                 Resource:
-                  - Fn::Sub: arn:aws:s3:::${DatabaseBucket}
+                  - Fn::Sub: arn:aws:s3:::${DatabaseBucket}/*
           PolicyName:
             Fn::Sub: ${StackName}-setup-function-policy
 
@@ -471,6 +443,15 @@ Outputs:
   HTTPSecurityKey:
     Value:
       Ref: HTTPSecurityKey
+  SetupFunctionName:
+    Value:
+      Ref: setupFunction
+  DatabaseFunctionName:
+    Value:
+      Ref: databaseFunction
+  QueryFunctionName:
+    Value:
+      Ref: queryFunction
   DatabaseFunctionARN:
     Value:
       Fn::GetAtt:

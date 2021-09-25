@@ -2,13 +2,32 @@
 
 # updates the AWS Lambdas with the pre-uploaded code files in S3
 
-AWS_OUTPUT=$( cat etc/config/config.json | jq '.aws' )
+CONFIG_JSON=$( cat etc/config/config.json | jq '.aws' )
 
-ARTIFACT_BUCKET=$( jq -r  '.s3.artifact_bucket' <<< "${AWS_OUTPUT}" ) 
-DATABASE_FUNCTION=databaseFunction
-QUERY_FUNCTION=queryFunction
-SETUP_FUNCTION=setupFunction
+ARTIFACT_BUCKET=$( jq -r  '.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) 
 
-aws lambda update-function-code --function-name $DATABASE_FUNCTION --s3-bucket $ARTIFACT_BUCKET --s3-key db.zip --region us-east-1
-aws lambda update-function-code --function-name $QUERY_FUNCTION --s3-bucket $ARTIFACT_BUCKET --s3-key query.zip --region us-east-1
-aws lambda update-function-code --function-name $SETUP_FUNCTION --s3-bucket $ARTIFACT_BUCKET --s3-key setup.zip --region us-east-1
+STACK_NAME=$( jq -r  '.cloudformation.stack_name' <<< "${CONFIG_JSON}" )
+
+STACKS_INFO=$(aws cloudformation describe-stacks --stack-name $STACK_NAME)
+
+STACK_OUTPUTS=$( jq -r  '.Stacks[0].Outputs' <<< "${STACKS_INFO}" ) 
+
+SETUP_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "SetupFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+DATABASE_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "DatabaseFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+QUERY_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "QueryFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+
+aws lambda update-function-code \
+	--function-name $SETUP_FUNCTION_NAME \
+	--s3-bucket $ARTIFACT_BUCKET \
+	--s3-key setup.zip \
+	--region us-east-1
+aws lambda update-function-code \
+	--function-name $DATABASE_FUNCTION_NAME \
+	--s3-bucket $ARTIFACT_BUCKET \
+	--s3-key database.zip \
+	--region us-east-1
+aws lambda update-function-code \
+	--function-name $QUERY_FUNCTION_NAME \
+	--s3-bucket $ARTIFACT_BUCKET \
+	--s3-key query.zip \
+	--region us-east-1

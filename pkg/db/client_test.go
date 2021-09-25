@@ -27,7 +27,6 @@ type mockHelper struct {
 	mockGetQueryResultKeysOutput      []string
 	mockGetQueryResultKeysError       error
 	mockAddFolderError                error
-	mockStartCrawlerError             error
 }
 
 func (m *mockHelper) uploadObject(ctx context.Context, body interface{}, key string) error {
@@ -60,12 +59,8 @@ func (m *mockHelper) addFolder(ctx context.Context, folder string) error {
 	return m.mockAddFolderError
 }
 
-func (m *mockHelper) startCrawler(ctx context.Context) error {
-	return m.mockStartCrawlerError
-}
-
 func TestNew(t *testing.T) {
-	client := New(session.New(), "database", "bucket", "crawler")
+	client := New(session.New(), "database", "bucket")
 	if client == nil {
 		t.Error("error creating database client")
 	}
@@ -73,28 +68,19 @@ func TestNew(t *testing.T) {
 
 func TestSetupDatabase(t *testing.T) {
 	tests := []struct {
-		description           string
-		mockAddFolderError    error
-		mockStartCrawlerError error
-		error                 error
+		description        string
+		mockAddFolderError error
+		error              error
 	}{
 		{
-			description:           "error adding folders to database",
-			mockAddFolderError:    errors.New("mock add folder error"),
-			mockStartCrawlerError: nil,
-			error:                 &ErrorAddFolder{},
+			description:        "error adding folders to database",
+			mockAddFolderError: errors.New("mock add folder error"),
+			error:              &ErrorAddFolder{},
 		},
 		{
-			description:           "error starting database crawler",
-			mockAddFolderError:    nil,
-			mockStartCrawlerError: errors.New("mock start crawler error"),
-			error:                 &ErrorStartCrawler{},
-		},
-		{
-			description:           "successful invocation",
-			mockAddFolderError:    nil,
-			mockStartCrawlerError: nil,
-			error:                 nil,
+			description:        "successful invocation",
+			mockAddFolderError: nil,
+			error:              nil,
 		},
 	}
 
@@ -102,8 +88,7 @@ func TestSetupDatabase(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			client := &Client{
 				helper: &mockHelper{
-					mockAddFolderError:    test.mockAddFolderError,
-					mockStartCrawlerError: test.mockStartCrawlerError,
+					mockAddFolderError: test.mockAddFolderError,
 				},
 			}
 
@@ -112,10 +97,6 @@ func TestSetupDatabase(t *testing.T) {
 			if err != nil {
 				switch e := test.error.(type) {
 				case *ErrorAddFolder:
-					if !errors.As(err, &e) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
-					}
-				case *ErrorStartCrawler:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}

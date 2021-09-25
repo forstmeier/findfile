@@ -13,15 +13,6 @@ func (e *ErrorAddFolder) Error() string {
 	return fmt.Sprintf("[%s] [setup database] [add folder]: %s", packageName, e.err.Error())
 }
 
-// ErrorStartCrawler wraps errors returned by db.helper.startCrawler
-type ErrorStartCrawler struct {
-	err error
-}
-
-func (e *ErrorStartCrawler) Error() string {
-	return fmt.Sprintf("[%s] [add partition]: %s", packageName, e.err.Error())
-}
-
 // ErrorUploadObject wraps errors returned by db.helper.uploadObject.
 type ErrorUploadObject struct {
 	err      error

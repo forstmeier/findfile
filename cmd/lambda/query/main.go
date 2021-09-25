@@ -21,7 +21,6 @@ func main() {
 		newSession,
 		os.Getenv("DATABASE_NAME"),
 		os.Getenv("DATABASE_BUCKET"),
-		os.Getenv("CRAWLER_NAME"),
 	)
 
 	httpSecurityHeader := os.Getenv("HTTP_SECURITY_HEADER")

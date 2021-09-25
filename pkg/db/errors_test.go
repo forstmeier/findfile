@@ -18,19 +18,6 @@ func TestErrorAddFolder(t *testing.T) {
 	}
 }
 
-func TestErrorStartCrawler(t *testing.T) {
-	err := &ErrorStartCrawler{
-		err: errors.New("mock start crawler error"),
-	}
-
-	recieved := err.Error()
-	expected := "[db] [add partition]: mock start crawler error"
-
-	if recieved != expected {
-		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
-	}
-}
-
 func TestErrorUploadObject(t *testing.T) {
 	err := &ErrorUploadObject{
 		err:      errors.New("mock upload object error"),

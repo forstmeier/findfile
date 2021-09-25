@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/athena"
-	"github.com/aws/aws-sdk-go/service/glue"
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/findfiledev/api/pkg/pars"
@@ -62,17 +61,6 @@ func (m *mockAthenaClient) GetQueryExecution(input *athena.GetQueryExecutionInpu
 
 func (m *mockAthenaClient) GetQueryResults(input *athena.GetQueryResultsInput) (*athena.GetQueryResultsOutput, error) {
 	return m.mockGetQueryResultsOutput, m.mockGetQueryResultsError
-}
-
-type mockGlueClient struct {
-	mockStartCrawlerName  string
-	mockStartCrawlerError error
-}
-
-func (m *mockGlueClient) StartCrawler(input *glue.StartCrawlerInput) (*glue.StartCrawlerOutput, error) {
-	m.mockStartCrawlerName = *input.Name
-
-	return nil, m.mockStartCrawlerError
 }
 
 func Test_uploadObject(t *testing.T) {
@@ -502,52 +490,6 @@ func Test_addFolder(t *testing.T) {
 
 				if receivedKey != expectedKey {
 					t.Errorf("incorrect key, received: %s, expected: %s", receivedKey, expectedKey)
-				}
-			}
-		})
-	}
-}
-
-func Test_startCrawler(t *testing.T) {
-	tests := []struct {
-		description           string
-		mockStartCrawlerError error
-		error                 error
-	}{
-		{
-			description:           "start crawler error",
-			mockStartCrawlerError: errors.New("mock start crawler error"),
-			error:                 errors.New("mock start crawler error"),
-		},
-		{
-			description:           "successful invocation",
-			mockStartCrawlerError: nil,
-			error:                 nil,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			expectedName := "crawler"
-
-			h := &help{
-				crawlerName: expectedName,
-				glueClient: &mockGlueClient{
-					mockStartCrawlerError: test.mockStartCrawlerError,
-				},
-			}
-
-			err := h.startCrawler(context.Background())
-
-			if err != nil {
-				if err.Error() != test.error.Error() {
-					t.Errorf("incorrect error, received: %s, expected: %s", err.Error(), test.error.Error())
-				}
-			} else {
-				receivedName := h.glueClient.(*mockGlueClient).mockStartCrawlerName
-
-				if receivedName != expectedName {
-					t.Errorf("incorrect crawler name, received: %s, expected: %s", receivedName, expectedName)
 				}
 			}
 		})
