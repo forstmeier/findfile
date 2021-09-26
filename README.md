@@ -6,6 +6,8 @@
 
 ## Setup
 
+### Introduction
+
 Several prerequisites are required for working on the `api` package code.  
 
 - [Go](https://golang.org/dl/)
@@ -16,9 +18,7 @@ Only the **AWS CLI** is required in order to launch the API into the target AWS 
 
 All infrastructure is defined in pure [AWS CloudFormation](https://aws.amazon.com/cloudformation/). The CloudFormation template (`cft.yaml`) assumes that two S3 buckets exist prior to launch - `ArtifactBucket` (storing application artifacts) and `DatabaseBucket` (storing application database data). Provide these bucket names to the template parameters whowever the stack is launched.  
 
-## Usage
-
-Below is an overview of how to start using the `api` package.  
+Below is an overview of how to launch the `api` package.  
 
 ### Stack
 
@@ -69,6 +69,45 @@ This should be a pre-existing bucket that will be retained despite the stack bei
 
 - **Note**: the stack may overwrite any existing bucket policies on `DatabaseBucket`  
 - **Note**: the role ARN is obfuscated by AWS in the bucket policy if the role is deleted as a safety precaution  
+
+## Usage
+
+There are three main steps to get up and running with the `api` package.  
+
+1. Launch the stack using one of the options [listed above](###Stack)  
+2. Add source buckets following the [above instructios](###Sources)  
+3. Execute queries against the API endpoint using [FQL](###FQL) statements  
+
+### FQL
+
+**FQL** is a basic query language used by the **FindFile** API and is represented in JSON format. Below is an example of a query payload.
+
+```json
+{
+	"search": {
+		"text": "hello, world",
+		"page_number": 1,
+		"coordinates": [
+			[0.0,0.0],
+			[0.5,0.5]
+		]
+	}
+}
+```
+
+The `"search"` object must contain:
+
+- `"text"`: a string value that the API will find matches to in the stored files  
+- `"page_number"`: an integer indicating which page of the file to search on  
+- `"coordinates"`: an array of two arrays containing floating point values between 0.0 and 1.0 which represent the top left and bottom right coordinates of the area of the page to search for text in (e.g. `[0.0,0.0]` is the top left corner of the page and `[1.0, 1.0]` is the bottom right corner of the page)  
+
+### Request
+
+Below is a basic example of a request sent using [cURL](https://curl.se/). The security header is required to invoke the API endpoint. The API URL, security header, and security key values are all available as outputs in the CloudFormation stack as `QueryAPIEndpoint`, `HTTPSecurityKeyHeader`, and `HTTPSecurityKeyValue` respectively.  
+
+```
+curl -X POST https://<api_id>.execute-api.us-east-1.amazonaws.com/production/query --header "Content-Type: application/json" --header "x-findfile-security-key: <security_key>" --data '{"search": {"text": "hello, world", "page_number": 1, "coordinates": [[0.0,0.0], [0.5,0.5]]}}'
+```
 
 ## Future
 

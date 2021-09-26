@@ -52,7 +52,7 @@ const (
 // using AWS S3 and AWS Glue.
 func (c *Client) SetupDatabase(ctx context.Context) error {
 	for _, path := range Paths {
-		if err := c.helper.addFolder(ctx, path); err != nil {
+		if err := c.helper.addFolder(ctx, path+"/"); err != nil {
 			return &ErrorAddFolder{
 				err: err,
 			}
@@ -207,7 +207,7 @@ func (c *Client) DeleteDocuments(ctx context.Context, documentKeys []string) err
 // QueryDocumentsByFQL implements the db.Databaser.QueryDocumentsByFQL method
 // using AWS Athena.
 func (c *Client) QueryDocumentsByFQL(ctx context.Context, query []byte) ([]pars.Document, error) {
-	executionID, state, err := c.helper.executeQuery(ctx, query)
+	executionID, err := c.helper.executeQuery(ctx, query)
 	if err != nil {
 		return nil, &ErrorExecuteQuery{
 			err:      err,
@@ -215,7 +215,7 @@ func (c *Client) QueryDocumentsByFQL(ctx context.Context, query []byte) ([]pars.
 		}
 	}
 
-	documents, err := c.helper.getQueryResultDocuments(ctx, *state, *executionID)
+	documents, err := c.helper.getQueryResultDocuments(ctx, *executionID)
 	if err != nil {
 		return nil, &ErrorGetQueryResults{
 			err:         err,
@@ -230,7 +230,7 @@ func (c *Client) QueryDocumentsByFQL(ctx context.Context, query []byte) ([]pars.
 // QueryDocumentKeysByFileInfo implements the db.Databaser.QueryDocumentKeysByFileInfo
 // method using AWS Athena.
 func (c *Client) QueryDocumentKeysByFileInfo(ctx context.Context, query []byte) ([]string, error) {
-	executionID, state, err := c.helper.executeQuery(ctx, query)
+	executionID, err := c.helper.executeQuery(ctx, query)
 	if err != nil {
 		return nil, &ErrorExecuteQuery{
 			err:      err,
@@ -238,7 +238,7 @@ func (c *Client) QueryDocumentKeysByFileInfo(ctx context.Context, query []byte) 
 		}
 	}
 
-	keys, err := c.helper.getQueryResultKeys(ctx, *state, *executionID)
+	keys, err := c.helper.getQueryResultKeys(ctx, *executionID)
 	if err != nil {
 		return nil, &ErrorGetQueryResults{
 			err:         err,

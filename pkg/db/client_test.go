@@ -20,7 +20,6 @@ type mockHelper struct {
 	mockListDocumentKeysError         error
 	mockDeleteDocumentsByKeysError    error
 	mockExecuteQueryExecutionID       *string
-	mockExecuteQueryState             *string
 	mockExecuteQueryError             error
 	mockGetQueryResultDocumentsOutput []pars.Document
 	mockGetQueryResultDocumentsError  error
@@ -41,17 +40,17 @@ func (m *mockHelper) deleteDocumentsByKeys(ctx context.Context, keys []string) e
 	return m.mockDeleteDocumentsByKeysError
 }
 
-func (m *mockHelper) executeQuery(ctx context.Context, query []byte) (*string, *string, error) {
+func (m *mockHelper) executeQuery(ctx context.Context, query []byte) (*string, error) {
 	m.query = query
 
-	return m.mockExecuteQueryExecutionID, m.mockExecuteQueryState, m.mockExecuteQueryError
+	return m.mockExecuteQueryExecutionID, m.mockExecuteQueryError
 }
 
-func (m *mockHelper) getQueryResultDocuments(ctx context.Context, state, executionID string) ([]pars.Document, error) {
+func (m *mockHelper) getQueryResultDocuments(ctx context.Context, executionID string) ([]pars.Document, error) {
 	return m.mockGetQueryResultDocumentsOutput, m.mockGetQueryResultDocumentsError
 }
 
-func (m *mockHelper) getQueryResultKeys(ctx context.Context, state, executionID string) ([]string, error) {
+func (m *mockHelper) getQueryResultKeys(ctx context.Context, executionID string) ([]string, error) {
 	return m.mockGetQueryResultKeysOutput, m.mockGetQueryResultKeysError
 }
 
@@ -298,7 +297,6 @@ func TestQueryDocumentsByFQL(t *testing.T) {
 	tests := []struct {
 		description                       string
 		mockExecuteQueryExecutionID       *string
-		mockExecuteQueryState             *string
 		mockExecuteQueryError             error
 		mockGetQueryResultDocumentsOutput []pars.Document
 		mockGetQueryResultDocumentsError  error
@@ -308,7 +306,6 @@ func TestQueryDocumentsByFQL(t *testing.T) {
 		{
 			description:                       "error executing query",
 			mockExecuteQueryExecutionID:       nil,
-			mockExecuteQueryState:             nil,
 			mockExecuteQueryError:             errors.New("mock execute query error"),
 			mockGetQueryResultDocumentsOutput: nil,
 			mockGetQueryResultDocumentsError:  nil,
@@ -318,7 +315,6 @@ func TestQueryDocumentsByFQL(t *testing.T) {
 		{
 			description:                       "error getting query result documents",
 			mockExecuteQueryExecutionID:       aws.String("execution_id"),
-			mockExecuteQueryState:             aws.String("state"),
 			mockExecuteQueryError:             nil,
 			mockGetQueryResultDocumentsOutput: nil,
 			mockGetQueryResultDocumentsError:  errors.New("mock get query result documents error"),
@@ -328,7 +324,6 @@ func TestQueryDocumentsByFQL(t *testing.T) {
 		{
 			description:                 "successful query documents invocation",
 			mockExecuteQueryExecutionID: aws.String("execution_id"),
-			mockExecuteQueryState:       aws.String("state"),
 			mockExecuteQueryError:       nil,
 			mockGetQueryResultDocumentsOutput: []pars.Document{
 				{
@@ -350,7 +345,6 @@ func TestQueryDocumentsByFQL(t *testing.T) {
 			client := &Client{
 				helper: &mockHelper{
 					mockExecuteQueryExecutionID:       test.mockExecuteQueryExecutionID,
-					mockExecuteQueryState:             test.mockExecuteQueryState,
 					mockExecuteQueryError:             test.mockExecuteQueryError,
 					mockGetQueryResultDocumentsOutput: test.mockGetQueryResultDocumentsOutput,
 					mockGetQueryResultDocumentsError:  test.mockGetQueryResultDocumentsError,
@@ -387,7 +381,6 @@ func TestQueryDocumentKeysByFileInfo(t *testing.T) {
 	tests := []struct {
 		description                  string
 		mockExecuteQueryExecutionID  *string
-		mockExecuteQueryState        *string
 		mockExecuteQueryError        error
 		mockGetQueryResultKeysOutput []string
 		mockGetQueryResultKeysError  error
@@ -397,7 +390,6 @@ func TestQueryDocumentKeysByFileInfo(t *testing.T) {
 		{
 			description:                  "error executing query",
 			mockExecuteQueryExecutionID:  nil,
-			mockExecuteQueryState:        nil,
 			mockExecuteQueryError:        errors.New("mock execute query error"),
 			mockGetQueryResultKeysOutput: nil,
 			mockGetQueryResultKeysError:  nil,
@@ -407,7 +399,6 @@ func TestQueryDocumentKeysByFileInfo(t *testing.T) {
 		{
 			description:                  "error getting query result keys",
 			mockExecuteQueryExecutionID:  aws.String("execution_id"),
-			mockExecuteQueryState:        aws.String("state"),
 			mockExecuteQueryError:        nil,
 			mockGetQueryResultKeysOutput: nil,
 			mockGetQueryResultKeysError:  errors.New("mock get query result keys error"),
@@ -415,9 +406,8 @@ func TestQueryDocumentKeysByFileInfo(t *testing.T) {
 			error:                        &ErrorGetQueryResults{},
 		},
 		{
-			description:                 "successful queyr keys invocation",
+			description:                 "successful query keys invocation",
 			mockExecuteQueryExecutionID: aws.String("execution_id"),
-			mockExecuteQueryState:       aws.String("state"),
 			mockExecuteQueryError:       nil,
 			mockGetQueryResultKeysOutput: []string{
 				"documents/document_id.json",
@@ -441,7 +431,6 @@ func TestQueryDocumentKeysByFileInfo(t *testing.T) {
 			client := &Client{
 				helper: &mockHelper{
 					mockExecuteQueryExecutionID:  test.mockExecuteQueryExecutionID,
-					mockExecuteQueryState:        test.mockExecuteQueryState,
 					mockExecuteQueryError:        test.mockExecuteQueryError,
 					mockGetQueryResultKeysOutput: test.mockGetQueryResultKeysOutput,
 					mockGetQueryResultKeysError:  test.mockGetQueryResultKeysError,

@@ -18,21 +18,18 @@ func TestNew(t *testing.T) {
 func TestConvertFQL(t *testing.T) {
 	tests := []struct {
 		description string
-		input       map[string]interface{}
 		parseOutput []byte
 		parseError  error
 		error       error
 	}{
 		{
 			description: "error from parse fql helper function",
-			input:       map[string]interface{}{},
 			parseOutput: nil,
 			parseError:  errors.New("mock parse fql error"),
 			error:       &ErrorParseFQL{},
 		},
 		{
 			description: "successful convert fql invocation",
-			input:       map[string]interface{}{},
 			parseOutput: []byte("test byte output"),
 			error:       nil,
 		},
@@ -41,12 +38,12 @@ func TestConvertFQL(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			c := &Client{
-				parseFQL: func(ctx context.Context, fqlQuery map[string]interface{}) ([]byte, error) {
+				parseFQL: func(ctx context.Context, fqlQuery []byte) ([]byte, error) {
 					return test.parseOutput, test.parseError
 				},
 			}
 
-			received, err := c.ConvertFQL(context.Background(), test.input)
+			received, err := c.ConvertFQL(context.Background(), []byte{})
 
 			if err != nil {
 				switch e := test.error.(type) {

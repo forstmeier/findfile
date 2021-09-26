@@ -43,16 +43,7 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 			}, nil
 		}
 
-		fqlJSON := map[string]interface{}{}
-		if err := json.Unmarshal([]byte(request.Body), &fqlJSON); err != nil {
-			util.Log("UNMARSHAL_REQUEST_BODY_ERROR", err)
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "error unmarshalling query"}`,
-			}, nil
-		}
-
-		query, err := fqlClient.ConvertFQL(ctx, fqlJSON)
+		query, err := fqlClient.ConvertFQL(ctx, []byte(request.Body))
 		if err != nil {
 			util.Log("CONVERT_FQL_ERROR", err)
 			return events.APIGatewayProxyResponse{

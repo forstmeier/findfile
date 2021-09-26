@@ -10,57 +10,24 @@ import (
 func Test_parseFQL(t *testing.T) {
 	tests := []struct {
 		description string
-		input       map[string]interface{}
+		input       string
 		error       error
 	}{
 		{
-			description: "too many attributes received",
-			input: map[string]interface{}{
-				"search":  search{},
-				"another": search{},
-			},
-			error: errorTooManyAttributes,
-		},
-		{
-			description: "incorrect search key received",
-			input: map[string]interface{}{
-				"unsupported": search{},
-			},
-			error: errorKeyNotSupported,
-		},
-		{
-			description: "incorrect search type received",
-			input: map[string]interface{}{
-				"search": "not_search_type",
-			},
-			error: errorTypeIncorrect,
-		},
-		{
-			description: "search object validation error",
-			input: map[string]interface{}{
-				"search": search{},
-			},
-			error: errorMissingText,
+			description: "invalid json body received",
+			input:       `{"search": {}}`,
+			error:       errorMissingText,
 		},
 		{
 			description: "successfull parse invocation",
-			input: map[string]interface{}{
-				"search": search{
-					Text:       "lookup text",
-					PageNumber: 1,
-					Coordinates: [2][2]float64{
-						{0.1, 0.1},
-						{0.5, 0.5},
-					},
-				},
-			},
-			error: nil,
+			input:       `{"search": {"text": "lookup text", "page_number": 1, "coordinates": [[0.1,0.1],[0.5,0.5]]}}`,
+			error:       nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			received, err := parseFQL(context.Background(), test.input)
+			received, err := parseFQL(context.Background(), []byte(test.input))
 
 			if err != nil {
 				if err != test.error {

@@ -24,7 +24,7 @@ type mockFQLClient struct {
 	mockConvertFQLError  error
 }
 
-func (m *mockFQLClient) ConvertFQL(ctx context.Context, fqlQuery map[string]interface{}) ([]byte, error) {
+func (m *mockFQLClient) ConvertFQL(ctx context.Context, fqlQuery []byte) ([]byte, error) {
 	return m.mockConvertFQLOutput, m.mockConvertFQLError
 }
 
@@ -103,22 +103,6 @@ func Test_handler(t *testing.T) {
 			mockQueryDocumentsByFQLError:  nil,
 			statusCode:                    http.StatusBadRequest,
 			body:                          `{"error": "http method [GET] not supported"}`,
-		},
-		{
-			description: "error unmarshalling request body fql query",
-			request: events.APIGatewayProxyRequest{
-				Headers: map[string]string{
-					"security_header": "security_key",
-				},
-				HTTPMethod: http.MethodPost,
-				Body:       "---------",
-			},
-			mockConvertFQLOutput:          nil,
-			mockConvertFQLError:           nil,
-			mockQueryDocumentsByFQLOutput: nil,
-			mockQueryDocumentsByFQLError:  nil,
-			statusCode:                    http.StatusInternalServerError,
-			body:                          `{"error": "error unmarshalling query"}`,
 		},
 		{
 			description: "fql client error converting fql query",

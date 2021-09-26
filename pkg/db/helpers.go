@@ -19,9 +19,9 @@ var _ helper = &help{}
 type helper interface {
 	uploadObject(ctx context.Context, body interface{}, key string) error
 	deleteDocumentsByKeys(ctx context.Context, keys []string) error
-	executeQuery(ctx context.Context, query []byte) (*string, *string, error)
-	getQueryResultDocuments(ctx context.Context, state, executionID string) ([]pars.Document, error)
-	getQueryResultKeys(ctx context.Context, state, executionID string) ([]string, error)
+	executeQuery(ctx context.Context, query []byte) (*string, error)
+	getQueryResultDocuments(ctx context.Context, executionID string) ([]pars.Document, error)
+	getQueryResultKeys(ctx context.Context, executionID string) ([]string, error)
 	addFolder(ctx context.Context, folder string) error
 }
 
@@ -41,6 +41,15 @@ type help struct {
 	databaseBucket string
 	athenaClient   athenaClient
 	s3Client       s3Client
+}
+
+func (h *help) addFolder(ctx context.Context, folder string) error {
+	_, err := h.s3Client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(h.databaseBucket),
+		Key:    aws.String(folder),
+	})
+
+	return err
 }
 
 func (h *help) uploadObject(ctx context.Context, body interface{}, key string) error {
@@ -79,7 +88,7 @@ func (h *help) deleteDocumentsByKeys(ctx context.Context, keys []string) error {
 	return err
 }
 
-func (h *help) executeQuery(ctx context.Context, query []byte) (*string, *string, error) {
+func (h *help) executeQuery(ctx context.Context, query []byte) (*string, error) {
 	queryInput := athena.StartQueryExecutionInput{
 		QueryString: aws.String(string(query)),
 		QueryExecutionContext: &athena.QueryExecutionContext{
@@ -92,32 +101,32 @@ func (h *help) executeQuery(ctx context.Context, query []byte) (*string, *string
 
 	queryOutput, err := h.athenaClient.StartQueryExecution(&queryInput)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	executionInput := &athena.GetQueryExecutionInput{
 		QueryExecutionId: queryOutput.QueryExecutionId,
 	}
 	executionOutput := &athena.GetQueryExecutionOutput{}
+
+	// add in backoff logic instead of perpetual loop
 	for {
 		executionOutput, err = h.athenaClient.GetQueryExecution(executionInput)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		if *executionOutput.QueryExecution.Status.State != "RUNNING" {
+
+		if *executionOutput.QueryExecution.Status.State == "SUCCEEDED" {
 			break
 		}
+
 		time.Sleep(1 * time.Second)
 	}
 
-	return queryOutput.QueryExecutionId, executionOutput.QueryExecution.Status.State, nil
+	return queryOutput.QueryExecutionId, nil
 }
 
-func (h *help) getQueryResultDocuments(ctx context.Context, state, executionID string) ([]pars.Document, error) {
-	if state != "SUCCEEDED" {
-		return nil, fmt.Errorf("incorrect query state [%s]", state)
-	}
-
+func (h *help) getQueryResultDocuments(ctx context.Context, executionID string) ([]pars.Document, error) {
 	results, err := h.athenaClient.GetQueryResults(&athena.GetQueryResultsInput{
 		QueryExecutionId: &executionID,
 	})
@@ -126,7 +135,7 @@ func (h *help) getQueryResultDocuments(ctx context.Context, state, executionID s
 	}
 
 	documents := []pars.Document{}
-	for _, row := range results.ResultSet.Rows {
+	for _, row := range results.ResultSet.Rows[1:] {
 		document := pars.Document{
 			ID:         *row.Data[0].VarCharValue,
 			FileKey:    *row.Data[1].VarCharValue,
@@ -139,11 +148,7 @@ func (h *help) getQueryResultDocuments(ctx context.Context, state, executionID s
 	return documents, nil
 }
 
-func (h *help) getQueryResultKeys(ctx context.Context, state, executionID string) ([]string, error) {
-	if state != "SUCCEEDED" {
-		return nil, fmt.Errorf("incorrect query state [%s]", state)
-	}
-
+func (h *help) getQueryResultKeys(ctx context.Context, executionID string) ([]string, error) {
 	results, err := h.athenaClient.GetQueryResults(&athena.GetQueryResultsInput{
 		QueryExecutionId: &executionID,
 	})
@@ -180,13 +185,4 @@ func (h *help) getQueryResultKeys(ctx context.Context, state, executionID string
 	}
 
 	return keys, nil
-}
-
-func (h *help) addFolder(ctx context.Context, folder string) error {
-	_, err := h.s3Client.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String(h.databaseBucket),
-		Key:    aws.String(folder),
-	})
-
-	return err
 }

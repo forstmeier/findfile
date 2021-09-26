@@ -93,7 +93,7 @@ func handler(docparsClient pars.Parser, dbClient db.Databaser) func(ctx context.
 
 		deleteDocumentKeys := []string{}
 		for fileBucket, fileKeys := range deleteFiles {
-			fileKeysString := "\"" + strings.Join(fileKeys, "\",\"") + "\""
+			fileKeysString := "'" + strings.Join(fileKeys, "','") + "'"
 
 			query := fmt.Sprintf(
 				deleteDocumentsQuery,

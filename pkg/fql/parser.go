@@ -2,19 +2,21 @@ package fql
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 )
 
 var (
-	errorTooManyAttributes    = errors.New("search object contains too many attributes")
-	errorKeyNotSupported      = errors.New("search object must be under \"search\" key")
-	errorTypeIncorrect        = errors.New("search object must be search object type")
 	errorMissingText          = errors.New("search object must contain text")
 	errorPageNumberZero       = errors.New("search object page number must not be \"0\"")
 	errorCoordinatesZero      = errors.New("search object bottom coordinates cannot include zero")
 	errorCoordinatesMisplaced = errors.New("search object bottom coordinates cannot be greater than or equal to top coordinates")
 )
+
+type body struct {
+	Search search `json:"search"`
+}
 
 type search struct {
 	Text        string        `json:"text"`
@@ -49,21 +51,13 @@ where id in (
 );
 `
 
-func parseFQL(ctx context.Context, fqlQuery map[string]interface{}) ([]byte, error) {
-	if len(fqlQuery) > 1 {
-		return nil, errorTooManyAttributes
+func parseFQL(ctx context.Context, fqlQuery []byte) ([]byte, error) {
+	bodyJSON := body{}
+	if err := json.Unmarshal(fqlQuery, &bodyJSON); err != nil {
+		return nil, err
 	}
 
-	searchValue, searchOK := fqlQuery["search"]
-	if !searchOK {
-		return nil, errorKeyNotSupported
-	}
-
-	searchJSON, typeOK := searchValue.(search)
-	if !typeOK {
-		return nil, errorTypeIncorrect
-	}
-
+	searchJSON := bodyJSON.Search
 	if err := validateSearchJSON(searchJSON); err != nil {
 		return nil, err
 	}

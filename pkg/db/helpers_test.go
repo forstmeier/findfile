@@ -63,6 +63,59 @@ func (m *mockAthenaClient) GetQueryResults(input *athena.GetQueryResultsInput) (
 	return m.mockGetQueryResultsOutput, m.mockGetQueryResultsError
 }
 
+func Test_addFolder(t *testing.T) {
+	tests := []struct {
+		description        string
+		mockPutObjectError error
+		error              error
+	}{
+		{
+			description:        "error putting folder",
+			mockPutObjectError: errors.New("mock put object error"),
+			error:              errors.New("mock put object error"),
+		},
+		{
+			description:        "successful invocation",
+			mockPutObjectError: nil,
+			error:              nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			h := &help{
+				databaseBucket: "bucket",
+				s3Client: &mockS3Client{
+					mockPutObjectOutput: nil,
+					mockPutObjectError:  test.mockPutObjectError,
+				},
+			}
+
+			expectedBucket := "bucket"
+			expectedKey := "folder"
+
+			err := h.addFolder(context.Background(), expectedKey)
+
+			if err != nil {
+				if err.Error() != test.error.Error() {
+					t.Errorf("incorrect error, received: %s, expected: %s", err.Error(), test.error.Error())
+				}
+			} else {
+				receivedBucket := h.s3Client.(*mockS3Client).mockPutObjectBucket
+				receivedKey := h.s3Client.(*mockS3Client).mockPutObjectKey
+
+				if receivedBucket != expectedBucket {
+					t.Errorf("incorrect bucket name, received: %s, expected: %s", receivedBucket, expectedBucket)
+				}
+
+				if receivedKey != expectedKey {
+					t.Errorf("incorrect key, received: %s, expected: %s", receivedKey, expectedKey)
+				}
+			}
+		})
+	}
+}
+
 func Test_uploadObject(t *testing.T) {
 	tests := []struct {
 		description        string
@@ -214,13 +267,13 @@ func Test_executeQuery(t *testing.T) {
 			mockGetQueryExecutionOutput: &athena.GetQueryExecutionOutput{
 				QueryExecution: &athena.QueryExecution{
 					Status: &athena.QueryExecutionStatus{
-						State: aws.String("NOT_RUNNING"),
+						State: aws.String("SUCCEEDED"),
 					},
 				},
 			},
 			mockGetQueryExecutionError: nil,
 			executionID:                "query_execution_id",
-			state:                      "NOT_RUNNING",
+			state:                      "SUCCEEDED",
 			error:                      nil,
 		},
 	}
@@ -236,7 +289,7 @@ func Test_executeQuery(t *testing.T) {
 				},
 			}
 
-			executionID, state, err := h.executeQuery(context.Background(), []byte("query"))
+			executionID, err := h.executeQuery(context.Background(), []byte("query"))
 
 			if err != nil {
 				if err.Error() != test.error.Error() {
@@ -245,10 +298,6 @@ func Test_executeQuery(t *testing.T) {
 			} else {
 				if *executionID != test.executionID {
 					t.Errorf("incorrect execution id, received: %s, expected: %s", *executionID, test.executionID)
-				}
-
-				if *state != test.state {
-					t.Errorf("incorrect state, received: %s, expected: %s", *state, test.state)
 				}
 			}
 		})
@@ -266,15 +315,6 @@ func Test_getQueryResultDocuments(t *testing.T) {
 		error                     error
 	}{
 		{
-			description:               "non-success state received",
-			state:                     "NOT_SUCCEEDED",
-			executionID:               "execution_id",
-			mockGetQueryResultsOutput: nil,
-			mockGetQueryResultsError:  nil,
-			documents:                 nil,
-			error:                     errors.New("incorrect query state [NOT_SUCCEEDED]"),
-		},
-		{
 			description:               "error getting query results",
 			state:                     "SUCCEEDED",
 			executionID:               "execution_id",
@@ -290,6 +330,19 @@ func Test_getQueryResultDocuments(t *testing.T) {
 			mockGetQueryResultsOutput: &athena.GetQueryResultsOutput{
 				ResultSet: &athena.ResultSet{
 					Rows: []*athena.Row{
+						{
+							Data: []*athena.Datum{
+								{
+									VarCharValue: aws.String("id"),
+								},
+								{
+									VarCharValue: aws.String("file_key"),
+								},
+								{
+									VarCharValue: aws.String("file_bucket"),
+								},
+							},
+						},
 						{
 							Data: []*athena.Datum{
 								{
@@ -326,7 +379,7 @@ func Test_getQueryResultDocuments(t *testing.T) {
 				},
 			}
 
-			documents, err := h.getQueryResultDocuments(context.Background(), test.state, test.executionID)
+			documents, err := h.getQueryResultDocuments(context.Background(), test.executionID)
 
 			if err != nil {
 				if err.Error() != test.error.Error() {
@@ -358,15 +411,6 @@ func Test_getQueryResultKeys(t *testing.T) {
 		keys                      []string
 		error                     error
 	}{
-		{
-			description:               "non-success state received",
-			state:                     "NOT_SUCCEEDED",
-			executionID:               "execution_id",
-			mockGetQueryResultsOutput: nil,
-			mockGetQueryResultsError:  nil,
-			keys:                      nil,
-			error:                     errors.New("incorrect query state [NOT_SUCCEEDED]"),
-		},
 		{
 			description:               "error getting query results",
 			state:                     "SUCCEEDED",
@@ -422,7 +466,7 @@ func Test_getQueryResultKeys(t *testing.T) {
 				},
 			}
 
-			keys, err := h.getQueryResultKeys(context.Background(), test.state, test.executionID)
+			keys, err := h.getQueryResultKeys(context.Background(), test.executionID)
 
 			if err != nil {
 				if err.Error() != test.error.Error() {
@@ -437,59 +481,6 @@ func Test_getQueryResultKeys(t *testing.T) {
 				expected := test.keys[0]
 				if received != expected {
 					t.Errorf("incorrect key, received: %s, expected: %s", received, expected)
-				}
-			}
-		})
-	}
-}
-
-func Test_addFolder(t *testing.T) {
-	tests := []struct {
-		description        string
-		mockPutObjectError error
-		error              error
-	}{
-		{
-			description:        "error putting folder",
-			mockPutObjectError: errors.New("mock put object error"),
-			error:              errors.New("mock put object error"),
-		},
-		{
-			description:        "successful invocation",
-			mockPutObjectError: nil,
-			error:              nil,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			h := &help{
-				databaseBucket: "bucket",
-				s3Client: &mockS3Client{
-					mockPutObjectOutput: nil,
-					mockPutObjectError:  test.mockPutObjectError,
-				},
-			}
-
-			expectedBucket := "bucket"
-			expectedKey := "folder"
-
-			err := h.addFolder(context.Background(), expectedKey)
-
-			if err != nil {
-				if err.Error() != test.error.Error() {
-					t.Errorf("incorrect error, received: %s, expected: %s", err.Error(), test.error.Error())
-				}
-			} else {
-				receivedBucket := h.s3Client.(*mockS3Client).mockPutObjectBucket
-				receivedKey := h.s3Client.(*mockS3Client).mockPutObjectKey
-
-				if receivedBucket != expectedBucket {
-					t.Errorf("incorrect bucket name, received: %s, expected: %s", receivedBucket, expectedBucket)
-				}
-
-				if receivedKey != expectedKey {
-					t.Errorf("incorrect key, received: %s, expected: %s", receivedKey, expectedKey)
 				}
 			}
 		})
