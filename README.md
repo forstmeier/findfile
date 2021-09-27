@@ -1,5 +1,7 @@
 # api
 
+> API-first image file text search
+
 ## Description
 
 `api` is the root API implementation of the **[FindFile](https://findfiledev.github.io)** service. 🔍  
@@ -74,13 +76,13 @@ This should be a pre-existing bucket that will be retained despite the stack bei
 
 There are three main steps to get up and running with the `api` package.  
 
-1. Launch the stack using one of the options [listed above](###Stack)  
-2. Add source buckets following the [above instructios](###Sources)  
-3. Execute queries against the API endpoint using [FQL](###FQL) statements  
+1. Launch the stack using one of the options [listed above](###stack)  
+2. Add source buckets following the [above instructios](###sources)  
+3. Execute queries against the API endpoint using [FQL](###fql) statements  
 
 ### FQL
 
-**FQL** is a basic query language used by the **FindFile** API and is represented in JSON format. Below is an example of a query payload.
+**FQL** is a basic query language used by the **FindFile** API and is represented in JSON format. Below is an example of a query payload.  
 
 ```json
 {
@@ -95,11 +97,13 @@ There are three main steps to get up and running with the `api` package.
 }
 ```
 
-The `"search"` object must contain:
+The `"search"` object must contain:  
 
 - `"text"`: a string value that the API will find matches to in the stored files  
 - `"page_number"`: an integer indicating which page of the file to search on  
 - `"coordinates"`: an array of two arrays containing floating point values between 0.0 and 1.0 which represent the top left and bottom right coordinates of the area of the page to search for text in (e.g. `[0.0,0.0]` is the top left corner of the page and `[1.0, 1.0]` is the bottom right corner of the page)  
+
+A successful invocation will be a JSON object containing a `"message"` field indicating success and a `"data"` field holding an object containing bucket name keys and values of file name arrays.  
 
 ### Request
 
@@ -111,8 +115,8 @@ curl -X POST https://<api_id>.execute-api.us-east-1.amazonaws.com/production/que
 
 ## Future
 
-Some potential future expansions include:
+Some potential future expansions include:  
 
-- **_Bulk file ingestion_** on adding a new source bucket
-- Providing **_multiple or nested FQL_** queries per request
-- **_TBD_**!
+- **_Bulk file ingestion_** on adding a new source bucket  
+- Providing **_multiple or nested FQL_** queries per request  
+- **_TBD_**!  

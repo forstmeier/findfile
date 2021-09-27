@@ -15,11 +15,10 @@ import (
 )
 
 var (
-	errorUnsupportedEvent = errors.New("event type not supported")
-	errorParseFile        = errors.New("parse file error")
-	errorQueryDocuments   = errors.New("query documents error")
-	errorUpsertDocuments  = errors.New("upsert documents error")
-	errorDeleteDocuments  = errors.New("delete documents error")
+	errorParseFile       = errors.New("parse file error")
+	errorQueryDocuments  = errors.New("query documents error")
+	errorUpsertDocuments = errors.New("upsert documents error")
+	errorDeleteDocuments = errors.New("delete documents error")
 )
 
 type fileInfo struct {
@@ -47,7 +46,7 @@ inner join (
 on pages.document_id = documents.id;
 `
 
-func handler(docparsClient pars.Parser, dbClient db.Databaser) func(ctx context.Context, event events.S3Event) error {
+func handler(parsClient pars.Parser, dbClient db.Databaser) func(ctx context.Context, event events.S3Event) error {
 	return func(ctx context.Context, event events.S3Event) error {
 		util.Log("EVENT_BODY", event)
 
@@ -76,15 +75,14 @@ func handler(docparsClient pars.Parser, dbClient db.Databaser) func(ctx context.
 				}
 			} else {
 				util.Log("UNSUPPORTED_EVENT", fmt.Sprintf("event [%s] not supported", s3Record.EventName))
-				return errorUnsupportedEvent
 			}
 		}
 
 		upsertDocuments := make([]pars.Document, len(upsertFiles))
 		for i, file := range upsertFiles {
-			document, err := docparsClient.Parse(ctx, file.key, file.bucket)
+			document, err := parsClient.Parse(ctx, file.key, file.bucket)
 			if err != nil {
-				util.Log("PARSE_ERROR", err)
+				util.Log("PARSE_ERROR", err.Error())
 				return errorParseFile
 			}
 
@@ -103,7 +101,7 @@ func handler(docparsClient pars.Parser, dbClient db.Databaser) func(ctx context.
 
 			queryDeleteDocumentKeys, err := dbClient.QueryDocumentKeysByFileInfo(ctx, []byte(query))
 			if err != nil {
-				util.Log("QUERY_DOCUMENTS", err)
+				util.Log("QUERY_DOCUMENTS", err.Error())
 				return errorQueryDocuments
 			}
 
@@ -111,16 +109,16 @@ func handler(docparsClient pars.Parser, dbClient db.Databaser) func(ctx context.
 		}
 
 		if err := dbClient.UpsertDocuments(ctx, upsertDocuments); err != nil {
-			util.Log("UPSERT_DOCUMENTS_ERROR", err)
+			util.Log("UPSERT_DOCUMENTS_ERROR", err.Error())
 			return errorUpsertDocuments
 		}
 
 		if err := dbClient.DeleteDocuments(ctx, deleteDocumentKeys); err != nil {
-			util.Log("DELETE_DOCUMENTS_ERROR", err)
+			util.Log("DELETE_DOCUMENTS_ERROR", err.Error())
 			return errorDeleteDocuments
 		}
 
-		util.Log("RESPONSE_BODY", "successful invocation")
+		util.Log("RESPONSE_MESSAGE", "successful invocation")
 		return nil
 	}
 }

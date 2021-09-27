@@ -74,30 +74,6 @@ func Test_handler(t *testing.T) {
 		error                                 error
 	}{
 		{
-			description: "unsupported event type error",
-			s3Event: events.S3Event{
-				Records: []events.S3EventRecord{
-					{
-						EventName: "not_supported",
-						S3: events.S3Entity{
-							Object: events.S3Object{
-								Key: "key.jpg",
-							},
-						},
-					},
-				},
-			},
-			mockParseOutput:                       nil,
-			mockParseError:                        nil,
-			mockQueryDocumentKeysByFileInfoOutput: nil,
-			mockQueryDocumentKeysByFileInfoError:  nil,
-			mockUpsertDocumentsError:              nil,
-			mockDeleteDocumentsError:              nil,
-			parseFileKey:                          "",
-			parseFileBucket:                       "",
-			error:                                 errorUnsupportedEvent,
-		},
-		{
 			description: "error parsing request file",
 			s3Event: events.S3Event{
 				Records: []events.S3EventRecord{

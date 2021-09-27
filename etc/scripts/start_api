@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# start_api is for users to launch the api
+# start_api is for users to launch the API
 # stack into their account using the release
 # package from GitHub
 

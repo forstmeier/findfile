@@ -24,7 +24,7 @@ func handler(dbClient db.Databaser, sendResponse func(response *cfn.Response) er
 			response.Reason = message
 		} else {
 			if err := dbClient.SetupDatabase(ctx); err != nil {
-				util.Log("SETUP_DATABASE_ERROR", err)
+				util.Log("SETUP_DATABASE_ERROR", err.Error())
 				response.Reason = fmt.Sprintf("setup database error [%s]", err.Error())
 			} else {
 				response.Reason = "successful invocation"
@@ -32,7 +32,7 @@ func handler(dbClient db.Databaser, sendResponse func(response *cfn.Response) er
 		}
 
 		if err := sendResponse(response); err != nil {
-			util.Log("SEND_ERROR", err)
+			util.Log("SEND_ERROR", err.Error())
 			response.Reason = fmt.Sprintf("send response error [%s]", err.Error())
 		}
 

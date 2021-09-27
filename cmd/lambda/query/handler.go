@@ -20,7 +20,7 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 
 		httpSecurityKeyReceived, ok := request.Headers[httpSecurityHeader]
 		if !ok {
-			util.Log("SECURITY_KEY_HEADER_ERROR", "security key header not provided")
+			util.Log("SECURITY_KEY_HEADER_ERROR", fmt.Sprintf("security key header [%s] not provided", httpSecurityHeader))
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
 				Body:       `{"error": "security key header not provided"}`,
@@ -36,7 +36,7 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 		}
 
 		if request.HTTPMethod != http.MethodPost {
-			util.Log("HTTP_METHOD_ERROR", fmt.Sprintf(`{"error": "http method [%s] not supported"}`, request.HTTPMethod))
+			util.Log("HTTP_METHOD_ERROR", fmt.Sprintf("http method [%s] not supported", request.HTTPMethod))
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
 				Body:       fmt.Sprintf(`{"error": "http method [%s] not supported"}`, request.HTTPMethod),
@@ -45,7 +45,7 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 
 		query, err := fqlClient.ConvertFQL(ctx, []byte(request.Body))
 		if err != nil {
-			util.Log("CONVERT_FQL_ERROR", err)
+			util.Log("CONVERT_FQL_ERROR", err.Error())
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
 				Body:       `{"error": "error converting fql to query"}`,
@@ -54,7 +54,7 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 
 		documents, err := dbClient.QueryDocumentsByFQL(ctx, query)
 		if err != nil {
-			util.Log("QUERY_DOCUMENTS_ERROR", err)
+			util.Log("QUERY_DOCUMENTS_ERROR", err.Error())
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
 				Body:       `{"error": "error running query"}`,
@@ -80,7 +80,7 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 
 		outputBytes, err := json.Marshal(output)
 		if err != nil {
-			util.Log("MARSHAL_OUTPUT_ERROR", err)
+			util.Log("MARSHAL_OUTPUT_ERROR", err.Error())
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
 				Body:       `{"error": "error marshalling file information"}`,

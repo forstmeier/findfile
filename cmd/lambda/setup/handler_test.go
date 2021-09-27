@@ -102,7 +102,7 @@ func Test_handler(t *testing.T) {
 
 			handlerFunc := handler(dbClient, mockSendResponse)
 
-			// suppress error since returned value is always nil
+			// ignore error since returned value is always nil
 			handlerFunc(context.Background(), test.event)
 
 			if mockResponse.Reason != test.responseReason {
