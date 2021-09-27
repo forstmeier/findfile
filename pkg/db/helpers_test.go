@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/athena"
 	"github.com/aws/aws-sdk-go/service/s3"
 
-	"github.com/findfiledev/api/pkg/pars"
+	"github.com/forstmeier/findfile/pkg/pars"
 )
 
 type mockS3Client struct {

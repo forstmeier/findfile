@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 
-	"github.com/findfiledev/api/pkg/pars"
+	"github.com/forstmeier/findfile/pkg/pars"
 )
 
 // Databaser defines the methods for interacting with the parsed

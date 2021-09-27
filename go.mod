@@ -1,4 +1,4 @@
-module github.com/findfiledev/api
+module github.com/forstmeier/findfile
 
 go 1.16
 

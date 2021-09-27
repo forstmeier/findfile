@@ -8,9 +8,9 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/findfiledev/api/pkg/db"
-	"github.com/findfiledev/api/pkg/fql"
-	"github.com/findfiledev/api/util"
+	"github.com/forstmeier/findfile/pkg/db"
+	"github.com/forstmeier/findfile/pkg/fql"
+	"github.com/forstmeier/findfile/util"
 )
 
 func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, httpSecurityKey string) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {

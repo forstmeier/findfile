@@ -1,16 +1,16 @@
-# api
+# findfile
 
-> API-first image file text search
+> API-first image file text search 🔍
 
 ## Description
 
-`api` is the root API implementation of the **[FindFile](https://findfiledev.github.io)** service. 🔍  
+`findfile` is the root API implementation of the service.
 
 ## Setup
 
 ### Introduction
 
-Several prerequisites are required for working on the `api` package code.  
+Several prerequisites are required for working on the `findfile` package code.  
 
 - [Go](https://golang.org/dl/)
 - [Git](https://git-scm.com/downloads)
@@ -20,14 +20,14 @@ Only the **AWS CLI** is required in order to launch the API into the target AWS 
 
 All infrastructure is defined in pure [AWS CloudFormation](https://aws.amazon.com/cloudformation/). The CloudFormation template (`cft.yaml`) assumes that two S3 buckets exist prior to launch - `ArtifactBucket` (storing application artifacts) and `DatabaseBucket` (storing application database data). Provide these bucket names to the template parameters whowever the stack is launched.  
 
-Below is an overview of how to launch the `api` package.  
+Below is an overview of how to launch the `findfile` package.  
 
 ### Stack
 
-The `api` CloudFormation stack can be created in two ways.  
+The `findfile` CloudFormation stack can be created in two ways.  
 
 - **Release package**
-	- Download the most recent package from the [releases](https://github.com/findfiledev/api/releases) page and extract the resources
+	- Download the most recent package from the [releases](https://github.com/forstmeier/findfile/releases) page and extract the resources
 	- This contains the CloudFormation template (`cft.yaml`), three Lambda binaries (`database.zip`, `query.zip`, and `setup.zip`), a config file (`config.json`) and two helper scripts (`start_api`, and `add_source`)
 	- Update `config.json` fields marked `"REPLACE"` with your pre-existing `ArtifactBucket` and `DatabaseBucket` names and optionally set the stack name field (defaulting to "findfile")
 	- Run the `start_api` script with the required arguments to launch the stack
@@ -56,27 +56,27 @@ The `api` CloudFormation stack can be created in two ways.
 
 ### Sources
 
-Any S3 buckets containing image files are the data source that the `api` package consumes for the database - these are called **source buckets**.  
+Any S3 buckets containing image files (JPEG, PNG, and PDF) are the data source that the `findfile` package consumes for the database - these are called **source buckets**.  
 
-In order to be setup for the `api`, they require a [bucket policy](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html) and [event notifications](https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html) to be configured. The recommended way to do this is to run the `add_source` script from the release package. The target source bucket bucket name is a required argument for the script (e.g. `./add_source new_source_bucket_name`).  
+In order to be setup for the `findfile`, they require a [bucket policy](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html) and [event notifications](https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html) to be configured. The recommended way to do this is to run the `add_source` script from the release package. The target source bucket bucket name is a required argument for the script (e.g. `./add_source new_source_bucket_name`).  
 
 - **Note**: any existing bucket policy will be overwritten by this script  
 - **Note**: there may be collisions with existing event notification configurations  
 - **Note**: this script applies the event notifications to the full bucket not a prefix  
-- **Note**: pre-existing files in the source bucket will not be added to the `api`; only files uploaded after launching the stack and configuring the bucket policy and event notifications will be added  
+- **Note**: pre-existing files in the source bucket will not be added to the `findfile`; only files uploaded after launching the stack and configuring the bucket policy and event notifications will be added  
 
 ### Database
 
-The S3 bucket added as the `DatabaseBucket` parameter in the stack creation holds the data queried by the `api` - this is called the **database bucket**.  
+The S3 bucket added as the `DatabaseBucket` parameter in the stack creation holds the data queried by the `findfile` - this is called the **database bucket**.  
 
-This should be a pre-existing bucket that will be retained despite the stack being torn down. As part of the stack creation a [bucket policy](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html) is placed on the `DatabaseBucket` to provide the required access for the `api`.  
+This should be a pre-existing bucket that will be retained despite the stack being torn down. As part of the stack creation a [bucket policy](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html) is placed on the `DatabaseBucket` to provide the required access for the `findfile`.  
 
 - **Note**: the stack may overwrite any existing bucket policies on `DatabaseBucket`  
 - **Note**: the role ARN is obfuscated by AWS in the bucket policy if the role is deleted as a safety precaution  
 
 ## Usage
 
-There are three main steps to get up and running with the `api` package.  
+There are three main steps to get up and running with the `findfile` package.  
 
 1. Launch the stack using one of the options [listed above](###stack)  
 2. Add source buckets following the [above instructios](###sources)  
@@ -120,5 +120,6 @@ curl -X POST https://<api_id>.execute-api.us-east-1.amazonaws.com/production/que
 Some potential future expansions include:  
 
 - **_Bulk file ingestion_** on adding a new source bucket  
+- **_Upgraded database_** throughput and querying features  
 - Providing **_multiple or nested FQL_** queries per request  
 - **_TBD_**!  

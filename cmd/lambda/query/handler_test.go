@@ -11,7 +11,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/findfiledev/api/pkg/pars"
+	"github.com/forstmeier/findfile/pkg/pars"
 )
 
 func TestMain(m *testing.M) {

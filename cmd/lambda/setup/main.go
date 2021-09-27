@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
 
-	"github.com/findfiledev/api/pkg/db"
+	"github.com/forstmeier/findfile/pkg/db"
 )
 
 func main() {

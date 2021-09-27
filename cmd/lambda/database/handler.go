@@ -9,9 +9,9 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/findfiledev/api/pkg/db"
-	"github.com/findfiledev/api/pkg/pars"
-	"github.com/findfiledev/api/util"
+	"github.com/forstmeier/findfile/pkg/db"
+	"github.com/forstmeier/findfile/pkg/pars"
+	"github.com/forstmeier/findfile/util"
 )
 
 var (

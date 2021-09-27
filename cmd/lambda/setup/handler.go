@@ -6,8 +6,8 @@ import (
 
 	"github.com/aws/aws-lambda-go/cfn"
 
-	"github.com/findfiledev/api/pkg/db"
-	"github.com/findfiledev/api/util"
+	"github.com/forstmeier/findfile/pkg/db"
+	"github.com/forstmeier/findfile/util"
 )
 
 func handler(dbClient db.Databaser, sendResponse func(response *cfn.Response) error) func(ctx context.Context, event cfn.Event) error {
