@@ -6,6 +6,7 @@ Parameters:
     Type: String
     Description: Name for the project and stack resources
     Default: findfile
+    AllowedPattern: '[A-Za-z0-9_]+'
   HTTPSecurityKey:
     Type: String
     Description: UUID to use in query request header
@@ -31,7 +32,7 @@ Resources:
         Ref: AWS::AccountId
       DatabaseInput:
         Name:
-          Fn::Sub: ${StackName}database
+          Fn::Sub: ${StackName}
         Description: Main database for querying functionality
 
   documentsTable:
@@ -192,8 +193,9 @@ Resources:
                     - queryFunctionRole
                     - Arn
     DependsOn:
-      - databaseFunction
       - setupFunction
+      - databaseFunction
+      - queryFunction
 
   setupCustomResource:
     Type: AWS::CloudFormation::CustomResource
@@ -239,7 +241,7 @@ Resources:
         S3Bucket:
           Ref: ArtifactBucket
         S3Key: database.zip
-      Description: Function providing parsed user document management
+      Description: Function providing database document management
       Environment:
         Variables:
           DATABASE_NAME:
@@ -264,7 +266,7 @@ Resources:
         S3Bucket:
           Ref: ArtifactBucket
         S3Key: query.zip
-      Description: Function providing user query handling
+      Description: Function providing database query handling
       Environment:
         Variables:
           DATABASE_NAME:
@@ -357,7 +359,7 @@ Resources:
               - Action:
                   - textract:DetectDocumentText
                 Effect: Allow
-                Resource: "*"
+                Resource: '*'
           PolicyName:
             Fn::Sub: ${StackName}-database-function-policy
 
@@ -415,11 +417,11 @@ Resources:
       Parameters:
         endpointConfigurationTypes: REGIONAL
       Body:
-        swagger: "2.0"
+        swagger: '2.0'
         info:
           title:
             Fn::Sub: ${StackName} API
-          version: "0.1"
+          version: '0.1'
         schemes:
           - https
         paths:
@@ -428,7 +430,7 @@ Resources:
               produces:
                 - application/json
               responses:
-                "200":
+                '200':
                   description: Successful query POST request
                   schema:
                     type: object
@@ -449,7 +451,7 @@ Resources:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${queryFunction.Arn}/invocations
                 responses:
                   default:
-                    statusCode: "200"
+                    statusCode: '200'
                 passthroughBehavior: when_no_match
                 contentHandling: CONVERT_TO_TEXT
                 type: AWS_PROXY
@@ -515,15 +517,6 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
 
 Outputs:
-  Stackname:
-    Value:
-      Ref: AWS::StackName
-  ArtifactBucketName:
-    Value:
-      Ref: ArtifactBucket
-  DatabaseBucketName:
-    Value:
-      Ref: DatabaseBucket
   HTTPSecurityKeyHeader:
     Value:
       Fn::Sub: x-${StackName}-security-key
@@ -549,9 +542,6 @@ Outputs:
       Fn::GetAtt:
         - queryFunctionRole
         - Arn
-  RootAPIEndpoint:
-    Value:
-      Fn::Sub: https://${api}.execute-api.${AWS::Region}.amazonaws.com/${StageName}
   QueryAPIEndpoint:
     Value:
       Fn::Sub: https://${api}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/query

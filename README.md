@@ -52,6 +52,8 @@ The `api` CloudFormation stack can be created in two ways.
 }
 ```
 
+- **Note**: both `start_api` and `add_source` helper scripts use the `config.json` file values  
+
 ### Sources
 
 Any S3 buckets containing image files are the data source that the `api` package consumes for the database - these are called **source buckets**.  
