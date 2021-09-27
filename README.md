@@ -12,7 +12,7 @@ Store, query, and manage your JPGs, PNGs, and PDFs like you're searching text do
 
 ### Introduction
 
-Several prerequisites are required for working on the `findfile` package code.  
+Several prerequisites are required for contributing to the `findfile` package code.  
 
 - [Go](https://golang.org/dl/)
 - [Git](https://git-scm.com/downloads)
