@@ -4,7 +4,9 @@
 
 ## Description
 
-`findfile` is the root API implementation of the service.
+`findfile` is the root API implementation of the service.  
+
+Store, query, and manage your JPGs, PNGs, and PDFs like you're searching text documents.  
 
 ## Setup
 
