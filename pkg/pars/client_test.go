@@ -28,8 +28,8 @@ func (m *mockTextractClient) DetectDocumentText(input *textract.DetectDocumentTe
 }
 
 func TestParse(t *testing.T) {
-	fileKey := "test.pdf"
-	fileBucket := "s3://bucket/path"
+	fileKey := "test.jpg"
+	fileBucket := "s3://bucket"
 
 	tests := []struct {
 		description          string
@@ -39,11 +39,11 @@ func TestParse(t *testing.T) {
 		error                error
 	}{
 		{
-			description:          "textract client analyze error",
+			description:          "textract client parse error",
 			textractClientOutput: nil,
-			textractClientError:  errors.New("mock analyze error"),
+			textractClientError:  errors.New("mock parse error"),
 			document:             Document{},
-			error:                &ErrorAnalyzeDocument{},
+			error:                &ErrorParseDocument{},
 		},
 		{
 			description:          "no pages/lines returned",
@@ -114,7 +114,7 @@ func TestParse(t *testing.T) {
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *ErrorAnalyzeDocument:
+				case *ErrorParseDocument:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
@@ -153,8 +153,8 @@ func TestParse(t *testing.T) {
 }
 
 func Test_convertToContent(t *testing.T) {
-	fileKey := "test.pdf"
-	fileBucket := "s3://bucket/path"
+	fileKey := "test.jpg"
+	fileBucket := "s3://bucket"
 
 	tests := []struct {
 		description string

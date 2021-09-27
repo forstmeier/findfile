@@ -11,7 +11,7 @@ type Document struct {
 	Pages      []Page `json:"pages"`
 }
 
-// Page holds the output of parsing the pages of the provided image file.
+// Page holds the output of parsing a page of the provided image file.
 type Page struct {
 	ID         string `json:"id"`
 	Entity     string `json:"entity"`

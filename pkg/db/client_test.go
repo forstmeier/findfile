@@ -16,8 +16,6 @@ type mockHelper struct {
 	query                             []byte
 	uploadKeyToError                  string
 	mockUploadObjectError             error
-	mockListDocumentKeysOutput        []string
-	mockListDocumentKeysError         error
 	mockDeleteDocumentsByKeysError    error
 	mockExecuteQueryExecutionID       *string
 	mockExecuteQueryError             error

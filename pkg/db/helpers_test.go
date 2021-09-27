@@ -346,7 +346,7 @@ func Test_getQueryResultDocuments(t *testing.T) {
 						{
 							Data: []*athena.Datum{
 								{
-									VarCharValue: aws.String("id"),
+									VarCharValue: aws.String("document_id"),
 								},
 								{
 									VarCharValue: aws.String("key.json"),

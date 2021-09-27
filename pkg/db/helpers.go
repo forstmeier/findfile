@@ -67,9 +67,10 @@ func (h *help) uploadObject(ctx context.Context, body interface{}, key string) e
 	return err
 }
 
-// deleteDocumentsByKeys processes pre-chunked slices of keys according
-// to the S3 1000 object limit per invocation.
 func (h *help) deleteDocumentsByKeys(ctx context.Context, keys []string) error {
+	// this logic assumes the keys input has been pre-chunked into
+	// slices of keys according to the S3 1000 object max limit
+	// per invocation
 	objects := make([]*s3.ObjectIdentifier, len(keys))
 	for i, key := range keys {
 		objects[i] = &s3.ObjectIdentifier{
@@ -163,22 +164,22 @@ func (h *help) getQueryResultKeys(ctx context.Context, executionID string) ([]st
 
 	keys := []string{}
 	for _, row := range results.ResultSet.Rows {
-		documentKey := fmt.Sprintf("%s/%s.json", Paths[0], *row.Data[0].VarCharValue)
+		documentKey := fmt.Sprintf("%s/%s.json", paths[0], *row.Data[0].VarCharValue)
 		if _, ok := documents[documentKey]; !ok {
 			keys = append(keys, documentKey)
 		}
 
-		pageKey := fmt.Sprintf("%s/%s.json", Paths[1], *row.Data[1].VarCharValue)
+		pageKey := fmt.Sprintf("%s/%s.json", paths[1], *row.Data[1].VarCharValue)
 		if _, ok := pages[pageKey]; !ok {
 			keys = append(keys, pageKey)
 		}
 
-		lineKey := fmt.Sprintf("%s/%s.json", Paths[2], *row.Data[2].VarCharValue)
+		lineKey := fmt.Sprintf("%s/%s.json", paths[2], *row.Data[2].VarCharValue)
 		if _, ok := lines[lineKey]; !ok {
 			keys = append(keys, lineKey)
 		}
 
-		coordinatesKey := fmt.Sprintf("%s/%s.json", Paths[3], *row.Data[3].VarCharValue)
+		coordinatesKey := fmt.Sprintf("%s/%s.json", paths[3], *row.Data[3].VarCharValue)
 		if _, ok := coordinates[coordinatesKey]; !ok {
 			keys = append(keys, coordinatesKey)
 		}

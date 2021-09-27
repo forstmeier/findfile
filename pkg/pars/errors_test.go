@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-func TestErrorAnalyzeDocument(t *testing.T) {
-	err := &ErrorAnalyzeDocument{err: errors.New("mock analyze doc error")}
+func TestErrorParseDocument(t *testing.T) {
+	err := &ErrorParseDocument{err: errors.New("mock parse doc error")}
 
 	recieved := err.Error()
-	expected := "[pars] [analyze document]: mock analyze doc error"
+	expected := "[pars] [parse document]: mock parse doc error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)

@@ -19,7 +19,7 @@ func Test_parseFQL(t *testing.T) {
 			error:       errorMissingText,
 		},
 		{
-			description: "successfull parse invocation",
+			description: "successfull parse fql invocation",
 			input:       `{"search": {"text": "lookup text", "page_number": 1, "coordinates": [[0.1,0.1],[0.5,0.5]]}}`,
 			error:       nil,
 		},

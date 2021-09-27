@@ -9,19 +9,12 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	documentEntity    = "document"
-	pageEntity        = "page"
-	lineEntity        = "line"
-	coordinatesEntity = "coordinates"
-)
-
 var _ Parser = &Client{}
 
-// Client implements the docparser.Parser methods using AWS Textract.
+// Client implements the pars.Parser methods using AWS Textract.
 type Client struct {
 	textractClient    textractClient
-	convertToDocument func(input *textract.DetectDocumentTextOutput, filename, filepath string) Document
+	convertToDocument func(input *textract.DetectDocumentTextOutput, fileKey, fileBucket string) Document
 }
 
 type textractClient interface {
@@ -38,7 +31,7 @@ func New(newSession *session.Session) *Client {
 	}
 }
 
-// Parse implements the docparser.Parser.Parse interface method
+// Parse implements the pars.Parser.Parse interface method
 // using AWS Textract.
 func (c *Client) Parse(ctx context.Context, fileKey, fileBucket string) (*Document, error) {
 	input := &textract.DetectDocumentTextInput{
@@ -52,7 +45,7 @@ func (c *Client) Parse(ctx context.Context, fileKey, fileBucket string) (*Docume
 
 	output, err := c.textractClient.DetectDocumentText(input)
 	if err != nil {
-		return nil, &ErrorAnalyzeDocument{err: err}
+		return nil, &ErrorParseDocument{err: err}
 	}
 
 	document := c.convertToDocument(output, fileKey, fileBucket)
@@ -63,7 +56,7 @@ func (c *Client) Parse(ctx context.Context, fileKey, fileBucket string) (*Docume
 func convertToDocument(input *textract.DetectDocumentTextOutput, fileKey, fileBucket string) Document {
 	document := Document{
 		ID:         uuid.NewString(),
-		Entity:     documentEntity,
+		Entity:     "document",
 		FileKey:    fileKey,
 		FileBucket: fileBucket,
 	}
@@ -84,7 +77,7 @@ func convertToDocument(input *textract.DetectDocumentTextOutput, fileKey, fileBu
 	for _, pageBlock := range pages {
 		page := Page{
 			ID:     uuid.NewString(),
-			Entity: pageEntity,
+			Entity: "page",
 			Lines:  []Line{},
 		}
 
@@ -104,11 +97,11 @@ func convertToDocument(input *textract.DetectDocumentTextOutput, fileKey, fileBu
 
 				data := Line{
 					ID:     uuid.NewString(),
-					Entity: lineEntity,
+					Entity: "line",
 					Text:   *lineBlock.Text,
 					Coordinates: Coordinates{
 						ID:     uuid.NewString(),
-						Entity: coordinatesEntity,
+						Entity: "coordinates",
 						TopLeft: Point{
 							X: left,
 							Y: top,

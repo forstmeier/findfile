@@ -11,9 +11,7 @@ import (
 	"github.com/findfiledev/api/pkg/pars"
 )
 
-// Paths represent the locations within the S3 database bucket
-// where different data types are stored.
-var Paths = []string{
+var paths = []string{
 	"documents",
 	"pages",
 	"lines",
@@ -41,17 +39,10 @@ func New(newSession *session.Session, databaseName, databaseBucket string) *Clie
 	}
 }
 
-const (
-	documentsPath   = "documents/%s.json"
-	pagesPath       = "pages/%s.json"
-	linesPath       = "lines/%s.json"
-	coordinatesPath = "coordinates/%s.json"
-)
-
 // SetupDatabase implements the db.Databaser.SetupDatabase method
 // using AWS S3 and AWS Glue.
 func (c *Client) SetupDatabase(ctx context.Context) error {
-	for _, path := range Paths {
+	for _, path := range paths {
 		if err := c.helper.addFolder(ctx, path+"/"); err != nil {
 			return &ErrorAddFolder{
 				err: err,
@@ -83,7 +74,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 			FileBucket: document.FileBucket,
 		}
 
-		documentKey := fmt.Sprintf(documentsPath, documentID)
+		documentKey := fmt.Sprintf("%s/%s.json", paths[0], documentID)
 		if err := c.helper.uploadObject(ctx, documentJSON, documentKey); err != nil {
 			return &ErrorUploadObject{
 				err:      err,
@@ -107,7 +98,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 				PageNumber: page.PageNumber,
 			}
 
-			pageKey := fmt.Sprintf(pagesPath, pageID)
+			pageKey := fmt.Sprintf("%s/%s.json", paths[1], pageID)
 			if err := c.helper.uploadObject(ctx, pageJSON, pageKey); err != nil {
 				return &ErrorUploadObject{
 					err:      err,
@@ -133,7 +124,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 					Text:   line.Text,
 				}
 
-				lineKey := fmt.Sprintf(linesPath, lineID)
+				lineKey := fmt.Sprintf("%s/%s.json", paths[2], lineID)
 				if err := c.helper.uploadObject(ctx, lineJSON, lineKey); err != nil {
 					return &ErrorUploadObject{
 						err:      err,
@@ -168,7 +159,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 					BottomRightY: coordinates.BottomRight.Y,
 				}
 
-				coordinatesKey := fmt.Sprintf(coordinatesPath, coordinatesID)
+				coordinatesKey := fmt.Sprintf("%s/%s.json", paths[3], coordinatesID)
 				if err := c.helper.uploadObject(ctx, coordinatesJSON, coordinatesKey); err != nil {
 					return &ErrorUploadObject{
 						err:      err,
