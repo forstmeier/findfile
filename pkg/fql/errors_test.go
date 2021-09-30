@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestErrorParseFQL(t *testing.T) {
-	err := &ErrorParseFQL{err: errors.New("mock parse fql error")}
+func TestParseFQLError(t *testing.T) {
+	err := &ParseFQLError{err: errors.New("mock parse fql error")}
 
 	recieved := err.Error()
 	expected := "[fql] [convert fql]: mock parse fql error"

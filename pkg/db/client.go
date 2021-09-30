@@ -44,7 +44,7 @@ func New(newSession *session.Session, databaseName, databaseBucket string) *Clie
 func (c *Client) SetupDatabase(ctx context.Context) error {
 	for _, path := range paths {
 		if err := c.helper.addFolder(ctx, path+"/"); err != nil {
-			return &ErrorAddFolder{
+			return &AddFolderError{
 				err: err,
 			}
 		}
@@ -76,7 +76,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 
 		documentKey := fmt.Sprintf("%s/%s.json", paths[0], documentID)
 		if err := c.helper.uploadObject(ctx, documentJSON, documentKey); err != nil {
-			return &ErrorUploadObject{
+			return &UploadObjectError{
 				err:      err,
 				function: "upsert documents",
 				entity:   "document",
@@ -100,7 +100,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 
 			pageKey := fmt.Sprintf("%s/%s.json", paths[1], pageID)
 			if err := c.helper.uploadObject(ctx, pageJSON, pageKey); err != nil {
-				return &ErrorUploadObject{
+				return &UploadObjectError{
 					err:      err,
 					function: "upsert documents",
 					entity:   "page",
@@ -126,7 +126,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 
 				lineKey := fmt.Sprintf("%s/%s.json", paths[2], lineID)
 				if err := c.helper.uploadObject(ctx, lineJSON, lineKey); err != nil {
-					return &ErrorUploadObject{
+					return &UploadObjectError{
 						err:      err,
 						function: "upsert documents",
 						entity:   "line",
@@ -161,7 +161,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 
 				coordinatesKey := fmt.Sprintf("%s/%s.json", paths[3], coordinatesID)
 				if err := c.helper.uploadObject(ctx, coordinatesJSON, coordinatesKey); err != nil {
-					return &ErrorUploadObject{
+					return &UploadObjectError{
 						err:      err,
 						function: "upsert documents",
 						entity:   "coordinates",
@@ -186,7 +186,7 @@ func (c *Client) DeleteDocuments(ctx context.Context, documentKeys []string) err
 
 		documentKeysSubset := documentKeys[i:end]
 		if err := c.helper.deleteDocumentsByKeys(ctx, documentKeysSubset); err != nil {
-			return &ErrorDeleteDocumentsByKeys{
+			return &DeleteDocumentsByKeysError{
 				err: err,
 			}
 		}
@@ -200,7 +200,7 @@ func (c *Client) DeleteDocuments(ctx context.Context, documentKeys []string) err
 func (c *Client) QueryDocumentsByFQL(ctx context.Context, query []byte) ([]pars.Document, error) {
 	executionID, err := c.helper.executeQuery(ctx, query)
 	if err != nil {
-		return nil, &ErrorExecuteQuery{
+		return nil, &ExecuteQueryError{
 			err:      err,
 			function: "query documents",
 		}
@@ -208,7 +208,7 @@ func (c *Client) QueryDocumentsByFQL(ctx context.Context, query []byte) ([]pars.
 
 	documents, err := c.helper.getQueryResultDocuments(ctx, *executionID)
 	if err != nil {
-		return nil, &ErrorGetQueryResults{
+		return nil, &GetQueryResultsError{
 			err:         err,
 			function:    "query documents",
 			subfunction: "get query result documents",
@@ -223,7 +223,7 @@ func (c *Client) QueryDocumentsByFQL(ctx context.Context, query []byte) ([]pars.
 func (c *Client) QueryDocumentKeysByFileInfo(ctx context.Context, query []byte) ([]string, error) {
 	executionID, err := c.helper.executeQuery(ctx, query)
 	if err != nil {
-		return nil, &ErrorExecuteQuery{
+		return nil, &ExecuteQueryError{
 			err:      err,
 			function: "query documents",
 		}
@@ -231,7 +231,7 @@ func (c *Client) QueryDocumentKeysByFileInfo(ctx context.Context, query []byte) 
 
 	keys, err := c.helper.getQueryResultKeys(ctx, *executionID)
 	if err != nil {
-		return nil, &ErrorGetQueryResults{
+		return nil, &GetQueryResultsError{
 			err:         err,
 			function:    "query documents",
 			subfunction: "get query result keys",

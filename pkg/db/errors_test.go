@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestErrorAddFolder(t *testing.T) {
-	err := &ErrorAddFolder{
+func TestAddFolderError(t *testing.T) {
+	err := &AddFolderError{
 		err: errors.New("mock add folder error"),
 	}
 
@@ -18,8 +18,8 @@ func TestErrorAddFolder(t *testing.T) {
 	}
 }
 
-func TestErrorUploadObject(t *testing.T) {
-	err := &ErrorUploadObject{
+func TestUploadObjectError(t *testing.T) {
+	err := &UploadObjectError{
 		err:      errors.New("mock upload object error"),
 		function: "function",
 		entity:   "entity",
@@ -33,8 +33,8 @@ func TestErrorUploadObject(t *testing.T) {
 	}
 }
 
-func TestErrorExecuteQuery(t *testing.T) {
-	err := &ErrorExecuteQuery{
+func TestExecuteQueryError(t *testing.T) {
+	err := &ExecuteQueryError{
 		err:      errors.New("mock execute query error"),
 		function: "function",
 	}
@@ -47,8 +47,8 @@ func TestErrorExecuteQuery(t *testing.T) {
 	}
 }
 
-func TestErrorGetQueryResults(t *testing.T) {
-	err := &ErrorGetQueryResults{
+func TestGetQueryResultsError(t *testing.T) {
+	err := &GetQueryResultsError{
 		err:         errors.New("mock get query results error"),
 		function:    "function",
 		subfunction: "subfunction",
@@ -62,8 +62,8 @@ func TestErrorGetQueryResults(t *testing.T) {
 	}
 }
 
-func TestErrorDeleteDocumentsByKeys(t *testing.T) {
-	err := &ErrorDeleteDocumentsByKeys{
+func TestDeleteDocumentsByKeysError(t *testing.T) {
+	err := &DeleteDocumentsByKeysError{
 		err: errors.New("mock delete documents by keys error"),
 	}
 

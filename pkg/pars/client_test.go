@@ -43,7 +43,7 @@ func TestParse(t *testing.T) {
 			textractClientOutput: nil,
 			textractClientError:  errors.New("mock parse error"),
 			document:             Document{},
-			error:                &ErrorParseDocument{},
+			error:                &ParseDocumentError{},
 		},
 		{
 			description:          "no pages/lines returned",
@@ -114,7 +114,7 @@ func TestParse(t *testing.T) {
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *ErrorParseDocument:
+				case *ParseDocumentError:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}

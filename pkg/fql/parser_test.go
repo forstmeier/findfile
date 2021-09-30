@@ -16,7 +16,7 @@ func Test_parseFQL(t *testing.T) {
 		{
 			description: "invalid json body received",
 			input:       `{"search": {}}`,
-			error:       errorMissingText,
+			error:       errMissingText,
 		},
 		{
 			description: "successfull parse fql invocation",
@@ -63,7 +63,7 @@ func Test_validateSearchJSON(t *testing.T) {
 			input: search{
 				Text: "",
 			},
-			error: errorMissingText,
+			error: errMissingText,
 		},
 		{
 			description: "empty page number field",
@@ -71,7 +71,7 @@ func Test_validateSearchJSON(t *testing.T) {
 				Text:       "search value",
 				PageNumber: 0,
 			},
-			error: errorPageNumberZero,
+			error: errPageNumberZero,
 		},
 		{
 			description: "bottom right coordinates equal zero",
@@ -89,7 +89,7 @@ func Test_validateSearchJSON(t *testing.T) {
 					},
 				},
 			},
-			error: errorCoordinatesZero,
+			error: errCoordinatesZero,
 		},
 		{
 			description: "top left values equal bottom right values",
@@ -107,7 +107,7 @@ func Test_validateSearchJSON(t *testing.T) {
 					},
 				},
 			},
-			error: errorCoordinatesMisplaced,
+			error: errCoordinatesMisplaced,
 		},
 		{
 			description: "top left values greater than bottom right values",
@@ -125,7 +125,7 @@ func Test_validateSearchJSON(t *testing.T) {
 					},
 				},
 			},
-			error: errorCoordinatesMisplaced,
+			error: errCoordinatesMisplaced,
 		},
 		{
 			description: "successful invocation with correct fql query",

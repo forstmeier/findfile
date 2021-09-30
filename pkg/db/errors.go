@@ -4,53 +4,53 @@ import "fmt"
 
 const packageName = "db"
 
-// ErrorAddFolder wraps errors returned by db.helper.addFolder.
-type ErrorAddFolder struct {
+// AddFolderError wraps errors returned by db.helper.addFolder.
+type AddFolderError struct {
 	err error
 }
 
-func (e *ErrorAddFolder) Error() string {
+func (e *AddFolderError) Error() string {
 	return fmt.Sprintf("[%s] [setup database] [add folder]: %s", packageName, e.err.Error())
 }
 
-// ErrorUploadObject wraps errors returned by db.helper.uploadObject.
-type ErrorUploadObject struct {
+// UploadObjectError wraps errors returned by db.helper.uploadObject.
+type UploadObjectError struct {
 	err      error
 	function string
 	entity   string
 }
 
-func (e *ErrorUploadObject) Error() string {
+func (e *UploadObjectError) Error() string {
 	return fmt.Sprintf("[%s] [%s] [upload object] [entity: %s]: %s", packageName, e.function, e.entity, e.err.Error())
 }
 
-// ErrorExecuteQuery wraps errors returned by db.helper.executeQuery.
-type ErrorExecuteQuery struct {
+// ExecuteQueryError wraps errors returned by db.helper.executeQuery.
+type ExecuteQueryError struct {
 	err      error
 	function string
 }
 
-func (e *ErrorExecuteQuery) Error() string {
+func (e *ExecuteQueryError) Error() string {
 	return fmt.Sprintf("[%s] [%s] [execute query]: %s", packageName, e.function, e.err.Error())
 }
 
-// ErrorGetQueryResults wraps errors returned by db.helper.getQueryResultIDs
+// GetQueryResultsError wraps errors returned by db.helper.getQueryResultIDs
 // and helper.getQueryResultDocuments.
-type ErrorGetQueryResults struct {
+type GetQueryResultsError struct {
 	err         error
 	function    string
 	subfunction string
 }
 
-func (e *ErrorGetQueryResults) Error() string {
+func (e *GetQueryResultsError) Error() string {
 	return fmt.Sprintf("[%s] [%s] [%s]: %s", packageName, e.function, e.subfunction, e.err.Error())
 }
 
-// ErrorDeleteDocumentsByKeys wraps errors returned by db.helper.deleteDocumentsByKeys.
-type ErrorDeleteDocumentsByKeys struct {
+// DeleteDocumentsByKeysError wraps errors returned by db.helper.deleteDocumentsByKeys.
+type DeleteDocumentsByKeysError struct {
 	err error
 }
 
-func (e *ErrorDeleteDocumentsByKeys) Error() string {
+func (e *DeleteDocumentsByKeysError) Error() string {
 	return fmt.Sprintf("[%s] [delete documents] [delete documents by keys]: %s", packageName, e.err.Error())
 }

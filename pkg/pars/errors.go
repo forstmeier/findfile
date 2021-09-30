@@ -4,13 +4,13 @@ import "fmt"
 
 const packageName = "pars"
 
-// ErrorParseDocument wraps errors returned by
+// ParseDocumentError wraps errors returned by
 // textract.Textract.AnalyzeDocument in the pars.Parser.Parse
 // method.
-type ErrorParseDocument struct {
+type ParseDocumentError struct {
 	err error
 }
 
-func (e *ErrorParseDocument) Error() string {
+func (e *ParseDocumentError) Error() string {
 	return fmt.Sprintf("[%s] [parse document]: %s", packageName, e.err.Error())
 }

@@ -8,10 +8,10 @@ import (
 )
 
 var (
-	errorMissingText          = errors.New("search object must contain text")
-	errorPageNumberZero       = errors.New("search object page number must not be \"0\"")
-	errorCoordinatesZero      = errors.New("search object bottom coordinates cannot include zero")
-	errorCoordinatesMisplaced = errors.New("search object bottom coordinates cannot be greater than or equal to top coordinates")
+	errMissingText          = errors.New("search object must contain text")
+	errPageNumberZero       = errors.New("search object page number must not be \"0\"")
+	errCoordinatesZero      = errors.New("search object bottom coordinates cannot include zero")
+	errCoordinatesMisplaced = errors.New("search object bottom coordinates cannot be greater than or equal to top coordinates")
 )
 
 type body struct {
@@ -77,22 +77,22 @@ func parseFQL(ctx context.Context, fqlQuery []byte) ([]byte, error) {
 
 func validateSearchJSON(input search) error {
 	if input.Text == "" {
-		return errorMissingText
+		return errMissingText
 	}
 
 	if input.PageNumber == 0 {
-		return errorPageNumberZero
+		return errPageNumberZero
 	}
 
 	topLeft := input.Coordinates[0]
 	bottomRight := input.Coordinates[1]
 
 	if bottomRight[0] == 0 || bottomRight[1] == 0 {
-		return errorCoordinatesZero
+		return errCoordinatesZero
 	}
 
 	if topLeft[0] >= bottomRight[0] || topLeft[1] >= bottomRight[1] {
-		return errorCoordinatesMisplaced
+		return errCoordinatesMisplaced
 	}
 
 	return nil

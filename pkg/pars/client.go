@@ -45,7 +45,7 @@ func (c *Client) Parse(ctx context.Context, fileKey, fileBucket string) (*Docume
 
 	output, err := c.textractClient.DetectDocumentText(input)
 	if err != nil {
-		return nil, &ErrorParseDocument{err: err}
+		return nil, &ParseDocumentError{err: err}
 	}
 
 	document := c.convertToDocument(output, fileKey, fileBucket)

@@ -72,7 +72,7 @@ func TestSetupDatabase(t *testing.T) {
 		{
 			description:        "error adding folders to database",
 			mockAddFolderError: errors.New("mock add folder error"),
-			error:              &ErrorAddFolder{},
+			error:              &AddFolderError{},
 		},
 		{
 			description:        "successful invocation",
@@ -93,7 +93,7 @@ func TestSetupDatabase(t *testing.T) {
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *ErrorAddFolder:
+				case *AddFolderError:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
@@ -134,7 +134,7 @@ func TestUpsertDocuments(t *testing.T) {
 			uploadKeyToError:      fmt.Sprintf("documents/%s.json", documentID),
 			mockUploadObjectError: errors.New("mock upload object error"),
 			entity:                "document",
-			error:                 &ErrorUploadObject{},
+			error:                 &UploadObjectError{},
 		},
 		{
 			description: "error uploading page entity",
@@ -154,7 +154,7 @@ func TestUpsertDocuments(t *testing.T) {
 			uploadKeyToError:      fmt.Sprintf("pages/%s.json", pageID),
 			mockUploadObjectError: errors.New("mock upload object error"),
 			entity:                "page",
-			error:                 &ErrorUploadObject{},
+			error:                 &UploadObjectError{},
 		},
 		{
 			description: "error uploading line entity",
@@ -181,7 +181,7 @@ func TestUpsertDocuments(t *testing.T) {
 			uploadKeyToError:      fmt.Sprintf("lines/%s.json", lineID),
 			mockUploadObjectError: errors.New("mock upload object error"),
 			entity:                "line",
-			error:                 &ErrorUploadObject{},
+			error:                 &UploadObjectError{},
 		},
 		{
 			description: "successful upsert documents invocation",
@@ -225,13 +225,13 @@ func TestUpsertDocuments(t *testing.T) {
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *ErrorUploadObject:
+				case *UploadObjectError:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
 
-					if err.(*ErrorUploadObject).entity != test.entity {
-						t.Errorf("incorrect entity, received: %s, expected: %s", err.(*ErrorUploadObject).entity, test.entity)
+					if err.(*UploadObjectError).entity != test.entity {
+						t.Errorf("incorrect entity, received: %s, expected: %s", err.(*UploadObjectError).entity, test.entity)
 					}
 				default:
 					t.Fatalf("unexpected error type: %v", err)
@@ -254,7 +254,7 @@ func TestDeleteDocuments(t *testing.T) {
 		{
 			description:                    "error deleting documents by keys",
 			mockDeleteDocumentsByKeysError: errors.New("mock delete documents by keys error"),
-			error:                          &ErrorDeleteDocumentsByKeys{},
+			error:                          &DeleteDocumentsByKeysError{},
 		},
 		{
 			description:                    "successful delete documents invocation",
@@ -275,7 +275,7 @@ func TestDeleteDocuments(t *testing.T) {
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *ErrorDeleteDocumentsByKeys:
+				case *DeleteDocumentsByKeysError:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
@@ -308,7 +308,7 @@ func TestQueryDocumentsByFQL(t *testing.T) {
 			mockGetQueryResultDocumentsOutput: nil,
 			mockGetQueryResultDocumentsError:  nil,
 			documents:                         nil,
-			error:                             &ErrorExecuteQuery{},
+			error:                             &ExecuteQueryError{},
 		},
 		{
 			description:                       "error getting query result documents",
@@ -317,7 +317,7 @@ func TestQueryDocumentsByFQL(t *testing.T) {
 			mockGetQueryResultDocumentsOutput: nil,
 			mockGetQueryResultDocumentsError:  errors.New("mock get query result documents error"),
 			documents:                         nil,
-			error:                             &ErrorGetQueryResults{},
+			error:                             &GetQueryResultsError{},
 		},
 		{
 			description:                 "successful query documents invocation",
@@ -353,11 +353,11 @@ func TestQueryDocumentsByFQL(t *testing.T) {
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *ErrorExecuteQuery:
+				case *ExecuteQueryError:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
-				case *ErrorGetQueryResults:
+				case *GetQueryResultsError:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
@@ -392,7 +392,7 @@ func TestQueryDocumentKeysByFileInfo(t *testing.T) {
 			mockGetQueryResultKeysOutput: nil,
 			mockGetQueryResultKeysError:  nil,
 			keys:                         nil,
-			error:                        &ErrorExecuteQuery{},
+			error:                        &ExecuteQueryError{},
 		},
 		{
 			description:                  "error getting query result keys",
@@ -401,7 +401,7 @@ func TestQueryDocumentKeysByFileInfo(t *testing.T) {
 			mockGetQueryResultKeysOutput: nil,
 			mockGetQueryResultKeysError:  errors.New("mock get query result keys error"),
 			keys:                         nil,
-			error:                        &ErrorGetQueryResults{},
+			error:                        &GetQueryResultsError{},
 		},
 		{
 			description:                 "successful query keys invocation",
@@ -439,11 +439,11 @@ func TestQueryDocumentKeysByFileInfo(t *testing.T) {
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *ErrorExecuteQuery:
+				case *ExecuteQueryError:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
-				case *ErrorGetQueryResults:
+				case *GetQueryResultsError:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}

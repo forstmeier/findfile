@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestErrorParseDocument(t *testing.T) {
-	err := &ErrorParseDocument{err: errors.New("mock parse doc error")}
+func TestParseDocumentError(t *testing.T) {
+	err := &ParseDocumentError{err: errors.New("mock parse doc error")}
 
 	recieved := err.Error()
 	expected := "[pars] [parse document]: mock parse doc error"

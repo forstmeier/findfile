@@ -22,7 +22,7 @@ func New() *Client {
 func (c *Client) ConvertFQL(ctx context.Context, fqlQuery []byte) ([]byte, error) {
 	query, err := c.parseFQL(ctx, fqlQuery)
 	if err != nil {
-		return nil, &ErrorParseFQL{err: err}
+		return nil, &ParseFQLError{err: err}
 	}
 
 	return query, nil

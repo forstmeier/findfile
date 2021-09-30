@@ -26,7 +26,7 @@ func TestConvertFQL(t *testing.T) {
 			description: "error from parse fql helper function",
 			parseOutput: nil,
 			parseError:  errors.New("mock parse fql error"),
-			error:       &ErrorParseFQL{},
+			error:       &ParseFQLError{},
 		},
 		{
 			description: "successful convert fql invocation",
@@ -47,7 +47,7 @@ func TestConvertFQL(t *testing.T) {
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *ErrorParseFQL:
+				case *ParseFQLError:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
