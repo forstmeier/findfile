@@ -3,6 +3,7 @@
 /bin/bash ./bin/build_lambdas
 
 cp etc/scripts/* .
+cp etc/examples/* .
 
 CONFIG_DOCUMENT=$( jq -n \
 '{
@@ -17,6 +18,6 @@ CONFIG_DOCUMENT=$( jq -n \
 
 echo $CONFIG_DOCUMENT > config.json
 
-zip release.zip database.zip query.zip setup.zip start_api add_bucket cft.yaml config.json
+zip release.zip database.zip query.zip setup.zip start_api add_bucket generate_query cft.yaml config.json example.jpg
 
-rm database.zip query.zip setup.zip start_api add_bucket config.json
+rm database.zip query.zip setup.zip start_api add_bucket generate_query config.json example.jpg

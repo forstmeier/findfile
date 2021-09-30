@@ -4,8 +4,7 @@
 # stack into their account using the release
 # package from GitHub
 
-if [ $1 = "create_buckets" ];
-then
+if [[ $1 = "create_buckets" ]]; then
 	ID=$(uuidgen)
 	ID=${ID,,}
 

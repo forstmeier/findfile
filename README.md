@@ -28,8 +28,8 @@ Follow the steps below to configure the required CloudFormation resources in you
 	- `config.json`: configuration file with user-provided or generated information  
 	- `start_api`: a Bash script file used to launch the CloudFormation stack  
 	- `add_bucket`: a Bash script for adding user [S3 source buckets](####source-buket) to be listened to by the `findfile` service  
-		<!-- ADD NOTES FROM EXISTING README REGARDING POLICY OVERWRITES -->
 	- `generate_query`: a Bash script for generating cURL requests with correctly formatted FQL  
+	- `example.jpg`: a basic JPG file that can be uploaded to the user's source bucket for testing  
 - All Bash scripts are used to manage the `findfile` service and reference the `config.json` which should live in the same directory  
 
 ### Terminology
