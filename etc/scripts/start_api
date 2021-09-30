@@ -4,9 +4,33 @@
 # stack into their account using the release
 # package from GitHub
 
+if [ $1 = "create_buckets" ];
+then
+	ID=$(uuidgen)
+	ID=${ID,,}
+
+	DATABASE_BUCKET_NAME=findfile-database-$ID
+	ARTIFACT_BUCKET_NAME=findfile-artifact-$ID
+
+	echo $DATABASE_BUCKET_NAME
+	echo $ARTIFACT_BUCKET_NAME
+
+	REGION=$( aws configure get region )
+
+	aws s3api create-bucket --bucket $DATABASE_BUCKET_NAME --region $REGION
+	aws s3api create-bucket --bucket $ARTIFACT_BUCKET_NAME --region $REGION
+
+	CONTENT=$( cat config.json | jq \
+		--arg database_bucket_name "$DATABASE_BUCKET_NAME" \
+		--arg artifact_bucket_name "$ARTIFACT_BUCKET_NAME" \
+		'( .aws.s3.database_bucket |= $database_bucket_name | .aws.s3.artifact_bucket |= $artifact_bucket_name )' )
+
+	echo $CONTENT > config.json
+fi
+
 CONFIG_JSON=$( cat config.json | jq )
 
-STACK_NAME=$( jq -r  '.aws.cloudformation.stack_name' <<< "${CONFIG_JSON}" )
+STACK_NAME=findfile
 
 ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" )
 DATABASE_BUCKET=$( jq -r  '.aws.s3.database_bucket' <<< "${CONFIG_JSON}" )

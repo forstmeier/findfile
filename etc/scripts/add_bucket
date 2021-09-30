@@ -14,9 +14,7 @@ fi
 
 CONFIG_JSON=$( cat config.json | jq )
 
-STACK_NAME=$( jq -r  '.aws.cloudformation.stack_name' <<< "${CONFIG_JSON}" )
-
-STACKS_INFO=$(aws cloudformation describe-stacks --stack-name $STACK_NAME)
+STACKS_INFO=$(aws cloudformation describe-stacks --stack-name findfile)
 
 STACK_OUTPUTS=$( jq -r  '.Stacks[0].Outputs' <<< "${STACKS_INFO}" ) 
 

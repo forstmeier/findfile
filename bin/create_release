@@ -7,9 +7,6 @@ cp etc/scripts/* .
 CONFIG_DOCUMENT=$( jq -n \
 '{
 	"aws": {
-		"cloudformation": {
-			"stack_name": "findfile"
-		},
 		"s3": {
 			"artifact_bucket": "REPLACE",
 			"database_bucket": "REPLACE"

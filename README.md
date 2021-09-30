@@ -89,7 +89,17 @@ Follow the steps below to launch, configure, and interact with the `findfile` AP
 5. Run the `generate_query` script with the user-provided arguments in order to generate fully-formed and ready-to-use- cURL commands to run agains the `findfile` API  
 	a. First argument - _text_: a line of text enclosed in double quotes, example `"search for this text"`  
 	b. Second argument - _page number_: an integer, example `1`  
-	c. Third argument - _coordinates_: box quotes containing two box quotes enclosed in double quotes, example `[[0.0, 0.0], [0.5,0.5]]`  
+	c. Third argument - _coordinates_: box quotes containing two box quotes enclosed in double quotes, example `"[[0.0, 0.0], [0.5,0.5]]"`  
+
+An example series of commands:
+
+```bash
+>>> cd <path/to/download>
+>>> ./start_api create_buckets
+>>> ./add_buckets <your_source_bucket_name>
+>>> ./generate_query "search for this text" 1 "[[0.0, 0.0], [0.5,0.5]]"
+>>> curl -X POST <generated_url> --header "Content-Type: application/json" --header "x-findfile-security-key: <security_key>" --data '{"search": {"text": "search for this text", "page_number": 1, "coordinates": [[0.0,0.0], [0.5,0.5]]}}'
+```
 
 ### Notes
 
@@ -118,7 +128,7 @@ There are a few tools required to begin working on the `findfile` codebase. The 
 - [jq](https://stedolan.github.io/jq/) - version `jq-1.6`  
 - [AWS CLI](https://aws.amazon.com/cli/) - version `aws-cli/1.19.53 Python/3.8.10 Linux/5.11.0-36-generic botocore/1.20.53`  
 
-Scripts stored in the `bin/` folder are typically used for working with the `findfile` stack during development. A `config.json` file needs to be added to `etc/config/config.json` with user-provided pre-existing S3 buckets added to the respective `"REPLACE"` field values.  
+Scripts stored in the `bin/` folder are typically used for working with the `findfile` stack during development. A `config.json` file needs to be added at `etc/config/config.json` with user-provided pre-existing S3 buckets added to the respective `"REPLACE"` field values.  
 
 ```json
 {

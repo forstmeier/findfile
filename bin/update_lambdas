@@ -16,18 +16,20 @@ SETUP_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "SetupFunctionName")) | .
 DATABASE_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "DatabaseFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
 QUERY_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "QueryFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
 
+REGION=$( aws configure get region )
+
 aws lambda update-function-code \
 	--function-name $SETUP_FUNCTION_NAME \
 	--s3-bucket $ARTIFACT_BUCKET \
 	--s3-key setup.zip \
-	--region us-east-1
+	--region $REGION
 aws lambda update-function-code \
 	--function-name $DATABASE_FUNCTION_NAME \
 	--s3-bucket $ARTIFACT_BUCKET \
 	--s3-key database.zip \
-	--region us-east-1
+	--region $REGION
 aws lambda update-function-code \
 	--function-name $QUERY_FUNCTION_NAME \
 	--s3-bucket $ARTIFACT_BUCKET \
 	--s3-key query.zip \
-	--region us-east-1
+	--region $REGION
