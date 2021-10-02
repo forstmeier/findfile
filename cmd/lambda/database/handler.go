@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -14,12 +13,12 @@ import (
 	"github.com/forstmeier/findfile/util"
 )
 
-var (
-	errorParseFile       = errors.New("parse file error")
-	errorQueryDocuments  = errors.New("query documents error")
-	errorUpsertDocuments = errors.New("upsert documents error")
-	errorDeleteDocuments = errors.New("delete documents error")
-)
+// var (
+// 	errorParseFile       = errors.New("parse file error")
+// 	errorQueryDocuments  = errors.New("query documents error")
+// 	errorUpsertDocuments = errors.New("upsert documents error")
+// 	errorDeleteDocuments = errors.New("delete documents error")
+// )
 
 type fileInfo struct {
 	key    string
@@ -83,7 +82,7 @@ func handler(parsClient pars.Parser, dbClient db.Databaser) func(ctx context.Con
 			document, err := parsClient.Parse(ctx, file.key, file.bucket)
 			if err != nil {
 				util.Log("PARSE_ERROR", err.Error())
-				return errorParseFile
+				return err
 			}
 
 			upsertDocuments[i] = *document
@@ -102,7 +101,7 @@ func handler(parsClient pars.Parser, dbClient db.Databaser) func(ctx context.Con
 			queryDeleteDocumentKeys, err := dbClient.QueryDocumentKeysByFileInfo(ctx, []byte(query))
 			if err != nil {
 				util.Log("QUERY_DOCUMENTS", err.Error())
-				return errorQueryDocuments
+				return err
 			}
 
 			deleteDocumentKeys = append(deleteDocumentKeys, queryDeleteDocumentKeys...)
@@ -110,12 +109,12 @@ func handler(parsClient pars.Parser, dbClient db.Databaser) func(ctx context.Con
 
 		if err := dbClient.UpsertDocuments(ctx, upsertDocuments); err != nil {
 			util.Log("UPSERT_DOCUMENTS_ERROR", err.Error())
-			return errorUpsertDocuments
+			return err
 		}
 
 		if err := dbClient.DeleteDocuments(ctx, deleteDocumentKeys); err != nil {
 			util.Log("DELETE_DOCUMENTS_ERROR", err.Error())
-			return errorDeleteDocuments
+			return err
 		}
 
 		util.Log("RESPONSE_MESSAGE", "successful invocation")

@@ -229,10 +229,6 @@ func TestUpsertDocuments(t *testing.T) {
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
-
-					if err.(*UploadObjectError).entity != test.entity {
-						t.Errorf("incorrect entity, received: %s, expected: %s", err.(*UploadObjectError).entity, test.entity)
-					}
 				default:
 					t.Fatalf("unexpected error type: %v", err)
 				}

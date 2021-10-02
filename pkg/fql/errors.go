@@ -2,7 +2,7 @@ package fql
 
 import "fmt"
 
-const packageName = "fql"
+const errorMessage = "package fql: %s"
 
 // ParseFQLError wraps errors returned by fql.parseFQL in
 // the fql.FQLer.ConvertFQL method.
@@ -11,5 +11,5 @@ type ParseFQLError struct {
 }
 
 func (e *ParseFQLError) Error() string {
-	return fmt.Sprintf("[%s] [convert fql]: %s", packageName, e.err.Error())
+	return fmt.Sprintf(errorMessage, e.err.Error())
 }
