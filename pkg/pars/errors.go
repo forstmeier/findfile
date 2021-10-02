@@ -2,7 +2,7 @@ package pars
 
 import "fmt"
 
-const packageName = "pars"
+const errorMessage = "package pars: %s"
 
 // ParseDocumentError wraps errors returned by
 // textract.Textract.AnalyzeDocument in the pars.Parser.Parse
@@ -12,5 +12,5 @@ type ParseDocumentError struct {
 }
 
 func (e *ParseDocumentError) Error() string {
-	return fmt.Sprintf("[%s] [parse document]: %s", packageName, e.err.Error())
+	return fmt.Sprintf(errorMessage, e.err.Error())
 }

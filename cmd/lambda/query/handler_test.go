@@ -87,7 +87,7 @@ func Test_handler(t *testing.T) {
 			mockQueryDocumentsByFQLOutput: nil,
 			mockQueryDocumentsByFQLError:  nil,
 			statusCode:                    http.StatusBadRequest,
-			body:                          `{"error": "security key value incorrect"}`,
+			body:                          `{"error": "security key not_key incorrect"}`,
 		},
 		{
 			description: "unsupported http method",
@@ -102,7 +102,7 @@ func Test_handler(t *testing.T) {
 			mockQueryDocumentsByFQLOutput: nil,
 			mockQueryDocumentsByFQLError:  nil,
 			statusCode:                    http.StatusBadRequest,
-			body:                          `{"error": "http method [GET] not supported"}`,
+			body:                          `{"error": "http method GET not supported"}`,
 		},
 		{
 			description: "fql client error converting fql query",
@@ -118,7 +118,7 @@ func Test_handler(t *testing.T) {
 			mockQueryDocumentsByFQLOutput: nil,
 			mockQueryDocumentsByFQLError:  nil,
 			statusCode:                    http.StatusInternalServerError,
-			body:                          `{"error": "error converting fql to query"}`,
+			body:                          `{"error": "mock convert fql error"}`,
 		},
 		{
 			description: "error querying documents in database",
@@ -134,7 +134,7 @@ func Test_handler(t *testing.T) {
 			mockQueryDocumentsByFQLOutput: nil,
 			mockQueryDocumentsByFQLError:  errors.New("mock query documents error"),
 			statusCode:                    http.StatusInternalServerError,
-			body:                          `{"error": "error running query"}`,
+			body:                          `{"error": "mock query documents error"}`,
 		},
 		{
 			description: "successful handler invocation",

@@ -11,7 +11,7 @@ func TestAddFolderError(t *testing.T) {
 	}
 
 	recieved := err.Error()
-	expected := "[db] [setup database] [add folder]: mock add folder error"
+	expected := "package db: mock add folder error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
@@ -20,13 +20,11 @@ func TestAddFolderError(t *testing.T) {
 
 func TestUploadObjectError(t *testing.T) {
 	err := &UploadObjectError{
-		err:      errors.New("mock upload object error"),
-		function: "function",
-		entity:   "entity",
+		err: errors.New("mock upload object error"),
 	}
 
 	recieved := err.Error()
-	expected := "[db] [function] [upload object] [entity: entity]: mock upload object error"
+	expected := "package db: mock upload object error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
@@ -35,12 +33,11 @@ func TestUploadObjectError(t *testing.T) {
 
 func TestExecuteQueryError(t *testing.T) {
 	err := &ExecuteQueryError{
-		err:      errors.New("mock execute query error"),
-		function: "function",
+		err: errors.New("mock execute query error"),
 	}
 
 	recieved := err.Error()
-	expected := "[db] [function] [execute query]: mock execute query error"
+	expected := "package db: mock execute query error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
@@ -49,13 +46,11 @@ func TestExecuteQueryError(t *testing.T) {
 
 func TestGetQueryResultsError(t *testing.T) {
 	err := &GetQueryResultsError{
-		err:         errors.New("mock get query results error"),
-		function:    "function",
-		subfunction: "subfunction",
+		err: errors.New("mock get query results error"),
 	}
 
 	recieved := err.Error()
-	expected := "[db] [function] [subfunction]: mock get query results error"
+	expected := "package db: mock get query results error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
@@ -68,7 +63,7 @@ func TestDeleteDocumentsByKeysError(t *testing.T) {
 	}
 
 	recieved := err.Error()
-	expected := "[db] [delete documents] [delete documents by keys]: mock delete documents by keys error"
+	expected := "package db: mock delete documents by keys error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)

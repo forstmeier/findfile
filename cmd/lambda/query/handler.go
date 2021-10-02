@@ -20,7 +20,7 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 
 		httpSecurityKeyReceived, ok := request.Headers[httpSecurityHeader]
 		if !ok {
-			util.Log("SECURITY_KEY_HEADER_ERROR", fmt.Sprintf("security key header [%s] not provided", httpSecurityHeader))
+			util.Log("SECURITY_KEY_HEADER_ERROR", fmt.Sprintf("security key header %s not provided", httpSecurityHeader))
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
 				Body:       `{"error": "security key header not provided"}`,
@@ -28,18 +28,18 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 		}
 
 		if httpSecurityKeyReceived != httpSecurityKey {
-			util.Log("SECURITY_KEY_VALUE_ERROR", fmt.Sprintf("security key [%s] incorrect", httpSecurityKey))
+			util.Log("SECURITY_KEY_VALUE_ERROR", fmt.Sprintf("security key %s incorrect", httpSecurityKeyReceived))
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       `{"error": "security key value incorrect"}`,
+				Body:       fmt.Sprintf(`{"error": "security key %s incorrect"}`, httpSecurityKeyReceived),
 			}, nil
 		}
 
 		if request.HTTPMethod != http.MethodPost {
-			util.Log("HTTP_METHOD_ERROR", fmt.Sprintf("http method [%s] not supported", request.HTTPMethod))
+			util.Log("HTTP_METHOD_ERROR", fmt.Sprintf("http method %s not supported", request.HTTPMethod))
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       fmt.Sprintf(`{"error": "http method [%s] not supported"}`, request.HTTPMethod),
+				Body:       fmt.Sprintf(`{"error": "http method %s not supported"}`, request.HTTPMethod),
 			}, nil
 		}
 
@@ -48,7 +48,7 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 			util.Log("CONVERT_FQL_ERROR", err.Error())
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "error converting fql to query"}`,
+				Body:       fmt.Sprintf(`{"error": "%s"}`, err.Error()),
 			}, nil
 		}
 
@@ -57,7 +57,7 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 			util.Log("QUERY_DOCUMENTS_ERROR", err.Error())
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "error running query"}`,
+				Body:       fmt.Sprintf(`{"error": "%s"}`, err.Error()),
 			}, nil
 		}
 
@@ -83,7 +83,7 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 			util.Log("MARSHAL_OUTPUT_ERROR", err.Error())
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "error marshalling file information"}`,
+				Body:       fmt.Sprintf(`{"error": "%s"}`, err.Error()),
 			}, nil
 		}
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
+	"github.com/forstmeier/findfile/pkg/db"
 	"github.com/forstmeier/findfile/pkg/pars"
 )
 
@@ -98,7 +99,7 @@ func Test_handler(t *testing.T) {
 			mockDeleteDocumentsError:              nil,
 			parseFileKey:                          "key.jpg",
 			parseFileBucket:                       "bucket",
-			error:                                 errorParseFile,
+			error:                                 &pars.ParseDocumentError{},
 		},
 		{
 			description: "error query document keys by file info",
@@ -125,7 +126,7 @@ func Test_handler(t *testing.T) {
 			mockDeleteDocumentsError:              nil,
 			parseFileKey:                          "",
 			parseFileBucket:                       "",
-			error:                                 errorQueryDocuments,
+			error:                                 &db.ExecuteQueryError{},
 		},
 		{
 			description: "upsert documents method error",
@@ -152,7 +153,7 @@ func Test_handler(t *testing.T) {
 			mockDeleteDocumentsError:              nil,
 			parseFileKey:                          "key.jpg",
 			parseFileBucket:                       "bucket",
-			error:                                 errorUpsertDocuments,
+			error:                                 &db.UploadObjectError{},
 		},
 		{
 			description: "delete documents method error",
@@ -179,7 +180,7 @@ func Test_handler(t *testing.T) {
 			mockDeleteDocumentsError:              errors.New("delete documents mock error"),
 			parseFileKey:                          "",
 			parseFileBucket:                       "",
-			error:                                 errorDeleteDocuments,
+			error:                                 &db.DeleteDocumentsByKeysError{},
 		},
 		{
 			description: "successful database handler invocation",
@@ -239,8 +240,10 @@ func Test_handler(t *testing.T) {
 
 			err := handlerFunc(context.Background(), test.s3Event)
 
-			if err != test.error {
-				t.Errorf("incorrect error, received: %v, expected: %v", err, test.error)
+			if err != nil {
+				if !errors.As(err, &test.error) {
+					t.Errorf("incorrect error, received: %v, expected: %v", err, test.error)
+				}
 			}
 
 			if parsClient.mockParseFileKey != test.parseFileKey {

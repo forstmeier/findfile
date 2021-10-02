@@ -77,9 +77,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 		documentKey := fmt.Sprintf("%s/%s.json", paths[0], documentID)
 		if err := c.helper.uploadObject(ctx, documentJSON, documentKey); err != nil {
 			return &UploadObjectError{
-				err:      err,
-				function: "upsert documents",
-				entity:   "document",
+				err: err,
 			}
 		}
 
@@ -101,9 +99,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 			pageKey := fmt.Sprintf("%s/%s.json", paths[1], pageID)
 			if err := c.helper.uploadObject(ctx, pageJSON, pageKey); err != nil {
 				return &UploadObjectError{
-					err:      err,
-					function: "upsert documents",
-					entity:   "page",
+					err: err,
 				}
 			}
 
@@ -127,9 +123,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 				lineKey := fmt.Sprintf("%s/%s.json", paths[2], lineID)
 				if err := c.helper.uploadObject(ctx, lineJSON, lineKey); err != nil {
 					return &UploadObjectError{
-						err:      err,
-						function: "upsert documents",
-						entity:   "line",
+						err: err,
 					}
 				}
 
@@ -162,9 +156,7 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 				coordinatesKey := fmt.Sprintf("%s/%s.json", paths[3], coordinatesID)
 				if err := c.helper.uploadObject(ctx, coordinatesJSON, coordinatesKey); err != nil {
 					return &UploadObjectError{
-						err:      err,
-						function: "upsert documents",
-						entity:   "coordinates",
+						err: err,
 					}
 				}
 			}
@@ -201,17 +193,14 @@ func (c *Client) QueryDocumentsByFQL(ctx context.Context, query []byte) ([]pars.
 	executionID, err := c.helper.executeQuery(ctx, query)
 	if err != nil {
 		return nil, &ExecuteQueryError{
-			err:      err,
-			function: "query documents",
+			err: err,
 		}
 	}
 
 	documents, err := c.helper.getQueryResultDocuments(ctx, *executionID)
 	if err != nil {
 		return nil, &GetQueryResultsError{
-			err:         err,
-			function:    "query documents",
-			subfunction: "get query result documents",
+			err: err,
 		}
 	}
 
@@ -224,17 +213,14 @@ func (c *Client) QueryDocumentKeysByFileInfo(ctx context.Context, query []byte) 
 	executionID, err := c.helper.executeQuery(ctx, query)
 	if err != nil {
 		return nil, &ExecuteQueryError{
-			err:      err,
-			function: "query documents",
+			err: err,
 		}
 	}
 
 	keys, err := c.helper.getQueryResultKeys(ctx, *executionID)
 	if err != nil {
 		return nil, &GetQueryResultsError{
-			err:         err,
-			function:    "query documents",
-			subfunction: "get query result keys",
+			err: err,
 		}
 	}
 

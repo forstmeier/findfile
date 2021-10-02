@@ -56,7 +56,7 @@ func Test_handler(t *testing.T) {
 			event: cfn.Event{
 				RequestType: cfn.RequestDelete,
 			},
-			responseReason: "received non-create event type [Delete]",
+			responseReason: "received non-create event type Delete",
 		},
 		{
 			description:            "error setting up database",
@@ -65,7 +65,7 @@ func Test_handler(t *testing.T) {
 			event: cfn.Event{
 				RequestType: cfn.RequestCreate,
 			},
-			responseReason: "setup database error [mock setup database error]",
+			responseReason: "setup database error: mock setup database error",
 		},
 		{
 			description:            "error sending custom resource response",
@@ -74,7 +74,7 @@ func Test_handler(t *testing.T) {
 			event: cfn.Event{
 				RequestType: cfn.RequestCreate,
 			},
-			responseReason: "send response error [mock send response error]",
+			responseReason: "send response error: mock send response error",
 		},
 		{
 			description:            "successful handler invocation",

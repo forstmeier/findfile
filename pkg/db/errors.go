@@ -2,7 +2,7 @@ package db
 
 import "fmt"
 
-const packageName = "db"
+const errorMessage = "package db: %s"
 
 // AddFolderError wraps errors returned by db.helper.addFolder.
 type AddFolderError struct {
@@ -10,40 +10,35 @@ type AddFolderError struct {
 }
 
 func (e *AddFolderError) Error() string {
-	return fmt.Sprintf("[%s] [setup database] [add folder]: %s", packageName, e.err.Error())
+	return fmt.Sprintf(errorMessage, e.err.Error())
 }
 
 // UploadObjectError wraps errors returned by db.helper.uploadObject.
 type UploadObjectError struct {
-	err      error
-	function string
-	entity   string
+	err error
 }
 
 func (e *UploadObjectError) Error() string {
-	return fmt.Sprintf("[%s] [%s] [upload object] [entity: %s]: %s", packageName, e.function, e.entity, e.err.Error())
+	return fmt.Sprintf(errorMessage, e.err.Error())
 }
 
 // ExecuteQueryError wraps errors returned by db.helper.executeQuery.
 type ExecuteQueryError struct {
-	err      error
-	function string
+	err error
 }
 
 func (e *ExecuteQueryError) Error() string {
-	return fmt.Sprintf("[%s] [%s] [execute query]: %s", packageName, e.function, e.err.Error())
+	return fmt.Sprintf(errorMessage, e.err.Error())
 }
 
 // GetQueryResultsError wraps errors returned by db.helper.getQueryResultIDs
 // and helper.getQueryResultDocuments.
 type GetQueryResultsError struct {
-	err         error
-	function    string
-	subfunction string
+	err error
 }
 
 func (e *GetQueryResultsError) Error() string {
-	return fmt.Sprintf("[%s] [%s] [%s]: %s", packageName, e.function, e.subfunction, e.err.Error())
+	return fmt.Sprintf(errorMessage, e.err.Error())
 }
 
 // DeleteDocumentsByKeysError wraps errors returned by db.helper.deleteDocumentsByKeys.
@@ -52,5 +47,5 @@ type DeleteDocumentsByKeysError struct {
 }
 
 func (e *DeleteDocumentsByKeysError) Error() string {
-	return fmt.Sprintf("[%s] [delete documents] [delete documents by keys]: %s", packageName, e.err.Error())
+	return fmt.Sprintf(errorMessage, e.err.Error())
 }
