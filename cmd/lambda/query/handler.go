@@ -22,24 +22,27 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 		if !ok {
 			util.Log("SECURITY_KEY_HEADER_ERROR", fmt.Sprintf("security key header %s not provided", httpSecurityHeader))
 			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusBadRequest,
-				Body:       `{"error": "security key header not provided"}`,
+				StatusCode:      http.StatusBadRequest,
+				Body:            `{"error": "security key header not provided"}`,
+				IsBase64Encoded: false,
 			}, nil
 		}
 
 		if httpSecurityKeyReceived != httpSecurityKey {
 			util.Log("SECURITY_KEY_VALUE_ERROR", fmt.Sprintf("security key %s incorrect", httpSecurityKeyReceived))
 			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusBadRequest,
-				Body:       fmt.Sprintf(`{"error": "security key %s incorrect"}`, httpSecurityKeyReceived),
+				StatusCode:      http.StatusBadRequest,
+				Body:            fmt.Sprintf(`{"error": "security key %s incorrect"}`, httpSecurityKeyReceived),
+				IsBase64Encoded: false,
 			}, nil
 		}
 
 		if request.HTTPMethod != http.MethodPost {
 			util.Log("HTTP_METHOD_ERROR", fmt.Sprintf("http method %s not supported", request.HTTPMethod))
 			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusBadRequest,
-				Body:       fmt.Sprintf(`{"error": "http method %s not supported"}`, request.HTTPMethod),
+				StatusCode:      http.StatusBadRequest,
+				Body:            fmt.Sprintf(`{"error": "http method %s not supported"}`, request.HTTPMethod),
+				IsBase64Encoded: false,
 			}, nil
 		}
 
@@ -47,8 +50,9 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 		if err != nil {
 			util.Log("CONVERT_FQL_ERROR", err.Error())
 			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Body:       fmt.Sprintf(`{"error": "%s"}`, err.Error()),
+				StatusCode:      http.StatusInternalServerError,
+				Body:            fmt.Sprintf(`{"error": "%s"}`, err.Error()),
+				IsBase64Encoded: false,
 			}, nil
 		}
 
@@ -56,8 +60,9 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 		if err != nil {
 			util.Log("QUERY_DOCUMENTS_ERROR", err.Error())
 			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Body:       fmt.Sprintf(`{"error": "%s"}`, err.Error()),
+				StatusCode:      http.StatusInternalServerError,
+				Body:            fmt.Sprintf(`{"error": "%s"}`, err.Error()),
+				IsBase64Encoded: false,
 			}, nil
 		}
 
@@ -82,15 +87,17 @@ func handler(fqlClient fql.FQLer, dbClient db.Databaser, httpSecurityHeader, htt
 		if err != nil {
 			util.Log("MARSHAL_OUTPUT_ERROR", err.Error())
 			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Body:       fmt.Sprintf(`{"error": "%s"}`, err.Error()),
+				StatusCode:      http.StatusInternalServerError,
+				Body:            fmt.Sprintf(`{"error": "%s"}`, err.Error()),
+				IsBase64Encoded: false,
 			}, nil
 		}
 
 		util.Log("RESPONSE_BODY", string(outputBytes))
 		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusOK,
-			Body:       string(outputBytes),
+			StatusCode:      http.StatusOK,
+			Body:            string(outputBytes),
+			IsBase64Encoded: false,
 		}, nil
 	}
 }
