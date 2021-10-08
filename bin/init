@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -exou pipefail
+
+mkdir -p findfile-install
+cd findfile-install
+
+release_url=$(curl -s https://api.github.com/repos/forstmeier/findfile/releases/latest | jq -r '.assets[] | select(.name == "release.zip") | .browser_download_url')
+
+curl -L -o release.zip "$release_url"
+
+unzip release.zip

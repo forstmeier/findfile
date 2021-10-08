@@ -3,3 +3,6 @@ coverage.out
 
 # configuration
 etc/config/config.json
+
+# default install directory
+findfile-install
