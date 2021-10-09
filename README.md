@@ -21,6 +21,10 @@ Several packages are required for launching and managing the `findfile` stack.
 
 Follow the steps below to configure the required CloudFormation resources in your AWS account.  
 
+Run: `bash <(curl -s https://raw.githubusercontent.com/forstmeier/findfile/master/bin/init) | tee "init-$(date +%Y%m%d-%H%M).log"`
+
+OR
+
 - Download the most recent `release.zip` file from the [releases](https://github.com/forstmeier/findfile/releases) page  
 - Extract the contents below into your desired folder
 	- `cft.yaml`: the full CloudFormation template definition for the required AWS resources  
@@ -78,7 +82,7 @@ Below is an example full FQL request object.
 Follow the steps below to launch, configure, and interact with the `findfile` API.
 
 1. Navigate to the folder where you downloaded and extracted the `release.zip` file in the [installation](###installation) step  
-2. Update the `config.json` file with the required S3 bucket names  
+2. Update the `config.json` file with the required S3 bucket names
 	a. Option 1: update the `artifact_bucket` and `database_bucket` with pre-existing S3 buckets - this will allow `findfile` to upload artifacts and establish the database using the user-provided S3 buckets [1] [2]  
 	b. Option 2: run `start_api` with the argument `create_buckets` (e.g. `./start_api create_buckets`) and `findfile` will create S3 buckets in the users AWS account [2]  
 3. Run the `start_api` script which will upload the AWS Lambda source code zipped files and launch the full CloudFormation stack  
