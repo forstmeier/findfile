@@ -5,26 +5,65 @@ import (
 	"testing"
 )
 
-func TestAddFolderError(t *testing.T) {
-	err := &AddFolderError{
-		err: errors.New("mock add folder error"),
+func TestNewClientError(t *testing.T) {
+	err := &NewClientError{
+		err: errors.New("mock new client error"),
 	}
 
 	recieved := err.Error()
-	expected := "package db: mock add folder error"
+	expected := "package db: mock new client error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
 	}
 }
 
-func TestUploadObjectError(t *testing.T) {
-	err := &UploadObjectError{
-		err: errors.New("mock upload object error"),
+func TestMarshalDocumentError(t *testing.T) {
+	err := &MarshalDocumentError{
+		err: errors.New("mock marshal document error"),
 	}
 
 	recieved := err.Error()
-	expected := "package db: mock upload object error"
+	expected := "package db: mock marshal document error"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
+
+func TestWriteDocumentDataError(t *testing.T) {
+	err := &WriteDocumentDataError{
+		err: errors.New("mock write document data error"),
+	}
+
+	recieved := err.Error()
+	expected := "package db: mock write document data error"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
+
+func TestExecuteBulkError(t *testing.T) {
+	err := &ExecuteBulkError{
+		err: errors.New("mock execute bulk error"),
+	}
+
+	recieved := err.Error()
+	expected := "package db: mock execute bulk error"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
+
+func TestExecuteDeleteError(t *testing.T) {
+	err := &ExecuteDeleteError{
+		err: errors.New("mock execute delete error"),
+	}
+
+	recieved := err.Error()
+	expected := "package db: mock execute delete error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
@@ -44,26 +83,26 @@ func TestExecuteQueryError(t *testing.T) {
 	}
 }
 
-func TestGetQueryResultsError(t *testing.T) {
-	err := &GetQueryResultsError{
-		err: errors.New("mock get query results error"),
+func TestReadQueryResponseBodyError(t *testing.T) {
+	err := &ReadQueryResponseBodyError{
+		err: errors.New("mock read query response body error"),
 	}
 
 	recieved := err.Error()
-	expected := "package db: mock get query results error"
+	expected := "package db: mock read query response body error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
 	}
 }
 
-func TestDeleteDocumentsByKeysError(t *testing.T) {
-	err := &DeleteDocumentsByKeysError{
-		err: errors.New("mock delete documents by keys error"),
+func TestUnmarshalQueryResponseBodyError(t *testing.T) {
+	err := &UnmarshalQueryResponseBodyError{
+		err: errors.New("mock unmarshal query response body error"),
 	}
 
 	recieved := err.Error()
-	expected := "package db: mock delete documents by keys error"
+	expected := "package db: mock unmarshal query response body error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)

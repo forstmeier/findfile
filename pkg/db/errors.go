@@ -2,50 +2,83 @@ package db
 
 import "fmt"
 
-const errorMessage = "package db: %s"
+const errorMessage = "package db: %v"
 
-// AddFolderError wraps errors returned by db.helper.addFolder.
-type AddFolderError struct {
+// NewClientError wraps errors returned by db.New.
+type NewClientError struct {
 	err error
 }
 
-func (e *AddFolderError) Error() string {
-	return fmt.Sprintf(errorMessage, e.err.Error())
+func (e *NewClientError) Error() string {
+	return fmt.Sprintf(errorMessage, e.err)
 }
 
-// UploadObjectError wraps errors returned by db.helper.uploadObject.
-type UploadObjectError struct {
+// MarshalDocumentError wraps errors returned by json.Marshal
+// in db.Databaser.UpsertDocuments.
+type MarshalDocumentError struct {
 	err error
 }
 
-func (e *UploadObjectError) Error() string {
-	return fmt.Sprintf(errorMessage, e.err.Error())
+func (e *MarshalDocumentError) Error() string {
+	return fmt.Sprintf(errorMessage, e.err)
 }
 
-// ExecuteQueryError wraps errors returned by db.helper.executeQuery.
+// WriteDocumentDataError wraps errors returned by
+// bytes.Buffer.Write in db.Databaser.UpsertDocuments.
+type WriteDocumentDataError struct {
+	err error
+}
+
+func (e *WriteDocumentDataError) Error() string {
+	return fmt.Sprintf(errorMessage, e.err)
+}
+
+// ExecuteBulkError wraps errors returned by db.helper.executeBulk
+// in db.Databaser.UpsertDocuments.
+type ExecuteBulkError struct {
+	err error
+}
+
+func (e *ExecuteBulkError) Error() string {
+	return fmt.Sprintf(errorMessage, e.err)
+}
+
+// ExecuteDeleteError wraps errors returned by db.helper.executeDelete
+// in db.Databaser.DeleteDocuments.
+type ExecuteDeleteError struct {
+	err error
+}
+
+func (e *ExecuteDeleteError) Error() string {
+	return fmt.Sprintf(errorMessage, e.err)
+}
+
+// ExecuteQueryError wraps errors returned by db.helper.executeQuery
+// in db.Databaser.QueryDocuments.
 type ExecuteQueryError struct {
 	err error
 }
 
 func (e *ExecuteQueryError) Error() string {
-	return fmt.Sprintf(errorMessage, e.err.Error())
+	return fmt.Sprintf(errorMessage, e.err)
 }
 
-// GetQueryResultsError wraps errors returned by db.helper.getQueryResultIDs
-// and helper.getQueryResultDocuments.
-type GetQueryResultsError struct {
+// ReadQueryResponseBodyError wraps errors returned by io.ReadAll
+// in db.Databaser.QueryDocuments.
+type ReadQueryResponseBodyError struct {
 	err error
 }
 
-func (e *GetQueryResultsError) Error() string {
-	return fmt.Sprintf(errorMessage, e.err.Error())
+func (e *ReadQueryResponseBodyError) Error() string {
+	return fmt.Sprintf(errorMessage, e.err)
 }
 
-// DeleteDocumentsByKeysError wraps errors returned by db.helper.deleteDocumentsByKeys.
-type DeleteDocumentsByKeysError struct {
+// UnmarshalQueryResponseBodyError wraps errors returned by json.Unmarshal
+// in db.Databaser.QueryDocuments.
+type UnmarshalQueryResponseBodyError struct {
 	err error
 }
 
-func (e *DeleteDocumentsByKeysError) Error() string {
-	return fmt.Sprintf(errorMessage, e.err.Error())
+func (e *UnmarshalQueryResponseBodyError) Error() string {
+	return fmt.Sprintf(errorMessage, e.err)
 }

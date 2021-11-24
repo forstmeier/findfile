@@ -3,229 +3,111 @@ package db
 import (
 	"context"
 	"errors"
-	"fmt"
+	"io"
+	"reflect"
+	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
 
 	"github.com/forstmeier/findfile/pkg/pars"
 )
 
-type mockHelper struct {
-	query                             []byte
-	uploadKeyToError                  string
-	mockUploadObjectError             error
-	mockDeleteDocumentsByKeysError    error
-	mockExecuteQueryExecutionID       *string
-	mockExecuteQueryError             error
-	mockGetQueryResultDocumentsOutput []pars.Document
-	mockGetQueryResultDocumentsError  error
-	mockGetQueryResultKeysOutput      []string
-	mockGetQueryResultKeysError       error
-	mockAddFolderError                error
-}
-
-func (m *mockHelper) uploadObject(ctx context.Context, body interface{}, key string) error {
-	if m.uploadKeyToError == key {
-		return m.mockUploadObjectError
-	}
-
-	return nil
-}
-
-func (m *mockHelper) deleteDocumentsByKeys(ctx context.Context, keys []string) error {
-	return m.mockDeleteDocumentsByKeysError
-}
-
-func (m *mockHelper) executeQuery(ctx context.Context, query []byte) (*string, error) {
-	m.query = query
-
-	return m.mockExecuteQueryExecutionID, m.mockExecuteQueryError
-}
-
-func (m *mockHelper) getQueryResultDocuments(ctx context.Context, executionID string) ([]pars.Document, error) {
-	return m.mockGetQueryResultDocumentsOutput, m.mockGetQueryResultDocumentsError
-}
-
-func (m *mockHelper) getQueryResultKeys(ctx context.Context, executionID string) ([]string, error) {
-	return m.mockGetQueryResultKeysOutput, m.mockGetQueryResultKeysError
-}
-
-func (m *mockHelper) addFolder(ctx context.Context, folder string) error {
-	return m.mockAddFolderError
-}
-
 func TestNew(t *testing.T) {
-	client := New(session.New(), "database", "bucket")
+	client, err := New(session.New())
+	if err != nil {
+		t.Errorf("incorrect error, received: %v, expected: nil", err)
+	}
+
 	if client == nil {
-		t.Error("error creating database client")
+		t.Error("error creating parser client")
 	}
 }
 
-func TestSetupDatabase(t *testing.T) {
-	tests := []struct {
-		description        string
-		mockAddFolderError error
-		error              error
-	}{
-		{
-			description:        "error adding folders to database",
-			mockAddFolderError: errors.New("mock add folder error"),
-			error:              &AddFolderError{},
-		},
-		{
-			description:        "successful invocation",
-			mockAddFolderError: nil,
-			error:              nil,
-		},
-	}
+type mockHelper struct {
+	mockExecuteIndexMappingOutput *esapi.Response
+	mockExecuteIndexMappingError  error
+	mockExecuteBulkBody           io.Reader
+	mockExecuteBulkOutput         *esapi.Response
+	mockExecuteBulkError          error
+	mockExecuteDeleteBody         io.Reader
+	mockExecuteDeleteOutput       *esapi.Response
+	mockExecuteDeleteError        error
+	mockExecuteQueryBody          io.Reader
+	mockExecuteQueryOutput        *esapi.Response
+	mockExecuteQueryError         error
+}
 
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			client := &Client{
-				helper: &mockHelper{
-					mockAddFolderError: test.mockAddFolderError,
-				},
-			}
+func (mh *mockHelper) executeIndexMapping(ctx context.Context, request *esapi.IndicesPutMappingRequest) (*esapi.Response, error) {
+	return mh.mockExecuteIndexMappingOutput, mh.mockExecuteIndexMappingError
+}
 
-			err := client.SetupDatabase(context.Background())
+func (mh *mockHelper) executeBulk(ctx context.Context, request *esapi.BulkRequest) (*esapi.Response, error) {
+	mh.mockExecuteBulkBody = request.Body
+	return mh.mockExecuteBulkOutput, mh.mockExecuteBulkError
+}
 
-			if err != nil {
-				switch e := test.error.(type) {
-				case *AddFolderError:
-					if !errors.As(err, &e) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
-					}
-				default:
-					t.Fatalf("unexpected error type: %v", err)
-				}
-			} else {
-				if test.error != nil {
-					t.Errorf("incorrect error, received: nil, expected: %s", test.error.Error())
-				}
-			}
-		})
-	}
+func (mh *mockHelper) executeDelete(ctx context.Context, request *esapi.DeleteByQueryRequest) (*esapi.Response, error) {
+	mh.mockExecuteDeleteBody = request.Body
+	return mh.mockExecuteDeleteOutput, mh.mockExecuteDeleteError
+}
+
+func (mh *mockHelper) executeQuery(ctx context.Context, request *esapi.SearchRequest) (*esapi.Response, error) {
+	mh.mockExecuteQueryBody = request.Body
+	return mh.mockExecuteQueryOutput, mh.mockExecuteQueryError
 }
 
 func TestUpsertDocuments(t *testing.T) {
-	documentID := "document_id"
-	pageID := "page_id"
-	lineID := "line_id"
-
 	tests := []struct {
 		description           string
-		documents             []pars.Document
-		uploadKeyToError      string
-		mockUploadObjectError error
-		entity                string
+		mockExecuteBulkBody   string
+		mockExecuteBulkOutput *esapi.Response
+		mockExecuteBulkError  error
 		error                 error
 	}{
 		{
-			description: "error uploading document entity",
-			documents: []pars.Document{
-				{
-					ID:         documentID,
-					FileKey:    "key.jpg",
-					FileBucket: "bucket",
-				},
+			description:         "error executing bulk request",
+			mockExecuteBulkBody: "",
+			mockExecuteBulkOutput: &esapi.Response{
+				StatusCode: 300,
 			},
-			uploadKeyToError:      fmt.Sprintf("documents/%s.json", documentID),
-			mockUploadObjectError: errors.New("mock upload object error"),
-			entity:                "document",
-			error:                 &UploadObjectError{},
+			mockExecuteBulkError: errors.New("mock execute bulk error"),
+			error:                &ExecuteBulkError{},
 		},
 		{
-			description: "error uploading page entity",
-			documents: []pars.Document{
-				{
-					ID:         documentID,
-					FileKey:    "key.jpg",
-					FileBucket: "bucket",
-					Pages: []pars.Page{
-						{
-							ID:         pageID,
-							PageNumber: 1,
-						},
-					},
-				},
+			description: "successful invocation",
+			mockExecuteBulkBody: `{ "index": { "_id": "doc_id" } }
+{"id":"doc_id","entity":"","file_bucket":"","file_key":"","pages":null}
+`,
+			mockExecuteBulkOutput: &esapi.Response{
+				StatusCode: 200,
 			},
-			uploadKeyToError:      fmt.Sprintf("pages/%s.json", pageID),
-			mockUploadObjectError: errors.New("mock upload object error"),
-			entity:                "page",
-			error:                 &UploadObjectError{},
-		},
-		{
-			description: "error uploading line entity",
-			documents: []pars.Document{
-				{
-					ID:         documentID,
-					FileKey:    "key.jpg",
-					FileBucket: "bucket",
-					Pages: []pars.Page{
-						{
-							ID:         pageID,
-							PageNumber: 1,
-							Lines: []pars.Line{
-								{
-									ID:          lineID,
-									Text:        "text",
-									Coordinates: pars.Coordinates{},
-								},
-							},
-						},
-					},
-				},
-			},
-			uploadKeyToError:      fmt.Sprintf("lines/%s.json", lineID),
-			mockUploadObjectError: errors.New("mock upload object error"),
-			entity:                "line",
-			error:                 &UploadObjectError{},
-		},
-		{
-			description: "successful upsert documents invocation",
-			documents: []pars.Document{
-				{
-					ID:         documentID,
-					FileKey:    "key.jpg",
-					FileBucket: "bucket",
-					Pages: []pars.Page{
-						{
-							ID:         pageID,
-							PageNumber: 1,
-							Lines: []pars.Line{
-								{
-									ID:          lineID,
-									Text:        "text",
-									Coordinates: pars.Coordinates{},
-								},
-							},
-						},
-					},
-				},
-			},
-			uploadKeyToError:      "",
-			mockUploadObjectError: nil,
-			entity:                "",
-			error:                 nil,
+			mockExecuteBulkError: nil,
+			error:                nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			client := &Client{
-				helper: &mockHelper{
-					uploadKeyToError:      test.uploadKeyToError,
-					mockUploadObjectError: test.mockUploadObjectError,
-				},
+			h := &mockHelper{
+				mockExecuteBulkOutput: test.mockExecuteBulkOutput,
+				mockExecuteBulkError:  test.mockExecuteBulkError,
 			}
 
-			err := client.UpsertDocuments(context.Background(), test.documents)
+			c := &Client{
+				helper: h,
+			}
+
+			err := c.UpsertDocuments(context.Background(), []pars.Document{
+				{
+					ID: "doc_id",
+				},
+			})
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *UploadObjectError:
+				case *ExecuteBulkError:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
@@ -233,8 +115,13 @@ func TestUpsertDocuments(t *testing.T) {
 					t.Fatalf("unexpected error type: %v", err)
 				}
 			} else {
-				if err != test.error {
-					t.Errorf("incorrect error, received: %v, expected: %v", err, test.error)
+				mockExecuteBulkBody, err := io.ReadAll(c.helper.(*mockHelper).mockExecuteBulkBody)
+				if err != nil {
+					t.Fatalf("error reading body: %v", err)
+				}
+
+				if string(mockExecuteBulkBody) != test.mockExecuteBulkBody {
+					t.Errorf("incorrect body, received: %s, expected: %s", mockExecuteBulkBody, test.mockExecuteBulkBody)
 				}
 			}
 		})
@@ -243,35 +130,48 @@ func TestUpsertDocuments(t *testing.T) {
 
 func TestDeleteDocuments(t *testing.T) {
 	tests := []struct {
-		description                    string
-		mockDeleteDocumentsByKeysError error
-		error                          error
+		description             string
+		mockExecuteDeleteBody   string
+		mockExecuteDeleteOutput *esapi.Response
+		mockExecuteDeleteError  error
+		error                   error
 	}{
 		{
-			description:                    "error deleting documents by keys",
-			mockDeleteDocumentsByKeysError: errors.New("mock delete documents by keys error"),
-			error:                          &DeleteDocumentsByKeysError{},
+			description:           "error executing delete request",
+			mockExecuteDeleteBody: "",
+			mockExecuteDeleteOutput: &esapi.Response{
+				StatusCode: 300,
+			},
+			mockExecuteDeleteError: errors.New("mock execute delete error"),
+			error:                  &ExecuteDeleteError{},
 		},
 		{
-			description:                    "successful delete documents invocation",
-			mockDeleteDocumentsByKeysError: nil,
-			error:                          nil,
+			description:           "successful invocation",
+			mockExecuteDeleteBody: `{ "query": { "bool": { "minimum_should_match": 1, "should": [ { "match": { "file_bucket": "bucket", "file_key": "key.jpeg" } } ] } } }`,
+			mockExecuteDeleteOutput: &esapi.Response{
+				StatusCode: 200,
+			},
+			mockExecuteDeleteError: nil,
+			error:                  nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			client := &Client{
-				helper: &mockHelper{
-					mockDeleteDocumentsByKeysError: test.mockDeleteDocumentsByKeysError,
-				},
+			h := &mockHelper{
+				mockExecuteDeleteOutput: test.mockExecuteDeleteOutput,
+				mockExecuteDeleteError:  test.mockExecuteDeleteError,
 			}
 
-			err := client.DeleteDocuments(context.Background(), []string{"document_id"})
+			c := &Client{
+				helper: h,
+			}
+
+			err := c.DeleteDocuments(context.Background(), []string{"bucket/key.jpeg"})
 
 			if err != nil {
 				switch e := test.error.(type) {
-				case *DeleteDocumentsByKeysError:
+				case *ExecuteDeleteError:
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
@@ -279,55 +179,48 @@ func TestDeleteDocuments(t *testing.T) {
 					t.Fatalf("unexpected error type: %v", err)
 				}
 			} else {
-				if err != test.error {
-					t.Errorf("incorrect error, received: %v, expected: %v", err, test.error)
+				mockExecuteDeleteBody, err := io.ReadAll(c.helper.(*mockHelper).mockExecuteDeleteBody)
+				if err != nil {
+					t.Fatalf("error reading body: %v", err)
+				}
+
+				if string(mockExecuteDeleteBody) != test.mockExecuteDeleteBody {
+					t.Errorf("incorrect body, received: %s, expected: %s", mockExecuteDeleteBody, test.mockExecuteDeleteBody)
 				}
 			}
 		})
 	}
 }
 
-func TestQueryDocumentsByFQL(t *testing.T) {
+func TestQueryDocuments(t *testing.T) {
 	tests := []struct {
-		description                       string
-		mockExecuteQueryExecutionID       *string
-		mockExecuteQueryError             error
-		mockGetQueryResultDocumentsOutput []pars.Document
-		mockGetQueryResultDocumentsError  error
-		documents                         []pars.Document
-		error                             error
+		description            string
+		mockExecuteQueryBody   string
+		mockExecuteQueryOutput *esapi.Response
+		mockExecuteQueryError  error
+		documents              []pars.Document
+		error                  error
 	}{
 		{
-			description:                       "error executing query",
-			mockExecuteQueryExecutionID:       nil,
-			mockExecuteQueryError:             errors.New("mock execute query error"),
-			mockGetQueryResultDocumentsOutput: nil,
-			mockGetQueryResultDocumentsError:  nil,
-			documents:                         nil,
-			error:                             &ExecuteQueryError{},
-		},
-		{
-			description:                       "error getting query result documents",
-			mockExecuteQueryExecutionID:       aws.String("execution_id"),
-			mockExecuteQueryError:             nil,
-			mockGetQueryResultDocumentsOutput: nil,
-			mockGetQueryResultDocumentsError:  errors.New("mock get query result documents error"),
-			documents:                         nil,
-			error:                             &GetQueryResultsError{},
-		},
-		{
-			description:                 "successful query documents invocation",
-			mockExecuteQueryExecutionID: aws.String("execution_id"),
-			mockExecuteQueryError:       nil,
-			mockGetQueryResultDocumentsOutput: []pars.Document{
-				{
-					Entity: "document",
-				},
+			description:          "error executing query request",
+			mockExecuteQueryBody: "",
+			mockExecuteQueryOutput: &esapi.Response{
+				StatusCode: 300,
 			},
-			mockGetQueryResultDocumentsError: nil,
+			mockExecuteQueryError: errors.New("mock execute query error"),
+			error:                 &ExecuteQueryError{},
+		},
+		{
+			description:          "successful invocation",
+			mockExecuteQueryBody: `{ "query": { "nested": { "path": "pages.lines", "query": { "match": { "lines.text": "example text" } } } } }`,
+			mockExecuteQueryOutput: &esapi.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader(`{ "hits": { "hits": [ { "id": "doc_id" } ] } }`)),
+			},
+			mockExecuteQueryError: nil,
 			documents: []pars.Document{
 				{
-					Entity: "document",
+					ID: "doc_id",
 				},
 			},
 			error: nil,
@@ -336,16 +229,18 @@ func TestQueryDocumentsByFQL(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			client := &Client{
-				helper: &mockHelper{
-					mockExecuteQueryExecutionID:       test.mockExecuteQueryExecutionID,
-					mockExecuteQueryError:             test.mockExecuteQueryError,
-					mockGetQueryResultDocumentsOutput: test.mockGetQueryResultDocumentsOutput,
-					mockGetQueryResultDocumentsError:  test.mockGetQueryResultDocumentsError,
-				},
+			h := &mockHelper{
+				mockExecuteQueryOutput: test.mockExecuteQueryOutput,
+				mockExecuteQueryError:  test.mockExecuteQueryError,
 			}
 
-			documents, err := client.QueryDocumentsByFQL(context.Background(), []byte("query"))
+			c := &Client{
+				helper: h,
+			}
+
+			documents, err := c.QueryDocuments(context.Background(), Query{
+				Text: "example text",
+			})
 
 			if err != nil {
 				switch e := test.error.(type) {
@@ -353,108 +248,21 @@ func TestQueryDocumentsByFQL(t *testing.T) {
 					if !errors.As(err, &e) {
 						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
 					}
-				case *GetQueryResultsError:
-					if !errors.As(err, &e) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
-					}
 				default:
 					t.Fatalf("unexpected error type: %v", err)
 				}
 			} else {
-				receivedEntity := documents[0].Entity
-				expectedEntity := test.documents[0].Entity
-				if receivedEntity != expectedEntity {
-					t.Errorf("incorrect entity, received: %s, expected: %s", receivedEntity, expectedEntity)
-				}
-			}
-		})
-	}
-}
-
-func TestQueryDocumentKeysByFileInfo(t *testing.T) {
-	tests := []struct {
-		description                  string
-		mockExecuteQueryExecutionID  *string
-		mockExecuteQueryError        error
-		mockGetQueryResultKeysOutput []string
-		mockGetQueryResultKeysError  error
-		keys                         []string
-		error                        error
-	}{
-		{
-			description:                  "error executing query",
-			mockExecuteQueryExecutionID:  nil,
-			mockExecuteQueryError:        errors.New("mock execute query error"),
-			mockGetQueryResultKeysOutput: nil,
-			mockGetQueryResultKeysError:  nil,
-			keys:                         nil,
-			error:                        &ExecuteQueryError{},
-		},
-		{
-			description:                  "error getting query result keys",
-			mockExecuteQueryExecutionID:  aws.String("execution_id"),
-			mockExecuteQueryError:        nil,
-			mockGetQueryResultKeysOutput: nil,
-			mockGetQueryResultKeysError:  errors.New("mock get query result keys error"),
-			keys:                         nil,
-			error:                        &GetQueryResultsError{},
-		},
-		{
-			description:                 "successful query keys invocation",
-			mockExecuteQueryExecutionID: aws.String("execution_id"),
-			mockExecuteQueryError:       nil,
-			mockGetQueryResultKeysOutput: []string{
-				"documents/document_id.json",
-				"pages/page_id.json",
-				"lines/line_id.json",
-				"coordinates/coordinates_id.json",
-			},
-			mockGetQueryResultKeysError: nil,
-			keys: []string{
-				"documents/document_id.json",
-				"pages/page_id.json",
-				"lines/line_id.json",
-				"coordinates/coordinates_id.json",
-			},
-			error: nil,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			client := &Client{
-				helper: &mockHelper{
-					mockExecuteQueryExecutionID:  test.mockExecuteQueryExecutionID,
-					mockExecuteQueryError:        test.mockExecuteQueryError,
-					mockGetQueryResultKeysOutput: test.mockGetQueryResultKeysOutput,
-					mockGetQueryResultKeysError:  test.mockGetQueryResultKeysError,
-				},
-			}
-
-			keys, err := client.QueryDocumentKeysByFileInfo(context.Background(), []byte("query"))
-
-			if err != nil {
-				switch e := test.error.(type) {
-				case *ExecuteQueryError:
-					if !errors.As(err, &e) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
-					}
-				case *GetQueryResultsError:
-					if !errors.As(err, &e) {
-						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
-					}
-				default:
-					t.Fatalf("unexpected error type: %v", err)
-				}
-			} else {
-				if len(keys) != len(test.keys) {
-					t.Errorf("incorrect keys count, received: %d, expected: %d", len(keys), len(test.keys))
+				mockExecuteQueryBody, err := io.ReadAll(c.helper.(*mockHelper).mockExecuteQueryBody)
+				if err != nil {
+					t.Fatalf("error reading body: %v", err)
 				}
 
-				for i, key := range keys {
-					if key != test.keys[i] {
-						t.Errorf("incorrect key, received: %s, expected: %s", key, test.keys[i])
-					}
+				if string(mockExecuteQueryBody) != test.mockExecuteQueryBody {
+					t.Errorf("incorrect body, received: %s, expected: %s", mockExecuteQueryBody, test.mockExecuteQueryBody)
+				}
+
+				if !reflect.DeepEqual(documents, test.documents) {
+					t.Errorf("incorrect documents, received: %+v, expected: %+v", documents, test.documents)
 				}
 			}
 		})

@@ -1,165 +1,87 @@
 package db
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/athena"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
 
 	"github.com/forstmeier/findfile/pkg/pars"
 )
 
-var paths = []string{
-	"documents",
-	"pages",
-	"lines",
-	"coordinates",
-}
-
 var _ Databaser = &Client{}
 
-// Client implements the db.Databaser methods using AWS Athena
-// and AWS S3.
+// Query holds the fields required for building an OpenSearch query
+// from the values provided by the user.
+type Query struct {
+	Text string `json:"text"`
+}
+
+// Client implements the db.Databaser methods using AWS OpenSearch.
 type Client struct {
 	helper helper
 }
 
-// New generates a db.Client pointer instance with AWS Athena,
-// AWS S3, and AWS Glue clients.
-func New(newSession *session.Session, databaseName, databaseBucket string) *Client {
-	return &Client{
-		helper: &help{
-			databaseName:   databaseName,
-			databaseBucket: databaseBucket,
-			athenaClient:   athena.New(newSession),
-			s3Client:       s3.New(newSession),
-		},
-	}
-}
-
-// SetupDatabase implements the db.Databaser.SetupDatabase method
-// using AWS S3 and AWS Glue.
-func (c *Client) SetupDatabase(ctx context.Context) error {
-	for _, path := range paths {
-		if err := c.helper.addFolder(ctx, path+"/"); err != nil {
-			return &AddFolderError{
-				err: err,
-			}
+// New generates a db.Client pointer instance with AWS OpenSearch.
+func New(newSession *session.Session) (*Client, error) {
+	elasticsearchClient, err := elasticsearch.NewDefaultClient()
+	if err != nil {
+		return nil, &NewClientError{
+			err: err,
 		}
 	}
 
+	return &Client{
+		helper: &help{
+			elasticsearchClient: elasticsearchClient,
+		},
+	}, nil
+}
+
+// SetupDatabase implements the db.Databaser.SetupDatabase method
+// using AWS OpenSearch.
+func (c *Client) SetupDatabase(ctx context.Context) error {
+	// NOTE: this may be where domain index
+	// mapping configuration is applied
 	return nil
 }
 
 // UpsertDocuments implements the db.Databaser.UpsertDocuments method
-// using AWS S3.
-//
-// Note that JSON objects stored in S3 must be represented in a single line
-// in their respective files in order for Athena to be able to query correctly.
+// using AWS OpenSearch.
 func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document) error {
+	var body bytes.Buffer
 	for _, document := range documents {
-		documentID := document.ID
+		metadata := fmt.Sprintf(`{ "index": { "_id": "%s" } }`, document.ID)
+		body.WriteString(metadata + "\n")
 
-		documentJSON := struct {
-			ID         string `json:"id"`
-			Entity     string `json:"entity"`
-			FileKey    string `json:"file_key"`
-			FileBucket string `json:"file_bucket"`
-		}{
-			ID:         documentID,
-			Entity:     "document",
-			FileKey:    document.FileKey,
-			FileBucket: document.FileBucket,
-		}
-
-		documentKey := fmt.Sprintf("%s/%s.json", paths[0], documentID)
-		if err := c.helper.uploadObject(ctx, documentJSON, documentKey); err != nil {
-			return &UploadObjectError{
+		data, err := json.Marshal(document)
+		if err != nil {
+			return &MarshalDocumentError{
 				err: err,
 			}
 		}
 
-		for _, page := range document.Pages {
-			pageID := page.ID
-
-			pageJSON := struct {
-				ID         string `json:"id"`
-				Entity     string `json:"entity"`
-				DocumentID string `json:"document_id"`
-				PageNumber int64  `json:"page_number"`
-			}{
-				ID:         pageID,
-				Entity:     "page",
-				DocumentID: documentID,
-				PageNumber: page.PageNumber,
+		if _, err = body.Write(data); err != nil {
+			return &WriteDocumentDataError{
+				err: err,
 			}
+		}
 
-			pageKey := fmt.Sprintf("%s/%s.json", paths[1], pageID)
-			if err := c.helper.uploadObject(ctx, pageJSON, pageKey); err != nil {
-				return &UploadObjectError{
-					err: err,
-				}
-			}
+		body.WriteString("\n")
+	}
 
-			for _, line := range page.Lines {
-				lineID := line.ID
-				coordinates := line.Coordinates
-				coordinatesID := coordinates.ID
-
-				lineJSON := struct {
-					ID     string `json:"id"`
-					Entity string `json:"entity"`
-					PageID string `json:"page_id"`
-					Text   string `json:"text"`
-				}{
-					ID:     lineID,
-					Entity: "line",
-					PageID: pageID,
-					Text:   line.Text,
-				}
-
-				lineKey := fmt.Sprintf("%s/%s.json", paths[2], lineID)
-				if err := c.helper.uploadObject(ctx, lineJSON, lineKey); err != nil {
-					return &UploadObjectError{
-						err: err,
-					}
-				}
-
-				coordinatesJSON := struct {
-					ID           string  `json:"id"`
-					Entity       string  `json:"entity"`
-					LineID       string  `json:"line_id"`
-					TopLeftX     float64 `json:"top_left_x"`
-					TopLeftY     float64 `json:"top_left_y"`
-					TopRightX    float64 `json:"top_right_x"`
-					TopRightY    float64 `json:"top_right_y"`
-					BottomLeftX  float64 `json:"bottom_left_x"`
-					BottomLeftY  float64 `json:"bottom_left_y"`
-					BottomRightX float64 `json:"bottom_right_x"`
-					BottomRightY float64 `json:"bottom_right_y"`
-				}{
-					ID:           coordinatesID,
-					Entity:       "coordinates",
-					LineID:       lineID,
-					TopLeftX:     coordinates.TopLeft.X,
-					TopLeftY:     coordinates.TopLeft.Y,
-					TopRightX:    coordinates.TopRight.X,
-					TopRightY:    coordinates.TopRight.Y,
-					BottomLeftX:  coordinates.BottomLeft.X,
-					BottomLeftY:  coordinates.BottomLeft.Y,
-					BottomRightX: coordinates.BottomRight.X,
-					BottomRightY: coordinates.BottomRight.Y,
-				}
-
-				coordinatesKey := fmt.Sprintf("%s/%s.json", paths[3], coordinatesID)
-				if err := c.helper.uploadObject(ctx, coordinatesJSON, coordinatesKey); err != nil {
-					return &UploadObjectError{
-						err: err,
-					}
-				}
-			}
+	response, err := c.helper.executeBulk(ctx, &esapi.BulkRequest{
+		Body: &body,
+	})
+	if response.IsError() || err != nil {
+		return &ExecuteBulkError{
+			err: err,
 		}
 	}
 
@@ -167,62 +89,73 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 }
 
 // DeleteDocuments implements the db.Databaser.DeleteDocuments method
-// using AWS S3.
-func (c *Client) DeleteDocuments(ctx context.Context, documentKeys []string) error {
-	chunkSize := 1000 // S3 max delete objects count
-	for i := 0; i < len(documentKeys); i += chunkSize {
-		end := i + chunkSize
-		if end > len(documentKeys) {
-			end = len(documentKeys)
-		}
+// using AWS OpenSearch.
+func (c *Client) DeleteDocuments(ctx context.Context, documentPaths []string) error {
+	queryString := `{ "query": { "bool": { "minimum_should_match": 1, "should": [ %s ] } } }`
 
-		documentKeysSubset := documentKeys[i:end]
-		if err := c.helper.deleteDocumentsByKeys(ctx, documentKeysSubset); err != nil {
-			return &DeleteDocumentsByKeysError{
-				err: err,
-			}
+	matches := []string{}
+	for _, documentPath := range documentPaths {
+		documentInfo := strings.Split(documentPath, "/")
+		match := fmt.Sprintf(`{ "match": { "file_bucket": "%s", "file_key": "%s" } }`, documentInfo[0], documentInfo[1])
+		matches = append(matches, match)
+	}
+
+	queryString = fmt.Sprintf(queryString, strings.Join(matches, ", "))
+
+	var body bytes.Buffer
+	body.WriteString(queryString)
+
+	response, err := c.helper.executeDelete(ctx, &esapi.DeleteByQueryRequest{
+		Body: &body,
+	})
+	if response.IsError() || err != nil {
+		return &ExecuteDeleteError{
+			err: err,
 		}
 	}
 
 	return nil
 }
 
-// QueryDocumentsByFQL implements the db.Databaser.QueryDocumentsByFQL method
-// using AWS Athena.
-func (c *Client) QueryDocumentsByFQL(ctx context.Context, query []byte) ([]pars.Document, error) {
-	executionID, err := c.helper.executeQuery(ctx, query)
-	if err != nil {
-		return nil, &ExecuteQueryError{
-			err: err,
-		}
-	}
-
-	documents, err := c.helper.getQueryResultDocuments(ctx, *executionID)
-	if err != nil {
-		return nil, &GetQueryResultsError{
-			err: err,
-		}
-	}
-
-	return documents, nil
+type queryResponseBody struct {
+	Hits queryHits `json:"hits"`
 }
 
-// QueryDocumentKeysByFileInfo implements the db.Databaser.QueryDocumentKeysByFileInfo
-// method using AWS Athena.
-func (c *Client) QueryDocumentKeysByFileInfo(ctx context.Context, query []byte) ([]string, error) {
-	executionID, err := c.helper.executeQuery(ctx, query)
-	if err != nil {
+type queryHits struct {
+	Hits []pars.Document `json:"hits"`
+}
+
+type queryHit struct {
+	// Fields map[string][]pars.Document `json:"fields"`
+}
+
+// QueryDocuments implements the db.Databaser.QueryDocuments method
+// using AWS OpenSearch.
+func (c *Client) QueryDocuments(ctx context.Context, query Query) ([]pars.Document, error) {
+	queryString := fmt.Sprintf(`{ "query": { "nested": { "path": "pages.lines", "query": { "match": { "lines.text": "%s" } } } } }`, query.Text)
+
+	response, err := c.helper.executeQuery(ctx, &esapi.SearchRequest{
+		Body: strings.NewReader(queryString),
+	})
+	if response.IsError() || err != nil {
 		return nil, &ExecuteQueryError{
 			err: err,
 		}
 	}
 
-	keys, err := c.helper.getQueryResultKeys(ctx, *executionID)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		return nil, &GetQueryResultsError{
+		return nil, &ReadQueryResponseBodyError{
 			err: err,
 		}
 	}
 
-	return keys, nil
+	var responseBody queryResponseBody
+	if err := json.Unmarshal(body, &responseBody); err != nil {
+		return nil, &UnmarshalQueryResponseBodyError{
+			err: err,
+		}
+	}
+
+	return responseBody.Hits.Hits, nil
 }
