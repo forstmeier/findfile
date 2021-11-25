@@ -6,8 +6,8 @@ import "context"
 type Document struct {
 	ID         string `json:"id"`
 	Entity     string `json:"entity"`
-	FileKey    string `json:"file_key"`
 	FileBucket string `json:"file_bucket"`
+	FileKey    string `json:"file_key"`
 	Pages      []Page `json:"pages"`
 }
 
