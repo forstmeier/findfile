@@ -16,16 +16,16 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-type mockEVTClient struct {
+type mockEvtClient struct {
 	mockAddBucketListenersError    error
 	mockRemoveBucketListenersError error
 }
 
-func (m *mockEVTClient) AddBucketListeners(ctx context.Context, buckets []string) error {
+func (m *mockEvtClient) AddBucketListeners(ctx context.Context, buckets []string) error {
 	return m.mockAddBucketListenersError
 }
 
-func (m *mockEVTClient) RemoveBucketListeners(ctx context.Context, buckets []string) error {
+func (m *mockEvtClient) RemoveBucketListeners(ctx context.Context, buckets []string) error {
 	return m.mockRemoveBucketListenersError
 }
 
@@ -114,7 +114,7 @@ func Test_handler(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			evtClient := &mockEVTClient{
+			evtClient := &mockEvtClient{
 				mockAddBucketListenersError:    test.mockAddBucketListenersError,
 				mockRemoveBucketListenersError: test.mockRemoveBucketListenersError,
 			}
