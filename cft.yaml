@@ -13,9 +13,6 @@ Parameters:
   ArtifactBucket:
     Type: String
     Description: Storage location for all code and application artifacts
-  DatabaseBucket:
-    Type: String
-    Description: Storage location for all application database documents
   StageName:
     Type: String
     Description: Stage the API is deployed to
@@ -25,268 +22,120 @@ Parameters:
 
 Resources:
 
+  bucketsListener:
+    Type: AWS::CloudTrail::Trail
+    Properties: 
+      IsMultiRegionTrail: true
+      S3BucketName:
+        Ref: ArtifactBucket
+
+  bucketsEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Rule for triggering Lambdas based on S3 bucket events
+      EventPattern:
+        source:
+          - aws.s3
+        detail-type:
+          - AWS API Call via CloudTrail
+        detail:
+          eventSource:
+            - s3.amazonaws.com
+          eventName:
+            - PutObject
+            - DeleteObjects
+      State: ENABLED
+      Targets:
+        - Arn:
+          Fn::GetAtt:
+            - filesFunctionRole
+            - Arn
+          Id: event-target-id
+
   database:
-    Type: AWS::Glue::Database
-    Properties:
-      CatalogId:
-        Ref: AWS::AccountId
-      DatabaseInput:
-        Name:
-          Fn::Sub: ${StackName}
-        Description: Main database for querying functionality
+    Type: AWS::OpenSearchService::Domain
+    Properties: 
+      DomainEndpointOptions:
+        EnforceHTTPS: true
 
-  documentsTable:
-    Type: AWS::Glue::Table
-    Properties:
-      CatalogId:
-        Ref: AWS::AccountId
-      DatabaseName:
-        Ref: database
-      TableInput:
-        Name: documents
-        StorageDescriptor:
-          Columns:
-            - Name: id
-              Type: string
-            - Name: entity
-              Type: string
-            - Name: file_key
-              Type: string
-            - Name: file_bucket
-              Type: string
-          Location:
-            Fn::Sub: s3://${DatabaseBucket}/documents/
-          SerdeInfo:
-            SerializationLibrary: org.apache.hive.hcatalog.data.JsonSerDe
-            Parameters:
-              CrawlerSchemaSerializerVersion: 1.0
-          InputFormat: org.apache.hadoop.mapred.TextInputFormat
-          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
-        TableType: EXTERNAL_TABLE
-    DependsOn: database
-
-  pagesTable:
-    Type: AWS::Glue::Table
-    Properties:
-      CatalogId:
-        Ref: AWS::AccountId
-      DatabaseName:
-        Ref: database
-      TableInput:
-        Name: pages
-        StorageDescriptor:
-          Columns:
-            - Name: id
-              Type: string
-            - Name: document_id
-              Type: string
-            - Name: entity
-              Type: string
-            - Name: page_number
-              Type: int
-          Location:
-            Fn::Sub: s3://${DatabaseBucket}/pages/
-          SerdeInfo:
-            SerializationLibrary: org.apache.hive.hcatalog.data.JsonSerDe
-            Parameters:
-              CrawlerSchemaSerializerVersion: 1.0
-          InputFormat: org.apache.hadoop.mapred.TextInputFormat
-          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
-        TableType: EXTERNAL_TABLE
-    DependsOn: database
-
-  linesTable:
-    Type: AWS::Glue::Table
-    Properties:
-      CatalogId:
-        Ref: AWS::AccountId
-      DatabaseName:
-        Ref: database
-      TableInput:
-        Name: lines
-        StorageDescriptor:
-          Columns:
-            - Name: id
-              Type: string
-            - Name: page_id
-              Type: string
-            - Name: entity
-              Type: string
-            - Name: text
-              Type: string
-          Location:
-            Fn::Sub: s3://${DatabaseBucket}/lines/
-          SerdeInfo:
-            SerializationLibrary: org.apache.hive.hcatalog.data.JsonSerDe
-            Parameters:
-              CrawlerSchemaSerializerVersion: 1.0
-          InputFormat: org.apache.hadoop.mapred.TextInputFormat
-          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
-        TableType: EXTERNAL_TABLE
-    DependsOn: database
-
-  coordinatesTable:
-    Type: AWS::Glue::Table
-    Properties:
-      CatalogId:
-        Ref: AWS::AccountId
-      DatabaseName:
-        Ref: database
-      TableInput:
-        Name: coordinates
-        StorageDescriptor:
-          Columns:
-            - Name: id
-              Type: string
-            - Name: line_id
-              Type: string
-            - Name: entity
-              Type: string
-            - Name: top_left_x
-              Type: float
-            - Name: top_left_y
-              Type: float
-            - Name: top_right_x
-              Type: float
-            - Name: top_right_y
-              Type: float
-            - Name: bottom_left_x
-              Type: float
-            - Name: bottom_left_y
-              Type: float
-            - Name: bottom_right_x
-              Type: float
-            - Name: bottom_right_y
-              Type: float
-          Location:
-            Fn::Sub: s3://${DatabaseBucket}/coordinates/
-          SerdeInfo:
-            SerializationLibrary: org.apache.hive.hcatalog.data.JsonSerDe
-            Parameters:
-              CrawlerSchemaSerializerVersion: 1.0
-          InputFormat: org.apache.hadoop.mapred.TextInputFormat
-          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
-        TableType: EXTERNAL_TABLE
-    DependsOn: database
-
-  databaseBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket:
-        Ref: DatabaseBucket
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action: s3:*
-            Resource:
-              Fn::Sub: arn:aws:s3:::${DatabaseBucket}
-            Principal:
-              AWS:
-                - Fn::GetAtt:
-                    - setupFunctionRole
-                    - Arn
-                - Fn::GetAtt:
-                    - databaseFunctionRole
-                    - Arn
-                - Fn::GetAtt:
-                    - queryFunctionRole
-                    - Arn
-    DependsOn:
-      - setupFunction
-      - databaseFunction
-      - queryFunction
-
-  setupCustomResource:
-    Type: AWS::CloudFormation::CustomResource
-    Properties:
-      ServiceToken:
-        Fn::GetAtt:
-          - setupFunction
-          - Arn
-      DATABASE_NAME:
-        Ref: database
-      DATABASE_BUCKET:
-        Ref: DatabaseBucket
-    DependsOn: setupFunction
-
-  setupFunction:
+  bucketsFunction:
     Type: AWS::Lambda::Function
     Properties:
       Code:
         S3Bucket:
           Ref: ArtifactBucket
-        S3Key: setup.zip
-      Description: Function providing database setup logic
+        S3Key: buckets.zip
+      Description: Function for managing file activity listeners on target buckets
       Environment:
         Variables:
-          DATABASE_NAME:
-            Ref: database
-          DATABASE_BUCKET:
-            Ref: DatabaseBucket
-      Handler: setup
-      MemorySize: 128
-      Role:
-        Fn::GetAtt:
-          - setupFunctionRole
-          - Arn
-      Runtime: go1.x
-      Timeout: 5
-    DependsOn: setupFunctionRole
-
-  databaseFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket:
-          Ref: ArtifactBucket
-        S3Key: database.zip
-      Description: Function providing database document management
-      Environment:
-        Variables:
-          DATABASE_NAME:
-            Ref: database
-          DATABASE_BUCKET:
-            Ref: DatabaseBucket
-      Handler: database
-      MemorySize: 256
-      Role:
-        Fn::GetAtt:
-          - databaseFunctionRole
-          - Arn
-      Runtime: go1.x
-      Timeout: 10
-    DependsOn:
-      - databaseFunctionRole
-
-  queryFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        S3Bucket:
-          Ref: ArtifactBucket
-        S3Key: query.zip
-      Description: Function providing database query handling
-      Environment:
-        Variables:
-          DATABASE_NAME:
-            Ref: database
-          DATABASE_BUCKET:
-            Ref: DatabaseBucket
+          TRAIL_NAME:
+            Ref: bucketsListener
           HTTP_SECURITY_HEADER:
             Fn::Sub: x-${StackName}-security-key
           HTTP_SECURITY_KEY:
             Ref: HTTPSecurityKey
-      Handler: query
-      MemorySize: 128
+      Handler: buckets
+      MemorySize: 256
       Role:
         Fn::GetAtt:
-          - queryFunctionRole
+          - bucketsFunctionRole
           - Arn
       Runtime: go1.x
       Timeout: 5
+      DependsOn:
+        - bucketsFunctionRole
 
-  setupFunctionRole:
+  documentsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: ArtifactBucket
+        S3Key: documents.zip
+      Description: Function for managing user queries against stored documents
+      Environment:
+        Variables:
+          HTTP_SECURITY_HEADER:
+            Fn::Sub: x-${StackName}-security-key
+          HTTP_SECURITY_KEY:
+            Ref: HTTPSecurityKey
+      Handler: documents
+      MemorySize: 512
+      Role:
+        Fn::GetAtt:
+          - documentsFunctionRole
+          - Arn
+      Runtime: go1.x
+      Timeout: 5
+      DependsOn:
+        - documentsFunctionRole
+
+  filesFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: ArtifactBucket
+        S3Key: files.zip
+      Description: Function for managing stored documents based on target file activity
+      Environment:
+        Variables:
+          HTTP_SECURITY_HEADER:
+            Fn::Sub: x-${StackName}-security-key
+          HTTP_SECURITY_KEY:
+            Ref: HTTPSecurityKey
+      Handler: files
+      MemorySize: 256
+      Role:
+        Fn::GetAtt:
+          - filesFunctionRole
+          - Arn
+      Runtime: go1.x
+      Timeout: 5
+      DependsOn:
+        - filesFunctionRole
+
+  bucketsFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -296,7 +145,7 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
-      Description: Role for setting up the database resources
+      Description: Role for adjusting file listener configurations
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Policies:
@@ -304,112 +153,15 @@ Resources:
             Version: '2012-10-17'
             Statement:
               - Action:
-                  - s3:PutObject
+                  - cloudtrail:GetEventSelectors
+                  - cloudtrail:PutEventSelectors
                 Effect: Allow
                 Resource:
-                  - Fn::Sub: arn:aws:s3:::${DatabaseBucket}/*
+                  Fn::GetAtt:
+                    - bucketsListener
+                    - Arn
           PolicyName:
             Fn::Sub: ${StackName}-setup-function-policy
-
-  databaseFunctionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Description: Role for parsing provided files into documents
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-      Policies:
-        - PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Action:
-                  - athena:StartQueryExecution
-                  - athena:GetQueryExecution
-                  - athena:GetQueryResults
-                Effect: Allow
-                Resource:
-                  Fn::Sub: arn:aws:athena:${AWS::Region}:${AWS::AccountId}:*
-              - Action:
-                  - glue:GetTable
-                  - glue:GetTables
-                  - glue:SearchTables
-                  - glue:GetDatabase
-                  - glue:GetDatabases
-                Effect: Allow
-                Resource:
-                  Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:*
-              - Action:
-                  - s3:DeleteObject
-                  - s3:GetObject
-                  - s3:PutObject
-                Effect: Allow
-                Resource:
-                  - Fn::Sub: arn:aws:s3:::${DatabaseBucket}/*
-              - Action:
-                  - s3:GetObject
-                Effect: Allow
-                Resource:
-                  - Fn::Sub: arn:aws:s3:::*
-              - Action:
-                  - textract:DetectDocumentText
-                Effect: Allow
-                Resource: '*'
-          PolicyName:
-            Fn::Sub: ${StackName}-database-function-policy
-
-  queryFunctionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Description: Role for querying stored database documents
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-      Policies:
-        - PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Action:
-                  - athena:StartQueryExecution
-                  - athena:GetQueryExecution
-                  - athena:GetQueryResults
-                Effect: Allow
-                Resource:
-                  Fn::Sub: arn:aws:athena:${AWS::Region}:${AWS::AccountId}:*
-              - Action:
-                  - glue:GetTable
-                  - glue:GetTables
-                  - glue:SearchTables
-                  - glue:GetDatabase
-                  - glue:GetDatabases
-                Effect: Allow
-                Resource:
-                  Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:*
-              - Action:
-                  - s3:DeleteObject
-                  - s3:GetObject
-                  - s3:PutObject
-                Effect: Allow
-                Resource:
-                  - Fn::Sub: arn:aws:s3:::${DatabaseBucket}/*
-              - Action:
-                  - s3:GetObject
-                Effect: Allow
-                Resource:
-                  - Fn::Sub: arn:aws:s3:::*
-          PolicyName:
-            Fn::Sub: ${StackName}-query-function-policy
 
   api:
     Type: AWS::ApiGateway::RestApi
@@ -425,30 +177,52 @@ Resources:
         schemes:
           - https
         paths:
-          /query:
-            post:
+          /buckets:
+            put:
               produces:
                 - application/json
               responses:
                 '200':
-                  description: Successful query POST request
+                  description: Successful bucket file listeners PUT request
                   schema:
                     type: object
                     properties:
                       message:
                         type: string
-                      filenames:
-                        type: array
-                        items:
-                          type: string
-                      presigned_urls:
+                      buckets_added:
+                        type: integer
+                      buckets_removed:
+                        type: integer
+              x-amazon-apigateway-integration:
+                httpMethod: PUT
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${bucketsFunction.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: '200'
+                passthroughBehavior: when_no_match
+                contentHandling: CONVERT_TO_TEXT
+                type: AWS_PROXY
+          /documents:
+            put:
+              produces:
+                - application/json
+              responses:
+                '200':
+                  description: Successful documents query GET request
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      file_paths:
                         type: array
                         items:
                           type: string
               x-amazon-apigateway-integration:
-                httpMethod: POST
+                httpMethod: GET
                 uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${queryFunction.Arn}/invocations
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${documentsFunction.Arn}/invocations
                 responses:
                   default:
                     statusCode: '200'
@@ -456,31 +230,43 @@ Resources:
                 contentHandling: CONVERT_TO_TEXT
                 type: AWS_PROXY
 
-  databaseFunctionEventPermission:
+  bucketsFunctionAPIPermission:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName:
         Fn::GetAtt:
-          - databaseFunction
-          - Arn
-      Action: lambda:InvokeFunction
-      Principal: s3.amazonaws.com
-      SourceAccount:
-        Ref: AWS::AccountId
-      SourceArn:
-        Fn::Sub: arn:aws:s3:::*
-
-  queryFunctionAPIPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName:
-        Fn::GetAtt:
-          - queryFunction
+          - bucketsFunction
           - Arn
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn:
         Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
+
+  documentsFunctionAPIPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+          - documentsFunction
+          - Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${api}/*
+
+  filesFunctionEventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+          - filesFunction
+          - Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+          - bucketsListener
+          - Arn
 
   apiDeployment:
     Type: AWS::ApiGateway::Deployment
@@ -517,31 +303,19 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
 
 Outputs:
+
   HTTPSecurityKeyHeader:
     Value:
       Fn::Sub: x-${StackName}-security-key
   HTTPSecurityKeyValue:
     Value:
       Ref: HTTPSecurityKey
-  SetupFunctionName:
+  BucketsFunctionName:
     Value:
-      Ref: setupFunction
-  DatabaseFunctionName:
+      Ref: bucketsFunction
+  DocumentsFunctionName:
     Value:
-      Ref: databaseFunction
-  QueryFunctionName:
+      Ref: documentsFunction
+  FilesFunctionName:
     Value:
-      Ref: queryFunction
-  DatabaseFunctionARN:
-    Value:
-      Fn::GetAtt:
-        - databaseFunction
-        - Arn
-  QueryFunctionRoleARN:
-    Value:
-      Fn::GetAtt:
-        - queryFunctionRole
-        - Arn
-  QueryAPIEndpoint:
-    Value:
-      Fn::Sub: https://${api}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/query
+      Ref: filesFunction
