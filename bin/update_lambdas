@@ -12,24 +12,24 @@ STACKS_INFO=$(aws cloudformation describe-stacks --stack-name $STACK_NAME)
 
 STACK_OUTPUTS=$( jq -r  '.Stacks[0].Outputs' <<< "${STACKS_INFO}" ) 
 
-SETUP_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "SetupFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
-DATABASE_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "DatabaseFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
-QUERY_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "QueryFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+BUCKETS_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "BucketsFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+DOCUMENTS_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "DocumentsFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+FILES_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "FilesFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
 
 REGION=$( aws configure get region )
 
 aws lambda update-function-code \
-	--function-name $SETUP_FUNCTION_NAME \
+	--function-name $BUCKETS_FUNCTION_NAME \
 	--s3-bucket $ARTIFACT_BUCKET \
 	--s3-key setup.zip \
 	--region $REGION
 aws lambda update-function-code \
-	--function-name $DATABASE_FUNCTION_NAME \
+	--function-name $DOCUMENTS_FUNCTION_NAME \
 	--s3-bucket $ARTIFACT_BUCKET \
 	--s3-key database.zip \
 	--region $REGION
 aws lambda update-function-code \
-	--function-name $QUERY_FUNCTION_NAME \
+	--function-name $FILES_FUNCTION_NAME \
 	--s3-bucket $ARTIFACT_BUCKET \
 	--s3-key query.zip \
 	--region $REGION
