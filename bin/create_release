@@ -2,15 +2,16 @@
 
 /bin/bash ./bin/build_lambdas
 
-cp etc/scripts/* .
-cp etc/examples/* .
+cp etc/examples/example.jpg .
 
 CONFIG_DOCUMENT=$( jq -n \
 '{
 	"aws": {
+		"cloudformation": {
+			"stack_name": "REPLACE"
+		},
 		"s3": {
-			"artifact_bucket": "REPLACE",
-			"database_bucket": "REPLACE"
+			"artifact_bucket": "REPLACE"
 		}
 	}
 }'
@@ -18,6 +19,6 @@ CONFIG_DOCUMENT=$( jq -n \
 
 echo $CONFIG_DOCUMENT > config.json
 
-zip release.zip database.zip query.zip setup.zip start_api add_bucket generate_query cft.yaml config.json example.jpg
+zip release.zip buckets.zip documents.zip files.zip cft.yaml config.json example.jpg
 
-rm database.zip query.zip setup.zip start_api add_bucket generate_query config.json example.jpg
+rm buckets.zip documents.zip files.zip config.json example.jpg
