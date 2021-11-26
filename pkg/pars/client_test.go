@@ -110,7 +110,7 @@ func TestParse(t *testing.T) {
 
 			ctx := context.Background()
 
-			document, err := client.Parse(ctx, fileKey, fileBucket)
+			document, err := client.Parse(ctx, fileBucket, fileKey)
 
 			if err != nil {
 				switch e := test.error.(type) {

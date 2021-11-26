@@ -33,7 +33,7 @@ func New(newSession *session.Session) *Client {
 
 // Parse implements the pars.Parser.Parse interface method
 // using AWS Textract.
-func (c *Client) Parse(ctx context.Context, fileKey, fileBucket string) (*Document, error) {
+func (c *Client) Parse(ctx context.Context, fileBucket, fileKey string) (*Document, error) {
 	input := &textract.DetectDocumentTextInput{
 		Document: &textract.Document{
 			S3Object: &textract.S3Object{

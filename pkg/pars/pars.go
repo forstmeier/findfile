@@ -46,5 +46,5 @@ type Point struct {
 // Parser defines the method needed for converting the provided
 // image file into database content.
 type Parser interface {
-	Parse(ctx context.Context, fileKey, fileBucket string) (*Document, error)
+	Parse(ctx context.Context, fileBucket, fileKey string) (*Document, error)
 }
