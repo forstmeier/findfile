@@ -319,3 +319,9 @@ Outputs:
   FilesFunctionName:
     Value:
       Ref: filesFunction
+  BucketsAPIEndpoint:
+    Value:
+      Fn::Sub: https://${api}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/buckets
+  DocumentsAPIEndpoint:
+    Value:
+      Fn::Sub: https://${api}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/documents
