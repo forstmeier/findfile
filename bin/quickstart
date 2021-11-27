@@ -1,0 +1,80 @@
+#!/bin/bash
+
+set -exou pipefail
+
+mkdir -p findfile
+cd findfile
+
+release_url=$(curl -s https://api.github.com/repos/forstmeier/findfile/releases/latest | jq -r '.assets[] | select(.name == "release.zip") | .browser_download_url')
+
+curl -L -o release.zip "$release_url"
+
+unzip release.zip
+
+echo 'enter a stack name (optional, defaults to "findfile"'
+read STACK_NAME
+
+if [ -z "$STACK_NAME" ]
+then
+	echo 'no stack name provided'
+	exit 1
+fi
+
+echo 'enter an artifact bucket name (required, created separate from stack)'
+read ARTIFACT_BUCKET
+
+if [ -z "$ARTIFACT_BUCKET" ]
+then
+	echo 'no artifact bucket name provided'
+	exit 1
+fi
+
+CONFIG_CONTENT=$( jq -n \
+--arg stack_name $STACK_NAME \
+--arg artifact_bucket $ARTIFACT_BUCKET \
+'{
+	"aws": {
+		"cloudformation": {
+			"stack_name": $stack_name
+		},
+		"s3": {
+			"artifact_bucket": $artifact_bucket
+		}
+	}
+}'
+)
+
+echo $CONFIG_CONTENT > config.json
+
+aws s3 mv buckets.zip s3://$ARTIFACT_BUCKET/
+aws s3 mv documents.zip s3://$ARTIFACT_BUCKET/
+aws s3 mv files.zip s3://$ARTIFACT_BUCKET/
+
+HTTP_SECURITY_KEY=$(uuidgen)
+
+aws cloudformation deploy \
+	--template-file cft.yaml \
+	--s3-bucket $ARTIFACT_BUCKET \
+	--stack-name $STACK_NAME \
+	--parameter-overrides \
+		StackName=$STACK_NAME \
+		HTTPSecurityKey=$HTTP_SECURITY_KEY \
+		ArtifactBucket=$ARTIFACT_BUCKET  \
+	--capabilities CAPABILITY_NAMED_IAM \
+	--no-fail-on-empty-changeset
+
+STACKS_INFO=$(aws cloudformation describe-stacks --stack-name $STACK_NAME)
+
+STACK_OUTPUTS=$( jq -r  '.Stacks[0].Outputs' <<< "${STACKS_INFO}" ) 
+
+HTTP_SECURITY_KEY_HEADER=$( jq -r 'map(select(.OutputKey == "HTTPSecurityKeyHeader")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+HTTP_SECURITY_KEY_VALUE=$( jq -r 'map(select(.OutputKey == "HTTPSecurityKeyValue")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+BUCKETS_API_ENDPOINT=$( jq -r 'map(select(.OutputKey == "BucketsAPIEndpoint")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+DOCUMENTS_API_ENDPOINT=$( jq -r 'map(select(.OutputKey == "DocumentsAPIEndpoint")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+
+echo 'stack launch complete'
+
+echo 'securty key header:     ' $HTTP_SECURITY_KEY_HEADER
+echo 'securty key value:      ' $HTTP_SECURITY_KEY_VALUE
+echo 'buckets api endpoint:   ' $BUCKETS_API_ENDPOINT
+echo 'documents api endpoint: ' $DOCUMENTS_API_ENDPOINT
