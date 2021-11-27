@@ -128,7 +128,7 @@ func TestUpsertDocuments(t *testing.T) {
 	}
 }
 
-func TestDeleteDocuments(t *testing.T) {
+func TestDeleteDocumentsByIDs(t *testing.T) {
 	tests := []struct {
 		description             string
 		mockExecuteDeleteBody   string
@@ -167,7 +167,71 @@ func TestDeleteDocuments(t *testing.T) {
 				helper: h,
 			}
 
-			err := c.DeleteDocuments(context.Background(), []string{"bucket/key.jpeg"})
+			err := c.DeleteDocumentsByIDs(context.Background(), []string{"bucket/key.jpeg"})
+
+			if err != nil {
+				switch e := test.error.(type) {
+				case *ExecuteDeleteError:
+					if !errors.As(err, &e) {
+						t.Errorf("incorrect error, received: %v, expected: %v", err, e)
+					}
+				default:
+					t.Fatalf("unexpected error type: %v", err)
+				}
+			} else {
+				mockExecuteDeleteBody, err := io.ReadAll(c.helper.(*mockHelper).mockExecuteDeleteBody)
+				if err != nil {
+					t.Fatalf("error reading body: %v", err)
+				}
+
+				if string(mockExecuteDeleteBody) != test.mockExecuteDeleteBody {
+					t.Errorf("incorrect body, received: %s, expected: %s", mockExecuteDeleteBody, test.mockExecuteDeleteBody)
+				}
+			}
+		})
+	}
+}
+
+func TestDeleteDocumentsByBuckets(t *testing.T) {
+	tests := []struct {
+		description             string
+		mockExecuteDeleteBody   string
+		mockExecuteDeleteOutput *esapi.Response
+		mockExecuteDeleteError  error
+		error                   error
+	}{
+		{
+			description:           "error executing delete request",
+			mockExecuteDeleteBody: "",
+			mockExecuteDeleteOutput: &esapi.Response{
+				StatusCode: 300,
+			},
+			mockExecuteDeleteError: errors.New("mock execute delete error"),
+			error:                  &ExecuteDeleteError{},
+		},
+		{
+			description:           "successful invocation",
+			mockExecuteDeleteBody: `{ "query": { "bool": { "minimum_should_match": 1, "should": [ { "match": { "file_bucket": "bucket" } } ] } } }`,
+			mockExecuteDeleteOutput: &esapi.Response{
+				StatusCode: 200,
+			},
+			mockExecuteDeleteError: nil,
+			error:                  nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			h := &mockHelper{
+				mockExecuteDeleteOutput: test.mockExecuteDeleteOutput,
+				mockExecuteDeleteError:  test.mockExecuteDeleteError,
+			}
+
+			c := &Client{
+				helper: h,
+			}
+
+			err := c.DeleteDocumentsByBuckets(context.Background(), []string{"bucket"})
 
 			if err != nil {
 				switch e := test.error.(type) {

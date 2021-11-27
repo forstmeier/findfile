@@ -32,7 +32,11 @@ func (m *mockDBClient) UpsertDocuments(ctx context.Context, documents []pars.Doc
 	return nil
 }
 
-func (m *mockDBClient) DeleteDocuments(ctx context.Context, documentIDs []string) error {
+func (m *mockDBClient) DeleteDocumentsByIDs(ctx context.Context, documentIDs []string) error {
+	return nil
+}
+
+func (m *mockDBClient) DeleteDocumentsByBuckets(ctx context.Context, documentIDs []string) error {
 	return nil
 }
 

@@ -88,15 +88,43 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 	return nil
 }
 
-// DeleteDocuments implements the db.Databaser.DeleteDocuments method
-// using AWS OpenSearch.
-func (c *Client) DeleteDocuments(ctx context.Context, documentPaths []string) error {
+// DeleteDocumentsByIDs implements the db.Databaser.DeleteDocumentsByIDs
+// method using AWS OpenSearch.
+func (c *Client) DeleteDocumentsByIDs(ctx context.Context, documentPaths []string) error {
 	queryString := `{ "query": { "bool": { "minimum_should_match": 1, "should": [ %s ] } } }`
 
 	matches := []string{}
 	for _, documentPath := range documentPaths {
 		documentInfo := strings.Split(documentPath, "/")
 		match := fmt.Sprintf(`{ "match": { "file_bucket": "%s", "file_key": "%s" } }`, documentInfo[0], documentInfo[1])
+		matches = append(matches, match)
+	}
+
+	queryString = fmt.Sprintf(queryString, strings.Join(matches, ", "))
+
+	var body bytes.Buffer
+	body.WriteString(queryString)
+
+	response, err := c.helper.executeDelete(ctx, &esapi.DeleteByQueryRequest{
+		Body: &body,
+	})
+	if response.IsError() || err != nil {
+		return &ExecuteDeleteError{
+			err: err,
+		}
+	}
+
+	return nil
+}
+
+// DeleteDocumentsByBuckets implements the db.Databaser.DeleteDocumentsByBuckets
+// method using AWS OpenSearch.
+func (c *Client) DeleteDocumentsByBuckets(ctx context.Context, buckets []string) error {
+	queryString := `{ "query": { "bool": { "minimum_should_match": 1, "should": [ %s ] } } }`
+
+	matches := []string{}
+	for _, bucket := range buckets {
+		match := fmt.Sprintf(`{ "match": { "file_bucket": "%s" } }`, bucket)
 		matches = append(matches, match)
 	}
 

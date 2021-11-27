@@ -13,7 +13,7 @@ import (
 func main() {
 	newSession := session.New()
 
-	evtClient, err := db.New(
+	dbClient, err := db.New(
 		newSession,
 	)
 	if err != nil {
@@ -23,5 +23,5 @@ func main() {
 	httpSecurityHeader := os.Getenv("HTTP_SECURITY_HEADER")
 	httpSecurityKey := os.Getenv("HTTP_SECURITY_KEY")
 
-	lambda.Start(handler(evtClient, httpSecurityHeader, httpSecurityKey))
+	lambda.Start(handler(dbClient, httpSecurityHeader, httpSecurityKey))
 }
