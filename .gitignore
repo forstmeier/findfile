@@ -6,3 +6,8 @@ etc/config/config.json
 
 # default install directory
 findfile-install
+
+# lambda functions code
+buckets.zip
+documents.zip
+files.zip
