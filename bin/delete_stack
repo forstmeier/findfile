@@ -4,4 +4,12 @@
 
 STACK_NAME=$( cat etc/config/config.json | jq -r  '.aws.cloudformation.stack_name' )
 
+STACKS_INFO=$(aws cloudformation describe-stacks --stack-name $STACK_NAME)
+
+STACK_OUTPUTS=$( jq -r  '.Stacks[0].Outputs' <<< "${STACKS_INFO}" ) 
+
+BUCKETS_LISTENER_LOGS_BUCKET=$( jq -r 'map(select(.OutputKey == "BucketsListenerBucketName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+
+aws s3 rm s3://$BUCKETS_LISTENER_LOGS_BUCKET --recursive
+
 aws cloudformation delete-stack --stack-name $STACK_NAME
