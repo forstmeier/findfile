@@ -29,8 +29,14 @@ type Client struct {
 }
 
 // New generates a db.Client pointer instance with AWS OpenSearch.
-func New(newSession *session.Session) (*Client, error) {
-	elasticsearchClient, err := elasticsearch.NewDefaultClient()
+func New(newSession *session.Session, url, username, password string) (*Client, error) {
+	elasticsearchClient, err := elasticsearch.NewClient(elasticsearch.Config{
+		Addresses: []string{url},
+		Username:  username,
+		Password:  password,
+	})
+
+	// elasticsearchClient, err := elasticsearch.NewDefaultClient()
 	if err != nil {
 		return nil, &NewClientError{
 			err: err,

@@ -5,8 +5,10 @@
 CONFIG_JSON=$( cat etc/config/config.json | jq )
 
 STACK_NAME=$( jq -r  '.aws.cloudformation.stack_name' <<< "${CONFIG_JSON}" )
-
 ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" )
+INSTANCE_TYPE=$( jq -r  '.aws.opensearch.instance_type' <<< "${CONFIG_JSON}" )
+DATABASE_USERNAME=$( jq -r  '.aws.opensearch.username' <<< "${CONFIG_JSON}" )
+DATABASE_PASSWORD=$( jq -r  '.aws.opensearch.password' <<< "${CONFIG_JSON}" )
 
 HTTP_SECURITY_KEY=$(uuidgen)
 
@@ -18,5 +20,8 @@ aws cloudformation deploy \
 		StackName=$STACK_NAME \
 		HTTPSecurityKey=$HTTP_SECURITY_KEY \
 		ArtifactBucket=$ARTIFACT_BUCKET  \
+		DatabaseInstanceType=$INSTANCE_TYPE \
+		DatabaseUserName=$DATABASE_USERNAME \
+		DatabasePassword=$DATABASE_PASSWORD \
 	--capabilities CAPABILITY_NAMED_IAM \
 	--no-fail-on-empty-changeset

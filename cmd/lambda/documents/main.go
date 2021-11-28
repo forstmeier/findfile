@@ -15,6 +15,9 @@ func main() {
 
 	dbClient, err := db.New(
 		newSession,
+		os.Getenv("DATABASE_URL"),
+		os.Getenv("DATABASE_USERNAME"),
+		os.Getenv("DATABASE_PASSWORD"),
 	)
 	if err != nil {
 		panic(fmt.Sprintf("error creating db client: %v", err))

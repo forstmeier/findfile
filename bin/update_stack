@@ -5,8 +5,10 @@
 CONFIG_JSON=$( cat etc/config/config.json | jq )
 
 STACK_NAME=$( jq -r  '.aws.cloudformation.stack_name' <<< "${CONFIG_JSON}" ) 
-
 ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) 
+DATABASE_INSTANCE_TYPE=$( jq -r  '.aws.opensearch.instance_type' <<< "${CONFIG_JSON}" )
+DATABASE_USERNAME=$( jq -r  '.aws.opensearch.username' <<< "${CONFIG_JSON}" )
+DATABASE_PASSWORD=$( jq -r  '.aws.opensearch.password' <<< "${CONFIG_JSON}" )
 
 aws s3 cp cft.yaml s3://$ARTIFACT_BUCKET/cft.yaml
 
@@ -17,4 +19,7 @@ aws cloudformation update-stack \
 		ParameterKey=StackName,ParameterValue=$STACK_NAME \
 		ParameterKey=HTTPSecurityKey,UsePreviousValue=true \
 		ParameterKey=ArtifactBucket,ParameterValue=$ARTIFACT_BUCKET \
+		ParameterKey=DatabaseInstanceType,ParameterValue=$DATABASE_INSTANCE_TYPE \
+		ParameterKey=DatabaseUserName,ParameterValue=$DATABASE_USERNAME \
+		ParameterKey=DatabasePassword,ParameterValue=$DATABASE_PASSWORD \
 	--capabilities CAPABILITY_NAMED_IAM \

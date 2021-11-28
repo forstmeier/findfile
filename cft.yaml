@@ -19,15 +19,67 @@ Parameters:
     Default: production
     AllowedValues:
       - production
+  DatabaseInstanceType:
+    Type: String
+    Description: Compute resource types for the database instances
+    Default: t3.small.search
+  DatabaseUsername:
+    Type: String
+    Description: User name for the database user
+  DatabasePassword:
+    Type: String
+    Description: Password for the database user
 
 Resources:
 
   bucketsListener:
     Type: AWS::CloudTrail::Trail
     Properties: 
+      IsLogging: false
       IsMultiRegionTrail: true
+      IncludeGlobalServiceEvents: true
       S3BucketName:
-        Ref: ArtifactBucket
+        Ref: bucketsListenerLogs
+    DependsOn:
+      - bucketsListenerLogsPolicy
+
+  bucketsListenerLogs:
+    Type: AWS::S3::Bucket
+
+  bucketsListenerLogsPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: bucketsListenerLogs
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource:
+              Fn::GetAtt:
+                - bucketsListenerLogs
+                - Arn
+          - Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:PutObject
+            Resource:
+              Fn::Join:
+                - '/'
+                - - Fn::GetAtt:
+                      - bucketsListenerLogs
+                      - Arn
+                  - AWSLogs
+                  - Ref: AWS::AccountId
+                  - '*'
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+    DependsOn:
+      - bucketsListenerLogs
 
   bucketsEventRule:
     Type: AWS::Events::Rule
@@ -47,16 +99,36 @@ Resources:
       State: ENABLED
       Targets:
         - Arn:
-          Fn::GetAtt:
-            - filesFunctionRole
-            - Arn
+            Fn::GetAtt:
+              - filesFunction
+              - Arn
           Id: event-target-id
+    DependsOn:
+      - filesFunction
 
   database:
     Type: AWS::OpenSearchService::Domain
-    Properties: 
+    Properties:
+      AdvancedSecurityOptionsInput:
+        Enabled: true
+        InternalUserDatabaseEnabled: true
+        MasterUserOptions:
+          MasterUserName: DatabaseUsername
+          MasterUserPassword: DatabasePassword
+      ClusterConfig:
+        InstanceType:
+          Ref: DatabaseInstanceType
       DomainEndpointOptions:
         EnforceHTTPS: true
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: 10
+        VolumeType: gp2
+    DependsOn:
+      - bucketsFunction
+      - documentsFunction
+      - filesFunction
+      - api
 
   bucketsFunction:
     Type: AWS::Lambda::Function
@@ -74,6 +146,14 @@ Resources:
             Fn::Sub: x-${StackName}-security-key
           HTTP_SECURITY_KEY:
             Ref: HTTPSecurityKey
+          DATABASE_URL:
+            Fn::GetAtt:
+              - database
+              - DomainEndpoint
+          DATABASE_USERNAME:
+            Ref: DatabaseUsername
+          DATABASE_PASSWORD:
+            Ref: DatabasePassword
       Handler: buckets
       MemorySize: 256
       Role:
@@ -82,8 +162,8 @@ Resources:
           - Arn
       Runtime: go1.x
       Timeout: 5
-      DependsOn:
-        - bucketsFunctionRole
+    DependsOn:
+      - bucketsFunctionRole
 
   documentsFunction:
     Type: AWS::Lambda::Function
@@ -99,6 +179,14 @@ Resources:
             Fn::Sub: x-${StackName}-security-key
           HTTP_SECURITY_KEY:
             Ref: HTTPSecurityKey
+          DATABASE_URL:
+            Fn::GetAtt:
+              - database
+              - DomainEndpoint
+          DATABASE_USERNAME:
+            Ref: DatabaseUsername
+          DATABASE_PASSWORD:
+            Ref: DatabasePassword
       Handler: documents
       MemorySize: 512
       Role:
@@ -107,8 +195,8 @@ Resources:
           - Arn
       Runtime: go1.x
       Timeout: 5
-      DependsOn:
-        - documentsFunctionRole
+    DependsOn:
+      - documentsFunctionRole
 
   filesFunction:
     Type: AWS::Lambda::Function
@@ -120,10 +208,14 @@ Resources:
       Description: Function for managing stored documents based on target file activity
       Environment:
         Variables:
-          HTTP_SECURITY_HEADER:
-            Fn::Sub: x-${StackName}-security-key
-          HTTP_SECURITY_KEY:
-            Ref: HTTPSecurityKey
+          DATABASE_URL:
+            Fn::GetAtt:
+              - database
+              - DomainEndpoint
+          DATABASE_USERNAME:
+            Ref: DatabaseUsername
+          DATABASE_PASSWORD:
+            Ref: DatabasePassword
       Handler: files
       MemorySize: 256
       Role:
@@ -132,8 +224,8 @@ Resources:
           - Arn
       Runtime: go1.x
       Timeout: 5
-      DependsOn:
-        - filesFunctionRole
+    DependsOn:
+      - filesFunctionRole
 
   bucketsFunctionRole:
     Type: AWS::IAM::Role
@@ -145,7 +237,6 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
-      Description: Role for adjusting file listener configurations
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
       Policies:
@@ -162,6 +253,32 @@ Resources:
                     - Arn
           PolicyName:
             Fn::Sub: ${StackName}-setup-function-policy
+
+  documentsFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+
+  filesFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
 
   api:
     Type: AWS::ApiGateway::RestApi
@@ -310,6 +427,9 @@ Outputs:
   HTTPSecurityKeyValue:
     Value:
       Ref: HTTPSecurityKey
+  BucketsListenerBucketName:
+    Value:
+      Ref: bucketsListenerLogs
   BucketsFunctionName:
     Value:
       Ref: bucketsFunction

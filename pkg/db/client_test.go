@@ -15,7 +15,12 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	client, err := New(session.New())
+	client, err := New(
+		session.New(),
+		"url",
+		"username",
+		"password",
+	)
 	if err != nil {
 		t.Errorf("incorrect error, received: %v, expected: nil", err)
 	}
