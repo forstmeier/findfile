@@ -21,7 +21,7 @@ aws cloudformation deploy \
 		HTTPSecurityKey=$HTTP_SECURITY_KEY \
 		ArtifactBucket=$ARTIFACT_BUCKET  \
 		DatabaseInstanceType=$INSTANCE_TYPE \
-		DatabaseUserName=$DATABASE_USERNAME \
+		DatabaseUsername=$DATABASE_USERNAME \
 		DatabasePassword=$DATABASE_PASSWORD \
 	--capabilities CAPABILITY_NAMED_IAM \
 	--no-fail-on-empty-changeset

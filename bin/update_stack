@@ -20,6 +20,6 @@ aws cloudformation update-stack \
 		ParameterKey=HTTPSecurityKey,UsePreviousValue=true \
 		ParameterKey=ArtifactBucket,ParameterValue=$ARTIFACT_BUCKET \
 		ParameterKey=DatabaseInstanceType,ParameterValue=$DATABASE_INSTANCE_TYPE \
-		ParameterKey=DatabaseUserName,ParameterValue=$DATABASE_USERNAME \
+		ParameterKey=DatabaseUsername,ParameterValue=$DATABASE_USERNAME \
 		ParameterKey=DatabasePassword,ParameterValue=$DATABASE_PASSWORD \
 	--capabilities CAPABILITY_NAMED_IAM \
