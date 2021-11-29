@@ -29,6 +29,8 @@ Parameters:
   DatabasePassword:
     Type: String
     Description: Password for the database user
+    MinLength: 8
+    MaxLength: 24
 
 Resources:
 
@@ -40,8 +42,6 @@ Resources:
       IncludeGlobalServiceEvents: true
       S3BucketName:
         Ref: bucketsListenerLogs
-    DependsOn:
-      - bucketsListenerLogsPolicy
 
   bucketsListenerLogs:
     Type: AWS::S3::Bucket
@@ -78,8 +78,6 @@ Resources:
             Condition:
               StringEquals:
                 s3:x-amz-acl: bucket-owner-full-control
-    DependsOn:
-      - bucketsListenerLogs
 
   bucketsEventRule:
     Type: AWS::Events::Rule
@@ -103,18 +101,18 @@ Resources:
               - filesFunction
               - Arn
           Id: event-target-id
-    DependsOn:
-      - filesFunction
 
   database:
     Type: AWS::OpenSearchService::Domain
     Properties:
-      AdvancedSecurityOptionsInput:
+      AdvancedSecurityOptions:
         Enabled: true
         InternalUserDatabaseEnabled: true
         MasterUserOptions:
-          MasterUserName: DatabaseUsername
-          MasterUserPassword: DatabasePassword
+          MasterUserName:
+            Ref: DatabaseUsername
+          MasterUserPassword:
+            Ref: DatabasePassword
       ClusterConfig:
         InstanceType:
           Ref: DatabaseInstanceType
@@ -126,11 +124,8 @@ Resources:
         VolumeType: gp2
       EncryptionAtRestOptions:
         Enabled: true
-    DependsOn:
-      - bucketsFunction
-      - documentsFunction
-      - filesFunction
-      - api
+      NodeToNodeEncryptionOptions:
+        Enabled: true
 
   bucketsFunction:
     Type: AWS::Lambda::Function
