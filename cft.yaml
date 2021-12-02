@@ -37,7 +37,7 @@ Resources:
   bucketsListener:
     Type: AWS::CloudTrail::Trail
     Properties: 
-      IsLogging: false
+      IsLogging: true
       IsMultiRegionTrail: true
       IncludeGlobalServiceEvents: true
       S3BucketName:
@@ -105,6 +105,15 @@ Resources:
   database:
     Type: AWS::OpenSearchService::Domain
     Properties:
+      AccessPolicies:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action: es:*
+            Resource:
+              Fn::Sub: arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*
       AdvancedSecurityOptions:
         Enabled: true
         InternalUserDatabaseEnabled: true
@@ -127,6 +136,57 @@ Resources:
       NodeToNodeEncryptionOptions:
         Enabled: true
 
+  indexCustomResource:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - indexFunction
+          - Arn
+      DATABASE_URL:
+        Fn::Join:
+          - ''
+          - - 'https://'
+            - Fn::GetAtt:
+                - database
+                - DomainEndpoint
+      DATABASE_USERNAME:
+        Ref: DatabaseUsername
+      DATABASE_PASSWORD:
+        Ref: DatabasePassword
+    DependsOn: indexFunction
+
+  indexFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: ArtifactBucket
+        S3Key: index.zip
+      Description: Function providing database setup logic
+      Environment:
+        Variables:
+          DATABASE_URL:
+            Fn::Join:
+              - ''
+              - - 'https://'
+                - Fn::GetAtt:
+                    - database
+                    - DomainEndpoint
+          DATABASE_USERNAME:
+            Ref: DatabaseUsername
+          DATABASE_PASSWORD:
+            Ref: DatabasePassword
+      Handler: index
+      MemorySize: 128
+      Role:
+        Fn::GetAtt:
+          - indexFunctionRole
+          - Arn
+      Runtime: go1.x
+      Timeout: 5
+    DependsOn: indexFunctionRole
+
   bucketsFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -144,9 +204,12 @@ Resources:
           HTTP_SECURITY_KEY:
             Ref: HTTPSecurityKey
           DATABASE_URL:
-            Fn::GetAtt:
-              - database
-              - DomainEndpoint
+            Fn::Join:
+              - ''
+              - - 'https://'
+                - Fn::GetAtt:
+                    - database
+                    - DomainEndpoint
           DATABASE_USERNAME:
             Ref: DatabaseUsername
           DATABASE_PASSWORD:
@@ -177,9 +240,12 @@ Resources:
           HTTP_SECURITY_KEY:
             Ref: HTTPSecurityKey
           DATABASE_URL:
-            Fn::GetAtt:
-              - database
-              - DomainEndpoint
+            Fn::Join:
+              - ''
+              - - 'https://'
+                - Fn::GetAtt:
+                    - database
+                    - DomainEndpoint
           DATABASE_USERNAME:
             Ref: DatabaseUsername
           DATABASE_PASSWORD:
@@ -206,9 +272,12 @@ Resources:
       Environment:
         Variables:
           DATABASE_URL:
-            Fn::GetAtt:
-              - database
-              - DomainEndpoint
+            Fn::Join:
+              - ''
+              - - 'https://'
+                - Fn::GetAtt:
+                    - database
+                    - DomainEndpoint
           DATABASE_USERNAME:
             Ref: DatabaseUsername
           DATABASE_PASSWORD:
@@ -223,6 +292,34 @@ Resources:
       Timeout: 5
     DependsOn:
       - filesFunctionRole
+
+  indexFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Description: Role for setting up the database resources
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Policies:
+        - PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - es:ESHttpPost
+                Effect: Allow
+                Resource:
+                  Fn::GetAtt:
+                    - database
+                    - Arn
+          PolicyName:
+            Fn::Sub: ${StackName}-index-function-policy
+    DependsOn: database
 
   bucketsFunctionRole:
     Type: AWS::IAM::Role
@@ -248,8 +345,19 @@ Resources:
                   Fn::GetAtt:
                     - bucketsListener
                     - Arn
+              - Action:
+                  - s3:ListBucket
+                Effect: Allow
+                Resource: arn:aws:s3:::*
+              - Action:
+                  - es:ESHttpPost
+                Effect: Allow
+                Resource:
+                  Fn::GetAtt:
+                    - database
+                    - Arn
           PolicyName:
-            Fn::Sub: ${StackName}-setup-function-policy
+            Fn::Sub: ${StackName}-buckets-function-policy
 
   documentsFunctionRole:
     Type: AWS::IAM::Role
@@ -308,7 +416,7 @@ Resources:
                       buckets_removed:
                         type: integer
               x-amazon-apigateway-integration:
-                httpMethod: PUT
+                httpMethod: POST
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${bucketsFunction.Arn}/invocations
                 responses:
@@ -334,7 +442,7 @@ Resources:
                         items:
                           type: string
               x-amazon-apigateway-integration:
-                httpMethod: GET
+                httpMethod: POST
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${documentsFunction.Arn}/invocations
                 responses:
@@ -427,6 +535,9 @@ Outputs:
   BucketsListenerBucketName:
     Value:
       Ref: bucketsListenerLogs
+  IndexFunctionName:
+    Value:
+      Ref: indexFunction
   BucketsFunctionName:
     Value:
       Ref: bucketsFunction
