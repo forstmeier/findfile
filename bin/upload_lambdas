@@ -4,6 +4,7 @@
 
 ARTIFACT_BUCKET=$( cat etc/config/config.json | jq -r '.aws.s3.artifact_bucket' )
 
+aws s3 mv index.zip s3://$ARTIFACT_BUCKET/
 aws s3 mv buckets.zip s3://$ARTIFACT_BUCKET/
 aws s3 mv documents.zip s3://$ARTIFACT_BUCKET/
 aws s3 mv files.zip s3://$ARTIFACT_BUCKET/

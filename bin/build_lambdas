@@ -2,12 +2,14 @@
 
 # builds AWS Lambda packages and generates ZIP files
 
+GOARCH=amd64 GOOS=linux go build -o index ./cmd/lambda/index
 GOARCH=amd64 GOOS=linux go build -o buckets ./cmd/lambda/buckets
 GOARCH=amd64 GOOS=linux go build -o documents ./cmd/lambda/documents
 GOARCH=amd64 GOOS=linux go build -o files ./cmd/lambda/files
 
+zip index.zip index
 zip buckets.zip buckets
 zip documents.zip documents
 zip files.zip files
 
-rm buckets documents files
+rm index buckets documents files
