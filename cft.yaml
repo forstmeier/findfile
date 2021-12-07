@@ -221,7 +221,7 @@ Resources:
           - bucketsFunctionRole
           - Arn
       Runtime: go1.x
-      Timeout: 60
+      Timeout: 30
     DependsOn:
       - bucketsFunctionRole
 
@@ -257,7 +257,7 @@ Resources:
           - documentsFunctionRole
           - Arn
       Runtime: go1.x
-      Timeout: 10
+      Timeout: 30
     DependsOn:
       - documentsFunctionRole
 
@@ -283,13 +283,13 @@ Resources:
           DATABASE_PASSWORD:
             Ref: DatabasePassword
       Handler: files
-      MemorySize: 512
+      MemorySize: 1024
       Role:
         Fn::GetAtt:
           - filesFunctionRole
           - Arn
       Runtime: go1.x
-      Timeout: 10
+      Timeout: 30
     DependsOn:
       - filesFunctionRole
 
