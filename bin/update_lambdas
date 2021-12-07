@@ -2,40 +2,40 @@
 
 # updates the AWS Lambdas with the pre-uploaded code files in S3
 
-CONFIG_JSON=$( cat etc/config/config.json | jq '.aws' )
+config_json=$( cat etc/config/config.json | jq '.aws' )
 
-ARTIFACT_BUCKET=$( jq -r  '.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) 
+artifact_bucket=$( jq -r  '.s3.artifact_bucket' <<< "${config_json}" ) 
 
-STACK_NAME=$( jq -r  '.cloudformation.stack_name' <<< "${CONFIG_JSON}" )
+stack_name=$( jq -r  '.cloudformation.stack_name' <<< "${config_json}" )
 
-STACKS_INFO=$( aws cloudformation describe-stacks --stack-name $STACK_NAME )
+stacks_info=$( aws cloudformation describe-stacks --stack-name $stack_name )
 
-STACK_OUTPUTS=$( jq -r  '.Stacks[0].Outputs' <<< "${STACKS_INFO}" ) 
+stack_outputs=$( jq -r  '.Stacks[0].Outputs' <<< "${stacks_info}" ) 
 
-INDEX_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "IndexFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
-BUCKETS_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "BucketsFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
-DOCUMENTS_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "DocumentsFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
-FILES_FUNCTION_NAME=$( jq -r 'map(select(.OutputKey == "FilesFunctionName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+index_function_name=$( jq -r 'map(select(.OutputKey == "IndexFunctionName")) | .[0].OutputValue' <<< "${stack_outputs}" )
+buckets_function_name=$( jq -r 'map(select(.OutputKey == "BucketsFunctionName")) | .[0].OutputValue' <<< "${stack_outputs}" )
+documents_function_name=$( jq -r 'map(select(.OutputKey == "DocumentsFunctionName")) | .[0].OutputValue' <<< "${stack_outputs}" )
+files_function_name=$( jq -r 'map(select(.OutputKey == "FilesFunctionName")) | .[0].OutputValue' <<< "${stack_outputs}" )
 
-REGION=$( aws configure get region )
+region=$( aws configure get region )
 
 aws lambda update-function-code \
-	--function-name $INDEX_FUNCTION_NAME \
-	--s3-bucket $ARTIFACT_BUCKET \
+	--function-name $index_function_name \
+	--s3-bucket $artifact_bucket \
 	--s3-key index.zip \
-	--region $REGION
+	--region $region
 aws lambda update-function-code \
-	--function-name $BUCKETS_FUNCTION_NAME \
-	--s3-bucket $ARTIFACT_BUCKET \
+	--function-name $buckets_function_name \
+	--s3-bucket $artifact_bucket \
 	--s3-key buckets.zip \
-	--region $REGION
+	--region $region
 aws lambda update-function-code \
-	--function-name $DOCUMENTS_FUNCTION_NAME \
-	--s3-bucket $ARTIFACT_BUCKET \
+	--function-name $documents_function_name \
+	--s3-bucket $artifact_bucket \
 	--s3-key documents.zip \
-	--region $REGION
+	--region $region
 aws lambda update-function-code \
-	--function-name $FILES_FUNCTION_NAME \
-	--s3-bucket $ARTIFACT_BUCKET \
+	--function-name $files_function_name \
+	--s3-bucket $artifact_bucket \
 	--s3-key files.zip \
-	--region $REGION
+	--region $region

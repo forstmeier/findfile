@@ -2,14 +2,14 @@
 
 # removes the infrastructure stack via AWS CloudFormation
 
-STACK_NAME=$( cat etc/config/config.json | jq -r  '.aws.cloudformation.stack_name' )
+stack_name=$( cat etc/config/config.json | jq -r  '.aws.cloudformation.stack_name' )
 
-STACKS_INFO=$(aws cloudformation describe-stacks --stack-name $STACK_NAME)
+stacks_info=$(aws cloudformation describe-stacks --stack-name $stack_name)
 
-STACK_OUTPUTS=$( jq -r  '.Stacks[0].Outputs' <<< "${STACKS_INFO}" ) 
+stack_outputs=$( jq -r  '.Stacks[0].Outputs' <<< "${stacks_info}" ) 
 
-BUCKETS_LISTENER_LOGS_BUCKET=$( jq -r 'map(select(.OutputKey == "BucketsListenerBucketName")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+buckets_listener_logs_bucket=$( jq -r 'map(select(.OutputKey == "BucketsListenerBucketName")) | .[0].OutputValue' <<< "${stack_outputs}" )
 
-aws s3 rm s3://$BUCKETS_LISTENER_LOGS_BUCKET --recursive
+aws s3 rm s3://$buckets_listener_logs_bucket --recursive
 
-aws cloudformation delete-stack --stack-name $STACK_NAME
+aws cloudformation delete-stack --stack-name $stack_name

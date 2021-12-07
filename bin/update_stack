@@ -2,24 +2,24 @@
 
 # updates the infrastructure stack in CloudFormation
 
-CONFIG_JSON=$( cat etc/config/config.json | jq )
+config_json=$( cat etc/config/config.json | jq )
 
-STACK_NAME=$( jq -r  '.aws.cloudformation.stack_name' <<< "${CONFIG_JSON}" ) 
-ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" ) 
-DATABASE_INSTANCE_TYPE=$( jq -r  '.aws.opensearch.instance_type' <<< "${CONFIG_JSON}" )
-DATABASE_USERNAME=$( jq -r  '.aws.opensearch.username' <<< "${CONFIG_JSON}" )
-DATABASE_PASSWORD=$( jq -r  '.aws.opensearch.password' <<< "${CONFIG_JSON}" )
+stack_name=$( jq -r  '.aws.cloudformation.stack_name' <<< "${config_json}" ) 
+artifact_bucket=$( jq -r  '.aws.s3.artifact_bucket' <<< "${config_json}" ) 
+database_instance_type=$( jq -r  '.aws.opensearch.instance_type' <<< "${config_json}" )
+database_username=$( jq -r  '.aws.opensearch.username' <<< "${config_json}" )
+database_password=$( jq -r  '.aws.opensearch.password' <<< "${config_json}" )
 
-aws s3 cp cft.yaml s3://$ARTIFACT_BUCKET/cft.yaml
+aws s3 cp cft.yaml s3://$artifact_bucket/cft.yaml
 
 aws cloudformation update-stack \
-	--stack-name $STACK_NAME \
-	--template-url https://s3.amazonaws.com/$ARTIFACT_BUCKET/cft.yaml \
+	--stack-name $stack_name \
+	--template-url https://s3.amazonaws.com/$artifact_bucket/cft.yaml \
 	--parameters \
-		ParameterKey=StackName,ParameterValue=$STACK_NAME \
+		ParameterKey=StackName,ParameterValue=$stack_name \
 		ParameterKey=HTTPSecurityKey,UsePreviousValue=true \
-		ParameterKey=ArtifactBucket,ParameterValue=$ARTIFACT_BUCKET \
-		ParameterKey=DatabaseInstanceType,ParameterValue=$DATABASE_INSTANCE_TYPE \
-		ParameterKey=DatabaseUsername,ParameterValue=$DATABASE_USERNAME \
-		ParameterKey=DatabasePassword,ParameterValue=$DATABASE_PASSWORD \
+		ParameterKey=ArtifactBucket,ParameterValue=$artifact_bucket \
+		ParameterKey=DatabaseInstanceType,ParameterValue=$database_instance_type \
+		ParameterKey=DatabaseUsername,ParameterValue=$database_username \
+		ParameterKey=DatabasePassword,ParameterValue=$database_password \
 	--capabilities CAPABILITY_NAMED_IAM \

@@ -4,7 +4,7 @@
 
 cp etc/examples/example.jpg .
 
-CONFIG_DOCUMENT=$( jq -n \
+config_json=$( jq -n \
 '{
 	"aws": {
 		"cloudformation": {
@@ -22,7 +22,7 @@ CONFIG_DOCUMENT=$( jq -n \
 }'
 )
 
-echo $CONFIG_DOCUMENT > config.json
+echo $config_json > config.json
 
 zip release.zip index.zip buckets.zip documents.zip files.zip cft.yaml config.json example.jpg
 

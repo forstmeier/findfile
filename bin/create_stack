@@ -2,26 +2,26 @@
 
 # launches the infrastructure stack via AWS CloudFormation
 
-CONFIG_JSON=$( cat etc/config/config.json | jq )
+config_json=$( cat etc/config/config.json | jq )
 
-STACK_NAME=$( jq -r  '.aws.cloudformation.stack_name' <<< "${CONFIG_JSON}" )
-ARTIFACT_BUCKET=$( jq -r  '.aws.s3.artifact_bucket' <<< "${CONFIG_JSON}" )
-INSTANCE_TYPE=$( jq -r  '.aws.opensearch.instance_type' <<< "${CONFIG_JSON}" )
-DATABASE_USERNAME=$( jq -r  '.aws.opensearch.username' <<< "${CONFIG_JSON}" )
-DATABASE_PASSWORD=$( jq -r  '.aws.opensearch.password' <<< "${CONFIG_JSON}" )
+stack_name=$( jq -r  '.aws.cloudformation.stack_name' <<< "${config_json}" )
+artifact_bucket=$( jq -r  '.aws.s3.artifact_bucket' <<< "${config_json}" )
+instance_type=$( jq -r  '.aws.opensearch.instance_type' <<< "${config_json}" )
+database_username=$( jq -r  '.aws.opensearch.username' <<< "${config_json}" )
+database_password=$( jq -r  '.aws.opensearch.password' <<< "${config_json}" )
 
-HTTP_SECURITY_KEY=$(uuidgen)
+http_security_key=$(uuidgen)
 
 aws cloudformation deploy \
 	--template-file cft.yaml \
-	--s3-bucket $ARTIFACT_BUCKET \
-	--stack-name $STACK_NAME \
+	--s3-bucket $artifact_bucket \
+	--stack-name $stack_name \
 	--parameter-overrides \
-		StackName=$STACK_NAME \
-		HTTPSecurityKey=$HTTP_SECURITY_KEY \
-		ArtifactBucket=$ARTIFACT_BUCKET  \
-		DatabaseInstanceType=$INSTANCE_TYPE \
-		DatabaseUsername=$DATABASE_USERNAME \
-		DatabasePassword=$DATABASE_PASSWORD \
+		StackName=$stack_name \
+		HTTPSecurityKey=$http_security_key \
+		ArtifactBucket=$artifact_bucket  \
+		DatabaseInstanceType=$instance_type \
+		DatabaseUsername=$database_username \
+		DatabasePassword=$database_password \
 	--capabilities CAPABILITY_NAMED_IAM \
 	--no-fail-on-empty-changeset
