@@ -12,6 +12,11 @@ CONFIG_DOCUMENT=$( jq -n \
 		},
 		"s3": {
 			"artifact_bucket": "REPLACE"
+		},
+		"opensearch": {
+			"instance_type": "t3.small.search",
+			"username": "REPLACE",
+			"password": "REPLACE"
 		}
 	}
 }'
@@ -19,6 +24,6 @@ CONFIG_DOCUMENT=$( jq -n \
 
 echo $CONFIG_DOCUMENT > config.json
 
-zip release.zip buckets.zip documents.zip files.zip cft.yaml config.json example.jpg
+zip release.zip index.zip buckets.zip documents.zip files.zip cft.yaml config.json example.jpg
 
-rm buckets.zip documents.zip files.zip config.json example.jpg
+rm index.zip buckets.zip documents.zip files.zip config.json example.jpg
