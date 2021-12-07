@@ -1,80 +1,76 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -exou pipefail
+echo '|> beginning quickstart'
 
-mkdir -p findfile
-cd findfile
+mkdir -p findfile_quickstart && cd findfile_quickstart
 
 release_url=$(curl -s https://api.github.com/repos/forstmeier/findfile/releases/latest | jq -r '.assets[] | select(.name == "release.zip") | .browser_download_url')
 
 curl -L -o release.zip "$release_url"
 
-unzip release.zip
-
-echo 'enter a stack name (optional, defaults to "findfile"'
-read STACK_NAME
-
-if [ -z "$STACK_NAME" ]
-then
-	echo 'no stack name provided'
-	exit 1
+echo '|> stack name (default "findfile")?' && read stack_name
+if [ -z "$stack_name" ]; then
+	stack_name='findfile'
 fi
 
-echo 'enter an artifact bucket name (required, created separate from stack)'
-read ARTIFACT_BUCKET
-
-if [ -z "$ARTIFACT_BUCKET" ]
-then
-	echo 'no artifact bucket name provided'
-	exit 1
+echo '|> artifact bucket name?' && read artifact_bucket
+if [ -z "$artifact_bucket" ]; then
+  echo '|> error: no artifact bucket name provided'
+  exit 1
 fi
 
-CONFIG_CONTENT=$( jq -n \
---arg stack_name $STACK_NAME \
---arg artifact_bucket $ARTIFACT_BUCKET \
-'{
-	"aws": {
-		"cloudformation": {
-			"stack_name": $stack_name
-		},
-		"s3": {
-			"artifact_bucket": $artifact_bucket
-		}
-	}
-}'
-)
+echo '|> opensearch instance type (default "t3.small.search")?' && read instance_type
+if [ -z "$instance_type" ]; then
+	instance_type='t3.small.search'
+fi
 
-echo $CONFIG_CONTENT > config.json
+echo '|> opensearch domain username?' && read username
+if [ -z "$username" ]; then
+  echo '|> error: no opensearch domain username provided'
+  exit 1
+fi
 
-aws s3 mv buckets.zip s3://$ARTIFACT_BUCKET/
-aws s3 mv documents.zip s3://$ARTIFACT_BUCKET/
-aws s3 mv files.zip s3://$ARTIFACT_BUCKET/
+echo '|> opensearch domain password?' && read password
+if [ -z "$password" ]; then
+  echo '|> error: no opensearch domain password provided'
+  exit 1
+fi
 
-HTTP_SECURITY_KEY=$(uuidgen)
+aws s3 mv index.zip s3://$artifact_bucket/
+aws s3 mv buckets.zip s3://$artifact_bucket/
+aws s3 mv documents.zip s3://$artifact_bucket/
+aws s3 mv files.zip s3://$artifact_bucket/
+
+http_security_key=$(uuidgen)
+
+echo '|> creating stack'
 
 aws cloudformation deploy \
 	--template-file cft.yaml \
-	--s3-bucket $ARTIFACT_BUCKET \
-	--stack-name $STACK_NAME \
+	--s3-bucket $artifact_bucket \
+	--stack-name $stack_name \
 	--parameter-overrides \
-		StackName=$STACK_NAME \
-		HTTPSecurityKey=$HTTP_SECURITY_KEY \
-		ArtifactBucket=$ARTIFACT_BUCKET  \
+		StackName=$stack_name \
+		HTTPSecurityKey=$http_security_key \
+		ArtifactBucket=$artifact_bucket  \
+		DatabaseInstanceType=$instance_type \
+		DatabaseUsername=$username \
+		DatabasePassword=$password \
 	--capabilities CAPABILITY_NAMED_IAM \
 	--no-fail-on-empty-changeset
 
-STACKS_INFO=$(aws cloudformation describe-stacks --stack-name $STACK_NAME)
+echo '|> stack create complete'
 
-STACK_OUTPUTS=$( jq -r  '.Stacks[0].Outputs' <<< "${STACKS_INFO}" ) 
+stacks_info=$(aws cloudformation describe-stacks --stack-name $stack_name)
 
-HTTP_SECURITY_KEY_HEADER=$( jq -r 'map(select(.OutputKey == "HTTPSecurityKeyHeader")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
-HTTP_SECURITY_KEY_VALUE=$( jq -r 'map(select(.OutputKey == "HTTPSecurityKeyValue")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
-BUCKETS_API_ENDPOINT=$( jq -r 'map(select(.OutputKey == "BucketsAPIEndpoint")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
-DOCUMENTS_API_ENDPOINT=$( jq -r 'map(select(.OutputKey == "DocumentsAPIEndpoint")) | .[0].OutputValue' <<< "${STACK_OUTPUTS}" )
+stack_outputs=$( jq -r  '.Stacks[0].Outputs' <<< "${stacks_info}" ) 
 
-echo 'stack launch complete'
+http_security_key_header=$( jq -r 'map(select(.OutputKey == "HTTPSecurityKeyHeader")) | .[0].OutputValue' <<< "${stack_outputs}" )
+http_security_key_value=$( jq -r 'map(select(.OutputKey == "HTTPSecurityKeyValue")) | .[0].OutputValue' <<< "${stack_outputs}" )
+buckets_api_endpoint=$( jq -r 'map(select(.OutputKey == "BucketsAPIEndpoint")) | .[0].OutputValue' <<< "${stack_outputs}" )
+documents_api_endpoint=$( jq -r 'map(select(.OutputKey == "DocumentsAPIEndpoint")) | .[0].OutputValue' <<< "${stack_outputs}" )
 
-echo 'securty key header:     ' $HTTP_SECURITY_KEY_HEADER
-echo 'securty key value:      ' $HTTP_SECURITY_KEY_VALUE
-echo 'buckets api endpoint:   ' $BUCKETS_API_ENDPOINT
-echo 'documents api endpoint: ' $DOCUMENTS_API_ENDPOINT
+echo '|> securty key header:     ' $http_security_key_header
+echo '|> securty key value:      ' $http_security_key_value
+echo '|> buckets api endpoint:   ' $buckets_api_endpoint
+echo '|> documents api endpoint: ' $documents_api_endpoint
