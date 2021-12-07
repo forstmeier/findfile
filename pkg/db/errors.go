@@ -13,6 +13,16 @@ func (e *NewClientError) Error() string {
 	return fmt.Sprintf(errorMessage, e.err)
 }
 
+// ExecuteCreateError wraps errors returned by
+// db.helper.executeCreate in db.Databaser.SetupDatabase.
+type ExecuteCreateError struct {
+	err error
+}
+
+func (e *ExecuteCreateError) Error() string {
+	return fmt.Sprintf(errorMessage, e.err)
+}
+
 // MarshalDocumentError wraps errors returned by json.Marshal
 // in db.Databaser.UpsertDocuments.
 type MarshalDocumentError struct {
@@ -20,16 +30,6 @@ type MarshalDocumentError struct {
 }
 
 func (e *MarshalDocumentError) Error() string {
-	return fmt.Sprintf(errorMessage, e.err)
-}
-
-// WriteDocumentDataError wraps errors returned by
-// bytes.Buffer.Write in db.Databaser.UpsertDocuments.
-type WriteDocumentDataError struct {
-	err error
-}
-
-func (e *WriteDocumentDataError) Error() string {
 	return fmt.Sprintf(errorMessage, e.err)
 }
 

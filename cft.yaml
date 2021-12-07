@@ -93,7 +93,7 @@ Resources:
             - s3.amazonaws.com
           eventName:
             - PutObject
-            - DeleteObjects
+            - DeleteObject
       State: ENABLED
       Targets:
         - Arn:
@@ -356,6 +356,14 @@ Resources:
                   Fn::GetAtt:
                     - database
                     - Arn
+              - Action:
+                  - textract:DetectDocumentText
+                Effect: Allow
+                Resource: "*"
+              - Action:
+                  - "s3:GetObject"
+                Effect: Allow
+                Resource: "*"
           PolicyName:
             Fn::Sub: ${StackName}-buckets-function-policy
 
@@ -384,6 +392,20 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Policies:
+        - PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - textract:DetectDocumentText
+                Effect: Allow
+                Resource: "*"
+              - Action:
+                  - "s3:GetObject"
+                Effect: Allow
+                Resource: "*"
+          PolicyName:
+            Fn::Sub: ${StackName}-files-function-policy
 
   api:
     Type: AWS::ApiGateway::RestApi
@@ -487,7 +509,7 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn:
         Fn::GetAtt:
-          - bucketsListener
+          - bucketsEventRule
           - Arn
 
   apiDeployment:
@@ -527,29 +549,38 @@ Resources:
 Outputs:
 
   HTTPSecurityKeyHeader:
+    Description: Header security key name to include in requests to the API
     Value:
       Fn::Sub: x-${StackName}-security-key
   HTTPSecurityKeyValue:
+    Description: Header security key value to include in requests to the API
     Value:
       Ref: HTTPSecurityKey
   BucketsListenerBucketName:
+    Description: S3 bucket for the event listener output logs
     Value:
       Ref: bucketsListenerLogs
   IndexFunctionName:
+    Description: Name of the function responsible for index setup
     Value:
       Ref: indexFunction
   BucketsFunctionName:
+    Description: Name of the function responsible for managing target buckets
     Value:
       Ref: bucketsFunction
   DocumentsFunctionName:
+    Description: Name of the function responsible for handling user document queries
     Value:
       Ref: documentsFunction
   FilesFunctionName:
+    Description: Name of the function responsible for responding to S3 bucket file events
     Value:
       Ref: filesFunction
   BucketsAPIEndpoint:
+    Description: Endpoint for adding and removing target S3 buckets
     Value:
       Fn::Sub: https://${api}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/buckets
   DocumentsAPIEndpoint:
+    Description: Endpoint for querying user documents
     Value:
       Fn::Sub: https://${api}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/documents

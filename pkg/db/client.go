@@ -9,8 +9,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/elastic/go-elasticsearch/v7/esapi"
+	"github.com/opensearch-project/opensearch-go"
 
 	"github.com/forstmeier/findfile/pkg/pars"
 )
@@ -30,13 +29,11 @@ type Client struct {
 
 // New generates a db.Client pointer instance with AWS OpenSearch.
 func New(newSession *session.Session, url, username, password string) (*Client, error) {
-	elasticsearchClient, err := elasticsearch.NewClient(elasticsearch.Config{
+	opensearchClient, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{url},
 		Username:  username,
 		Password:  password,
 	})
-
-	// elasticsearchClient, err := elasticsearch.NewDefaultClient()
 	if err != nil {
 		return nil, &NewClientError{
 			err: err,
@@ -45,7 +42,7 @@ func New(newSession *session.Session, url, username, password string) (*Client, 
 
 	return &Client{
 		helper: &help{
-			elasticsearchClient: elasticsearchClient,
+			opensearchClient: opensearchClient,
 		},
 	}, nil
 }
@@ -53,14 +50,22 @@ func New(newSession *session.Session, url, username, password string) (*Client, 
 // SetupDatabase implements the db.Databaser.SetupDatabase method
 // using AWS OpenSearch.
 func (c *Client) SetupDatabase(ctx context.Context) error {
-	// NOTE: this may be where domain index
-	// mapping configuration is applied
+	if err := c.helper.executeCreate(ctx); err != nil {
+		return &ExecuteCreateError{
+			err: err,
+		}
+	}
+
 	return nil
 }
 
 // UpsertDocuments implements the db.Databaser.UpsertDocuments method
 // using AWS OpenSearch.
 func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document) error {
+	if len(documents) == 0 {
+		return nil
+	}
+
 	var body bytes.Buffer
 	for _, document := range documents {
 		metadata := fmt.Sprintf(`{ "index": { "_id": "%s" } }`, document.ID)
@@ -72,20 +77,11 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 				err: err,
 			}
 		}
-
-		if _, err = body.Write(data); err != nil {
-			return &WriteDocumentDataError{
-				err: err,
-			}
-		}
-
+		body.Write(data)
 		body.WriteString("\n")
 	}
 
-	response, err := c.helper.executeBulk(ctx, &esapi.BulkRequest{
-		Body: &body,
-	})
-	if response.IsError() || err != nil {
+	if err := c.helper.executeBulk(ctx, &body); err != nil {
 		return &ExecuteBulkError{
 			err: err,
 		}
@@ -97,6 +93,10 @@ func (c *Client) UpsertDocuments(ctx context.Context, documents []pars.Document)
 // DeleteDocumentsByIDs implements the db.Databaser.DeleteDocumentsByIDs
 // method using AWS OpenSearch.
 func (c *Client) DeleteDocumentsByIDs(ctx context.Context, documentPaths []string) error {
+	if len(documentPaths) == 0 {
+		return nil
+	}
+
 	queryString := `{ "query": { "bool": { "minimum_should_match": 1, "should": [ %s ] } } }`
 
 	matches := []string{}
@@ -111,10 +111,7 @@ func (c *Client) DeleteDocumentsByIDs(ctx context.Context, documentPaths []strin
 	var body bytes.Buffer
 	body.WriteString(queryString)
 
-	response, err := c.helper.executeDelete(ctx, &esapi.DeleteByQueryRequest{
-		Body: &body,
-	})
-	if response.IsError() || err != nil {
+	if err := c.helper.executeDelete(ctx, &body); err != nil {
 		return &ExecuteDeleteError{
 			err: err,
 		}
@@ -126,6 +123,10 @@ func (c *Client) DeleteDocumentsByIDs(ctx context.Context, documentPaths []strin
 // DeleteDocumentsByBuckets implements the db.Databaser.DeleteDocumentsByBuckets
 // method using AWS OpenSearch.
 func (c *Client) DeleteDocumentsByBuckets(ctx context.Context, buckets []string) error {
+	if len(buckets) == 0 {
+		return nil
+	}
+
 	queryString := `{ "query": { "bool": { "minimum_should_match": 1, "should": [ %s ] } } }`
 
 	matches := []string{}
@@ -139,10 +140,7 @@ func (c *Client) DeleteDocumentsByBuckets(ctx context.Context, buckets []string)
 	var body bytes.Buffer
 	body.WriteString(queryString)
 
-	response, err := c.helper.executeDelete(ctx, &esapi.DeleteByQueryRequest{
-		Body: &body,
-	})
-	if response.IsError() || err != nil {
+	if err := c.helper.executeDelete(ctx, &body); err != nil {
 		return &ExecuteDeleteError{
 			err: err,
 		}
@@ -156,28 +154,30 @@ type queryResponseBody struct {
 }
 
 type queryHits struct {
-	Hits []pars.Document `json:"hits"`
+	Hits []hits `json:"hits"`
 }
 
-type queryHit struct {
-	// Fields map[string][]pars.Document `json:"fields"`
+type hits struct {
+	Source pars.Document `json:"_source"`
 }
 
 // QueryDocuments implements the db.Databaser.QueryDocuments method
 // using AWS OpenSearch.
 func (c *Client) QueryDocuments(ctx context.Context, query Query) ([]pars.Document, error) {
-	queryString := fmt.Sprintf(`{ "query": { "nested": { "path": "pages.lines", "query": { "match": { "lines.text": "%s" } } } } }`, query.Text)
+	if query.Text == "" {
+		return []pars.Document{}, nil
+	}
 
-	response, err := c.helper.executeQuery(ctx, &esapi.SearchRequest{
-		Body: strings.NewReader(queryString),
-	})
-	if response.IsError() || err != nil {
+	queryString := fmt.Sprintf(`{ "query": { "match": { "pages.lines.text": { "query": "%s", "fuzziness": "AUTO" } } } }`, query.Text)
+
+	response, err := c.helper.executeQuery(ctx, strings.NewReader(queryString))
+	if err != nil {
 		return nil, &ExecuteQueryError{
 			err: err,
 		}
 	}
 
-	body, err := io.ReadAll(response.Body)
+	body, err := io.ReadAll(response)
 	if err != nil {
 		return nil, &ReadQueryResponseBodyError{
 			err: err,
@@ -191,5 +191,10 @@ func (c *Client) QueryDocuments(ctx context.Context, query Query) ([]pars.Docume
 		}
 	}
 
-	return responseBody.Hits.Hits, nil
+	documents := []pars.Document{}
+	for _, document := range responseBody.Hits.Hits {
+		documents = append(documents, document.Source)
+	}
+
+	return documents, nil
 }

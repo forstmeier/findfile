@@ -90,8 +90,8 @@ func handler(evtClient evt.Eventer, fsClient fs.Filesystemer, parsClient pars.Pa
 					}
 
 					documents[i] = *document
-
 				}
+
 				if err := dbClient.UpsertDocuments(ctx, documents); err != nil {
 					util.Log("UPSERT_DOCUMENTS_ERROR", err.Error())
 					return events.APIGatewayProxyResponse{
@@ -104,7 +104,7 @@ func handler(evtClient evt.Eventer, fsClient fs.Filesystemer, parsClient pars.Pa
 		}
 
 		if requestJSON.Remove != nil {
-			if err := evtClient.RemoveBucketListeners(ctx, requestJSON.Add); err != nil {
+			if err := evtClient.RemoveBucketListeners(ctx, requestJSON.Remove); err != nil {
 				util.Log("REMOVE_BUCKET_LISTENERS_ERROR", err.Error())
 				return events.APIGatewayProxyResponse{
 					StatusCode:      http.StatusInternalServerError,

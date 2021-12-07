@@ -87,6 +87,10 @@ func convertToDocument(input *textract.DetectDocumentTextOutput, fileKey, fileBu
 			page.PageNumber = *pageBlock.Page
 		}
 
+		if len(pageBlock.Relationships) == 0 {
+			continue
+		}
+
 		for _, id := range pageBlock.Relationships[0].Ids {
 			// not all child IDs are "lines" which requires an ok check
 			if lineBlock, ok := lines[*id]; ok {

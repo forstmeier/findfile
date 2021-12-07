@@ -1,6 +1,7 @@
 package evt
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 )
 
@@ -46,9 +47,11 @@ func (h *help) putEventValues(trailName string, values []*string) error {
 			{
 				DataResources: []*cloudtrail.DataResource{
 					{
+						Type:   aws.String("AWS::S3::Object"),
 						Values: values,
 					},
 				},
+				ReadWriteType: aws.String(cloudtrail.ReadWriteTypeWriteOnly),
 			},
 		},
 	})

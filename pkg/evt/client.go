@@ -43,7 +43,7 @@ func (c *Client) AddBucketListeners(ctx context.Context, buckets []string) error
 	}
 
 	for _, bucket := range buckets {
-		newARN := arnPrefix + bucket
+		newARN := arnPrefix + bucket + "/"
 		if _, ok := valuesMap[newARN]; !ok {
 			values = append(values, &newARN)
 		}
@@ -70,7 +70,7 @@ func (c *Client) RemoveBucketListeners(ctx context.Context, buckets []string) er
 
 	bucketsMap := map[string]struct{}{}
 	for _, bucket := range buckets {
-		bucketsMap[arnPrefix+bucket] = struct{}{}
+		bucketsMap[arnPrefix+bucket+"/"] = struct{}{}
 	}
 
 	for i, value := range values {

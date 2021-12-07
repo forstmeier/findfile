@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/elastic/go-elasticsearch/v7/esapi"
 
 	"github.com/forstmeier/findfile/pkg/pars"
 )
@@ -31,63 +30,53 @@ func TestNew(t *testing.T) {
 }
 
 type mockHelper struct {
-	mockExecuteIndexMappingOutput *esapi.Response
-	mockExecuteIndexMappingError  error
-	mockExecuteBulkBody           io.Reader
-	mockExecuteBulkOutput         *esapi.Response
-	mockExecuteBulkError          error
-	mockExecuteDeleteBody         io.Reader
-	mockExecuteDeleteOutput       *esapi.Response
-	mockExecuteDeleteError        error
-	mockExecuteQueryBody          io.Reader
-	mockExecuteQueryOutput        *esapi.Response
-	mockExecuteQueryError         error
+	mockExecuteCreateError error
+	mockExecuteBulkBody    io.Reader
+	mockExecuteBulkError   error
+	mockExecuteDeleteBody  io.Reader
+	mockExecuteDeleteError error
+	mockExecuteQueryBody   io.Reader
+	mockExecuteQueryOutput io.ReadCloser
+	mockExecuteQueryError  error
 }
 
-func (mh *mockHelper) executeIndexMapping(ctx context.Context, request *esapi.IndicesPutMappingRequest) (*esapi.Response, error) {
-	return mh.mockExecuteIndexMappingOutput, mh.mockExecuteIndexMappingError
+func (m *mockHelper) executeCreate(ctx context.Context) error {
+	return m.mockExecuteCreateError
 }
 
-func (mh *mockHelper) executeBulk(ctx context.Context, request *esapi.BulkRequest) (*esapi.Response, error) {
-	mh.mockExecuteBulkBody = request.Body
-	return mh.mockExecuteBulkOutput, mh.mockExecuteBulkError
+func (m *mockHelper) executeBulk(ctx context.Context, body io.Reader) error {
+	m.mockExecuteBulkBody = body
+	return m.mockExecuteBulkError
 }
 
-func (mh *mockHelper) executeDelete(ctx context.Context, request *esapi.DeleteByQueryRequest) (*esapi.Response, error) {
-	mh.mockExecuteDeleteBody = request.Body
-	return mh.mockExecuteDeleteOutput, mh.mockExecuteDeleteError
+func (m *mockHelper) executeDelete(ctx context.Context, body io.Reader) error {
+	m.mockExecuteDeleteBody = body
+	return m.mockExecuteDeleteError
 }
 
-func (mh *mockHelper) executeQuery(ctx context.Context, request *esapi.SearchRequest) (*esapi.Response, error) {
-	mh.mockExecuteQueryBody = request.Body
-	return mh.mockExecuteQueryOutput, mh.mockExecuteQueryError
+func (m *mockHelper) executeQuery(ctx context.Context, body io.Reader) (io.ReadCloser, error) {
+	m.mockExecuteQueryBody = body
+	return m.mockExecuteQueryOutput, m.mockExecuteQueryError
 }
 
 func TestUpsertDocuments(t *testing.T) {
 	tests := []struct {
-		description           string
-		mockExecuteBulkBody   string
-		mockExecuteBulkOutput *esapi.Response
-		mockExecuteBulkError  error
-		error                 error
+		description          string
+		mockExecuteBulkBody  string
+		mockExecuteBulkError error
+		error                error
 	}{
 		{
-			description:         "error executing bulk request",
-			mockExecuteBulkBody: "",
-			mockExecuteBulkOutput: &esapi.Response{
-				StatusCode: 300,
-			},
+			description:          "error executing bulk request",
+			mockExecuteBulkBody:  "",
 			mockExecuteBulkError: errors.New("mock execute bulk error"),
 			error:                &ExecuteBulkError{},
 		},
 		{
 			description: "successful invocation",
 			mockExecuteBulkBody: `{ "index": { "_id": "doc_id" } }
-{"id":"doc_id","entity":"","file_bucket":"","file_key":"","pages":null}
+{"id":"doc_id","entity":"","file_bucket":"","file_key":""}
 `,
-			mockExecuteBulkOutput: &esapi.Response{
-				StatusCode: 200,
-			},
 			mockExecuteBulkError: nil,
 			error:                nil,
 		},
@@ -96,8 +85,7 @@ func TestUpsertDocuments(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			h := &mockHelper{
-				mockExecuteBulkOutput: test.mockExecuteBulkOutput,
-				mockExecuteBulkError:  test.mockExecuteBulkError,
+				mockExecuteBulkError: test.mockExecuteBulkError,
 			}
 
 			c := &Client{
@@ -135,27 +123,20 @@ func TestUpsertDocuments(t *testing.T) {
 
 func TestDeleteDocumentsByIDs(t *testing.T) {
 	tests := []struct {
-		description             string
-		mockExecuteDeleteBody   string
-		mockExecuteDeleteOutput *esapi.Response
-		mockExecuteDeleteError  error
-		error                   error
+		description            string
+		mockExecuteDeleteBody  string
+		mockExecuteDeleteError error
+		error                  error
 	}{
 		{
-			description:           "error executing delete request",
-			mockExecuteDeleteBody: "",
-			mockExecuteDeleteOutput: &esapi.Response{
-				StatusCode: 300,
-			},
+			description:            "error executing delete request",
+			mockExecuteDeleteBody:  "",
 			mockExecuteDeleteError: errors.New("mock execute delete error"),
 			error:                  &ExecuteDeleteError{},
 		},
 		{
-			description:           "successful invocation",
-			mockExecuteDeleteBody: `{ "query": { "bool": { "minimum_should_match": 1, "should": [ { "match": { "file_bucket": "bucket", "file_key": "key.jpeg" } } ] } } }`,
-			mockExecuteDeleteOutput: &esapi.Response{
-				StatusCode: 200,
-			},
+			description:            "successful invocation",
+			mockExecuteDeleteBody:  `{ "query": { "bool": { "minimum_should_match": 1, "should": [ { "match": { "file_bucket": "bucket", "file_key": "key.jpeg" } } ] } } }`,
 			mockExecuteDeleteError: nil,
 			error:                  nil,
 		},
@@ -164,8 +145,7 @@ func TestDeleteDocumentsByIDs(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			h := &mockHelper{
-				mockExecuteDeleteOutput: test.mockExecuteDeleteOutput,
-				mockExecuteDeleteError:  test.mockExecuteDeleteError,
+				mockExecuteDeleteError: test.mockExecuteDeleteError,
 			}
 
 			c := &Client{
@@ -199,27 +179,20 @@ func TestDeleteDocumentsByIDs(t *testing.T) {
 
 func TestDeleteDocumentsByBuckets(t *testing.T) {
 	tests := []struct {
-		description             string
-		mockExecuteDeleteBody   string
-		mockExecuteDeleteOutput *esapi.Response
-		mockExecuteDeleteError  error
-		error                   error
+		description            string
+		mockExecuteDeleteBody  string
+		mockExecuteDeleteError error
+		error                  error
 	}{
 		{
-			description:           "error executing delete request",
-			mockExecuteDeleteBody: "",
-			mockExecuteDeleteOutput: &esapi.Response{
-				StatusCode: 300,
-			},
+			description:            "error executing delete request",
+			mockExecuteDeleteBody:  "",
 			mockExecuteDeleteError: errors.New("mock execute delete error"),
 			error:                  &ExecuteDeleteError{},
 		},
 		{
-			description:           "successful invocation",
-			mockExecuteDeleteBody: `{ "query": { "bool": { "minimum_should_match": 1, "should": [ { "match": { "file_bucket": "bucket" } } ] } } }`,
-			mockExecuteDeleteOutput: &esapi.Response{
-				StatusCode: 200,
-			},
+			description:            "successful invocation",
+			mockExecuteDeleteBody:  `{ "query": { "bool": { "minimum_should_match": 1, "should": [ { "match": { "file_bucket": "bucket" } } ] } } }`,
 			mockExecuteDeleteError: nil,
 			error:                  nil,
 		},
@@ -228,8 +201,7 @@ func TestDeleteDocumentsByBuckets(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
 			h := &mockHelper{
-				mockExecuteDeleteOutput: test.mockExecuteDeleteOutput,
-				mockExecuteDeleteError:  test.mockExecuteDeleteError,
+				mockExecuteDeleteError: test.mockExecuteDeleteError,
 			}
 
 			c := &Client{
@@ -265,28 +237,23 @@ func TestQueryDocuments(t *testing.T) {
 	tests := []struct {
 		description            string
 		mockExecuteQueryBody   string
-		mockExecuteQueryOutput *esapi.Response
+		mockExecuteQueryOutput io.ReadCloser
 		mockExecuteQueryError  error
 		documents              []pars.Document
 		error                  error
 	}{
 		{
-			description:          "error executing query request",
-			mockExecuteQueryBody: "",
-			mockExecuteQueryOutput: &esapi.Response{
-				StatusCode: 300,
-			},
-			mockExecuteQueryError: errors.New("mock execute query error"),
-			error:                 &ExecuteQueryError{},
+			description:            "error executing query request",
+			mockExecuteQueryBody:   "",
+			mockExecuteQueryOutput: nil,
+			mockExecuteQueryError:  errors.New("mock execute query error"),
+			error:                  &ExecuteQueryError{},
 		},
 		{
-			description:          "successful invocation",
-			mockExecuteQueryBody: `{ "query": { "nested": { "path": "pages.lines", "query": { "match": { "lines.text": "example text" } } } } }`,
-			mockExecuteQueryOutput: &esapi.Response{
-				StatusCode: 200,
-				Body:       io.NopCloser(strings.NewReader(`{ "hits": { "hits": [ { "id": "doc_id" } ] } }`)),
-			},
-			mockExecuteQueryError: nil,
+			description:            "successful invocation",
+			mockExecuteQueryBody:   `{ "query": { "match": { "pages.lines.text": { "query": "example text", "fuzziness": "AUTO" } } } }`,
+			mockExecuteQueryOutput: io.NopCloser(strings.NewReader(`{ "hits": { "hits": [ { "_source": { "id": "doc_id" } } ] } }`)),
+			mockExecuteQueryError:  nil,
 			documents: []pars.Document{
 				{
 					ID: "doc_id",

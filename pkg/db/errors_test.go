@@ -18,6 +18,19 @@ func TestNewClientError(t *testing.T) {
 	}
 }
 
+func TestExecuteCreateError(t *testing.T) {
+	err := &ExecuteCreateError{
+		err: errors.New("mock execute create error"),
+	}
+
+	recieved := err.Error()
+	expected := "package db: mock execute create error"
+
+	if recieved != expected {
+		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
+	}
+}
+
 func TestMarshalDocumentError(t *testing.T) {
 	err := &MarshalDocumentError{
 		err: errors.New("mock marshal document error"),
@@ -25,19 +38,6 @@ func TestMarshalDocumentError(t *testing.T) {
 
 	recieved := err.Error()
 	expected := "package db: mock marshal document error"
-
-	if recieved != expected {
-		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)
-	}
-}
-
-func TestWriteDocumentDataError(t *testing.T) {
-	err := &WriteDocumentDataError{
-		err: errors.New("mock write document data error"),
-	}
-
-	recieved := err.Error()
-	expected := "package db: mock write document data error"
 
 	if recieved != expected {
 		t.Errorf("incorrect error message, received: %s, expected: %s", recieved, expected)

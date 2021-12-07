@@ -8,7 +8,7 @@ type Document struct {
 	Entity     string `json:"entity"`
 	FileBucket string `json:"file_bucket"`
 	FileKey    string `json:"file_key"`
-	Pages      []Page `json:"pages"`
+	Pages      []Page `json:"pages,omitempty"`
 }
 
 // Page holds the output of parsing a page of the provided image file.
@@ -16,7 +16,7 @@ type Page struct {
 	ID         string `json:"id"`
 	Entity     string `json:"entity"`
 	PageNumber int64  `json:"page_number"`
-	Lines      []Line `json:"lines"`
+	Lines      []Line `json:"lines,omitempty"`
 }
 
 // Line holds text and location coordinates retrieved from the image file.
@@ -24,7 +24,7 @@ type Line struct {
 	ID          string      `json:"id"`
 	Entity      string      `json:"entity"`
 	Text        string      `json:"text"`
-	Coordinates Coordinates `json:"coordinates"`
+	Coordinates Coordinates `json:"coordinates,omitempty"`
 }
 
 // Coordinates holds the four coordinate points for a piece of text.

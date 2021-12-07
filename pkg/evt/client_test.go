@@ -26,7 +26,7 @@ func (mh *mockHelper) putEventValues(trailName string, values []*string) error {
 func TestAddBucketListeners(t *testing.T) {
 	oldValue := arnPrefix + "old_bucket"
 	newBucket := "new_bucket"
-	newValue := arnPrefix + newBucket
+	newValue := arnPrefix + newBucket + "/"
 
 	tests := []struct {
 		description                string
@@ -102,7 +102,7 @@ func TestAddBucketListeners(t *testing.T) {
 func TestRemoveBucketListeners(t *testing.T) {
 	oldValue := arnPrefix + "old_bucket"
 	removeBucket := "remove_bucket"
-	removeValue := arnPrefix + removeBucket
+	removeValue := arnPrefix + removeBucket + "/"
 
 	tests := []struct {
 		description                string
