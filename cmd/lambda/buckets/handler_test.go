@@ -310,7 +310,7 @@ func Test_handler(t *testing.T) {
 			response, _ := handlerFunc(context.Background(), test.request)
 
 			if response.StatusCode != test.statusCode {
-				t.Errorf("incorrect status code, received: %d, expected: %d", test.statusCode, response.StatusCode)
+				t.Errorf("incorrect status code, received: %d, expected: %d", response.StatusCode, test.statusCode)
 			}
 
 			if response.Body != test.body {
