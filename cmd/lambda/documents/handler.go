@@ -12,45 +12,44 @@ import (
 	"github.com/forstmeier/findfile/util"
 )
 
-func handler(dbClient db.Databaser, httpSecurityHeader, httpSecurityKey string) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(
+	dbClient db.Databaser,
+	httpSecurityHeader, httpSecurityKey string,
+) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		httpSecurityKeyReceived, ok := request.Headers[httpSecurityHeader]
 		if !ok {
 			util.Log("SECURITY_KEY_HEADER_ERROR", fmt.Sprintf("security key header %q not provided", httpSecurityHeader))
-			return events.APIGatewayProxyResponse{
-				StatusCode:      http.StatusBadRequest,
-				Body:            `{"error": "security key header not provided"}`,
-				IsBase64Encoded: false,
-			}, nil
+			return sendResponse(
+				http.StatusBadRequest,
+				`{"error": "security key header not provided"}`,
+			)
 		}
 
 		if httpSecurityKeyReceived != httpSecurityKey {
 			util.Log("SECURITY_KEY_VALUE_ERROR", fmt.Sprintf("security key %q incorrect", httpSecurityKeyReceived))
-			return events.APIGatewayProxyResponse{
-				StatusCode:      http.StatusBadRequest,
-				Body:            fmt.Sprintf(`{"error": "security key %q incorrect"}`, httpSecurityKeyReceived),
-				IsBase64Encoded: false,
-			}, nil
+			return sendResponse(
+				http.StatusBadRequest,
+				fmt.Sprintf(`{"error": "security key %q incorrect"}`, httpSecurityKeyReceived),
+			)
 		}
 
 		requestJSON := db.Query{}
 		if err := json.Unmarshal([]byte(request.Body), &requestJSON); err != nil {
 			util.Log("UNMARSHAL_REQUEST_PAYLOAD_ERROR", err.Error())
-			return events.APIGatewayProxyResponse{
-				StatusCode:      http.StatusBadRequest,
-				Body:            fmt.Sprintf(`{"error": %q}`, err),
-				IsBase64Encoded: false,
-			}, nil
+			return sendResponse(
+				http.StatusBadRequest,
+				fmt.Sprintf(`{"error": %q}`, err),
+			)
 		}
 
 		documents, err := dbClient.QueryDocuments(ctx, requestJSON)
 		if err != nil {
 			util.Log("QUERY_DOCUMENTS_ERROR", err.Error())
-			return events.APIGatewayProxyResponse{
-				StatusCode:      http.StatusInternalServerError,
-				Body:            fmt.Sprintf(`{"error": %q}`, err),
-				IsBase64Encoded: false,
-			}, nil
+			return sendResponse(
+				http.StatusInternalServerError,
+				fmt.Sprintf(`{"error": %q}`, err),
+			)
 		}
 
 		filePaths := []string{}
@@ -69,18 +68,21 @@ func handler(dbClient db.Databaser, httpSecurityHeader, httpSecurityKey string) 
 		responseBodyBytes, err := json.Marshal(responseBody)
 		if err != nil {
 			util.Log("MARSHAL_RESPONSE_PAYLOAD_ERROR", err.Error())
-			return events.APIGatewayProxyResponse{
-				StatusCode:      http.StatusInternalServerError,
-				Body:            fmt.Sprintf(`{"error": %q}`, err),
-				IsBase64Encoded: false,
-			}, nil
+			return sendResponse(
+				http.StatusInternalServerError,
+				fmt.Sprintf(`{"error": %q}`, err),
+			)
 		}
 
 		util.Log("RESPONSE_BODY", string(responseBodyBytes))
-		return events.APIGatewayProxyResponse{
-			StatusCode:      http.StatusOK,
-			Body:            string(responseBodyBytes),
-			IsBase64Encoded: false,
-		}, nil
+		return sendResponse(http.StatusOK, string(responseBodyBytes))
 	}
+}
+
+func sendResponse(statusCode int, body string) (events.APIGatewayProxyResponse, error) {
+	return events.APIGatewayProxyResponse{
+		StatusCode:      statusCode,
+		Body:            body,
+		IsBase64Encoded: false,
+	}, nil
 }

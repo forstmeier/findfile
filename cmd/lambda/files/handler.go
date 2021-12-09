@@ -41,7 +41,7 @@ func handler(parsClient pars.Parser, dbClient db.Databaser) func(ctx context.Con
 				return err
 			}
 
-		} else if detailsJSON.EventName == "DeleteObjects" {
+		} else if detailsJSON.EventName == "DeleteObject" {
 			if err := dbClient.DeleteDocumentsByIDs(ctx, []string{detailsJSON.RequestParameters.Key}); err != nil {
 				util.Log("DELETE_DOCUMENTS_ERROR", err.Error())
 				return err

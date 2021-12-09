@@ -8,6 +8,7 @@ etc/config/config.json
 findfile-install
 
 # lambda functions code
+index.zip
 buckets.zip
 documents.zip
 files.zip

@@ -92,7 +92,7 @@ func Test_handler(t *testing.T) {
 		{
 			description: "delete document error",
 			event: events.CloudWatchEvent{
-				Detail: []byte(`{ "eventName": "DeleteObjects", "requestParameters": { "bucketName": "bucket", "key": "key.jpeg" } }`),
+				Detail: []byte(`{ "eventName": "DeleteObject", "requestParameters": { "bucketName": "bucket", "key": "key.jpeg" } }`),
 			},
 			mockParseOutput:          nil,
 			mockParseError:           nil,
@@ -103,7 +103,7 @@ func Test_handler(t *testing.T) {
 		{
 			description: "successful invocation",
 			event: events.CloudWatchEvent{
-				Detail: []byte(`{ "eventName": "DeleteObjects", "requestParameters": { "bucketName": "bucket", "key": "key.jpeg" } }`),
+				Detail: []byte(`{ "eventName": "DeleteObject", "requestParameters": { "bucketName": "bucket", "key": "key.jpeg" } }`),
 			},
 			mockParseOutput:          nil,
 			mockParseError:           nil,
