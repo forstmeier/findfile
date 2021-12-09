@@ -6,7 +6,7 @@ mkdir -p findfile_quickstart && cd findfile_quickstart
 
 release_url=$(curl -s https://api.github.com/repos/forstmeier/findfile/releases/latest | jq -r '.assets[] | select(.name == "release.zip") | .browser_download_url')
 
-curl -L -o release.zip "$release_url"
+curl -L -o release.zip "$release_url" && unzip release.zip
 
 echo '|> stack name (default "findfile")?' && read stack_name
 if [ -z "$stack_name" ]; then
