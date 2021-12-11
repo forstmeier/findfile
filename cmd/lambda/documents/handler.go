@@ -19,36 +19,36 @@ func handler(
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		httpSecurityKeyReceived, ok := request.Headers[httpSecurityHeader]
 		if !ok {
-			util.Log("SECURITY_KEY_HEADER_ERROR", fmt.Sprintf("security key header %q not provided", httpSecurityHeader))
-			return sendResponse(
+			return util.SendResponse(
 				http.StatusBadRequest,
-				`{"error": "security key header not provided"}`,
+				fmt.Errorf("security key header '%s' not provided", httpSecurityHeader),
+				"SECURITY_KEY_HEADER_ERROR",
 			)
 		}
 
 		if httpSecurityKeyReceived != httpSecurityKey {
-			util.Log("SECURITY_KEY_VALUE_ERROR", fmt.Sprintf("security key '%s' incorrect", httpSecurityKeyReceived))
-			return sendResponse(
+			return util.SendResponse(
 				http.StatusBadRequest,
-				fmt.Sprintf(`{"error": "security key '%s' incorrect"}`, httpSecurityKeyReceived),
+				fmt.Errorf("security key '%s' incorrect", httpSecurityKeyReceived),
+				"SECURITY_KEY_VALUE_ERROR",
 			)
 		}
 
 		requestJSON := db.Query{}
 		if err := json.Unmarshal([]byte(request.Body), &requestJSON); err != nil {
-			util.Log("UNMARSHAL_REQUEST_PAYLOAD_ERROR", err.Error())
-			return sendResponse(
+			return util.SendResponse(
 				http.StatusBadRequest,
-				fmt.Sprintf(`{"error": %q}`, err),
+				err,
+				"UNMARSHAL_REQUEST_PAYLOAD_ERROR",
 			)
 		}
 
 		documents, err := dbClient.QueryDocuments(ctx, requestJSON)
 		if err != nil {
-			util.Log("QUERY_DOCUMENTS_ERROR", err.Error())
-			return sendResponse(
+			return util.SendResponse(
 				http.StatusInternalServerError,
-				fmt.Sprintf(`{"error": %q}`, err),
+				err,
+				"QUERY_DOCUMENTS_ERROR",
 			)
 		}
 
@@ -57,32 +57,10 @@ func handler(
 			filePaths = append(filePaths, fmt.Sprintf("%s/%s", document.FileBucket, document.FileKey))
 		}
 
-		responseBody := struct {
-			Message   string   `json:"message"`
-			FilePaths []string `json:"file_paths"`
-		}{
-			Message:   "success",
-			FilePaths: filePaths,
-		}
-
-		responseBodyBytes, err := json.Marshal(responseBody)
-		if err != nil {
-			util.Log("MARSHAL_RESPONSE_PAYLOAD_ERROR", err.Error())
-			return sendResponse(
-				http.StatusInternalServerError,
-				fmt.Sprintf(`{"error": %q}`, err),
-			)
-		}
-
-		util.Log("RESPONSE_BODY", string(responseBodyBytes))
-		return sendResponse(http.StatusOK, string(responseBodyBytes))
+		return util.SendResponse(
+			http.StatusOK,
+			filePaths,
+			"RESPONSE_BODY",
+		)
 	}
-}
-
-func sendResponse(statusCode int, body string) (events.APIGatewayProxyResponse, error) {
-	return events.APIGatewayProxyResponse{
-		StatusCode:      statusCode,
-		Body:            body,
-		IsBase64Encoded: false,
-	}, nil
 }

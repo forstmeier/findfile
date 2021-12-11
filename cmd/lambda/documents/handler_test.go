@@ -60,7 +60,7 @@ func Test_handler(t *testing.T) {
 			mockQueryDocumentsOutput: nil,
 			mockQueryDocumentsError:  nil,
 			statusCode:               400,
-			body:                     `{"error": "security key header not provided"}`,
+			body:                     `{"error":"security key header 'http-security-header' not provided"}`,
 		},
 		{
 			description: "incorrect security header received",
@@ -72,7 +72,7 @@ func Test_handler(t *testing.T) {
 			mockQueryDocumentsOutput: nil,
 			mockQueryDocumentsError:  nil,
 			statusCode:               400,
-			body:                     `{"error": "security key 'incorrect-value' incorrect"}`,
+			body:                     `{"error":"security key 'incorrect-value' incorrect"}`,
 		},
 		{
 			description: "unmarshal request body error",
@@ -85,7 +85,7 @@ func Test_handler(t *testing.T) {
 			mockQueryDocumentsOutput: nil,
 			mockQueryDocumentsError:  nil,
 			statusCode:               400,
-			body:                     `{"error": "invalid character 'i' looking for beginning of value"}`,
+			body:                     `{"error":"invalid character 'i' looking for beginning of value"}`,
 		},
 		{
 			description: "query documents error",
@@ -98,7 +98,7 @@ func Test_handler(t *testing.T) {
 			mockQueryDocumentsOutput: nil,
 			mockQueryDocumentsError:  errors.New("mock query documents error"),
 			statusCode:               500,
-			body:                     `{"error": "mock query documents error"}`,
+			body:                     `{"error":"mock query documents error"}`,
 		},
 		{
 			description: "successful invocation",
@@ -136,7 +136,7 @@ func Test_handler(t *testing.T) {
 			}
 
 			if response.Body != test.body {
-				t.Errorf("incorrect body, received: %q, expected: %q", test.body, response.Body)
+				t.Errorf("incorrect body, received: %q, expected: %q", response.Body, test.body)
 			}
 		})
 	}

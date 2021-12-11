@@ -33,36 +33,36 @@ func handler(
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		httpSecurityKeyReceived, ok := request.Headers[httpSecurityHeader]
 		if !ok {
-			util.Log("SECURITY_KEY_HEADER_ERROR", fmt.Sprintf("security key header %q not provided", httpSecurityHeader))
-			return sendResponse(
+			return util.SendResponse(
 				http.StatusBadRequest,
-				`{"error": "security key header not provided"}`,
+				fmt.Errorf("security key header '%s' not provided", httpSecurityHeader),
+				"SECURITY_KEY_HEADER_ERROR",
 			)
 		}
 
 		if httpSecurityKeyReceived != httpSecurityKey {
-			util.Log("SECURITY_KEY_VALUE_ERROR", fmt.Sprintf("security key '%s' incorrect", httpSecurityKeyReceived))
-			return sendResponse(
+			return util.SendResponse(
 				http.StatusBadRequest,
-				fmt.Sprintf(`{"error": "security key '%s' incorrect"}`, httpSecurityKeyReceived),
+				fmt.Errorf("security key '%s' incorrect", httpSecurityKeyReceived),
+				"SECURITY_KEY_VALUE_ERROR",
 			)
 		}
 
 		requestJSON := requestsPayload{}
 		if err := json.Unmarshal([]byte(request.Body), &requestJSON); err != nil {
-			util.Log("UNMARSHAL_REQUEST_PAYLOAD_ERROR", err.Error())
-			return sendResponse(
+			return util.SendResponse(
 				http.StatusBadRequest,
-				fmt.Sprintf(`{"error": %q}`, err),
+				err,
+				"UNMARSHAL_REQUEST_PAYLOAD_ERROR",
 			)
 		}
 
 		if requestJSON.Add != nil {
 			if err := evtClient.AddBucketListeners(ctx, requestJSON.Add); err != nil {
-				util.Log("ADD_BUCKET_LISTENERS_ERROR", err.Error())
-				return sendResponse(
+				return util.SendResponse(
 					http.StatusInternalServerError,
-					fmt.Sprintf(`{"error": %q}`, err),
+					err,
+					"ADD_BUCKET_LISTENERS_ERROR",
 				)
 			}
 
@@ -72,10 +72,10 @@ func handler(
 			for _, bucket := range requestJSON.Add {
 				fileKeys, err := fsClient.ListFiles(ctx, bucket)
 				if err != nil {
-					util.Log("LIST_FILES_ERROR", err.Error())
-					return sendResponse(
+					return util.SendResponse(
 						http.StatusInternalServerError,
-						fmt.Sprintf(`{"error": %q}`, err),
+						err,
+						"LIST_FILES_ERROR",
 					)
 				}
 
@@ -131,10 +131,10 @@ func handler(
 						close(documentsChannel)
 					case err := <-errorsChannel:
 						close(errorsChannel)
-						util.Log("UPSERT_DOCUMENTS_ERROR", err.Error())
-						return sendResponse(
+						return util.SendResponse(
 							http.StatusInternalServerError,
-							fmt.Sprintf(`{"error": %q}`, err),
+							err,
+							"PARSE_DOCUMENTS_ERROR",
 						)
 					}
 
@@ -144,10 +144,10 @@ func handler(
 					}
 
 					if err := dbClient.UpsertDocuments(ctx, documents); err != nil {
-						util.Log("UPSERT_DOCUMENTS_ERROR", err.Error())
-						return sendResponse(
+						return util.SendResponse(
 							http.StatusInternalServerError,
-							fmt.Sprintf(`{"error": %q}`, err),
+							err,
+							"UPSERT_DOCUMENTS_ERROR",
 						)
 					}
 				}
@@ -156,25 +156,30 @@ func handler(
 
 		if requestJSON.Remove != nil {
 			if err := evtClient.RemoveBucketListeners(ctx, requestJSON.Remove); err != nil {
-				util.Log("REMOVE_BUCKET_LISTENERS_ERROR", err.Error())
-				return sendResponse(
+				return util.SendResponse(
 					http.StatusInternalServerError,
-					fmt.Sprintf(`{"error": %q}`, err),
+					err,
+					"REMOVE_BUCKET_LISTENERS_ERROR",
 				)
 			}
 
 			if err := dbClient.DeleteDocumentsByBuckets(ctx, requestJSON.Remove); err != nil {
-				util.Log("DELETE_DOCUMENTS_BY_BUCKETS_ERROR", err.Error())
-				return sendResponse(
+				return util.SendResponse(
 					http.StatusInternalServerError,
-					fmt.Sprintf(`{"error": %q}`, err),
+					err,
+					"DELETE_DOCUMENTS_BY_BUCKETS_ERROR",
 				)
 			}
 		}
 
-		outputBody := fmt.Sprintf(`{"message": "success", "buckets_added": %d, "buckets_removed": %d}`, len(requestJSON.Add), len(requestJSON.Remove))
-		util.Log("RESPONSE_BODY", outputBody)
-		return sendResponse(http.StatusOK, outputBody)
+		return util.SendResponse(
+			http.StatusOK,
+			map[string]int{
+				"buckets_added":   len(requestJSON.Add),
+				"buckets_removed": len(requestJSON.Remove),
+			},
+			"RESPONSE_BODY",
+		)
 	}
 }
 
@@ -188,12 +193,4 @@ func hasSuffix(fileKey string) bool {
 	}
 
 	return false
-}
-
-func sendResponse(statusCode int, body string) (events.APIGatewayProxyResponse, error) {
-	return events.APIGatewayProxyResponse{
-		StatusCode:      statusCode,
-		Body:            body,
-		IsBase64Encoded: false,
-	}, nil
 }

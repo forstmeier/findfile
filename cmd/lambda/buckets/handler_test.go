@@ -102,7 +102,7 @@ func Test_handler(t *testing.T) {
 			mockUpsertDocumentsError:          nil,
 			mockDeleteDocumentsByBucketsError: nil,
 			statusCode:                        400,
-			body:                              `{"error": "security key header not provided"}`,
+			body:                              `{"error":"security key header 'http-security-header' not provided"}`,
 		},
 		{
 			description: "incorrect security header received",
@@ -120,7 +120,7 @@ func Test_handler(t *testing.T) {
 			mockUpsertDocumentsError:          nil,
 			mockDeleteDocumentsByBucketsError: nil,
 			statusCode:                        400,
-			body:                              `{"error": "security key 'incorrect-value' incorrect"}`,
+			body:                              `{"error":"security key 'incorrect-value' incorrect"}`,
 		},
 		{
 			description: "unmarshal request body error",
@@ -139,7 +139,7 @@ func Test_handler(t *testing.T) {
 			mockUpsertDocumentsError:          nil,
 			mockDeleteDocumentsByBucketsError: nil,
 			statusCode:                        400,
-			body:                              `{"error": "invalid character 'i' looking for beginning of value"}`,
+			body:                              `{"error":"invalid character 'i' looking for beginning of value"}`,
 		},
 		{
 			description: "add bucket listeners error",
@@ -158,7 +158,7 @@ func Test_handler(t *testing.T) {
 			mockUpsertDocumentsError:          nil,
 			mockDeleteDocumentsByBucketsError: nil,
 			statusCode:                        500,
-			body:                              `{"error": "mock add bucket listeners error"}`,
+			body:                              `{"error":"mock add bucket listeners error"}`,
 		},
 		{
 			description: "list files error",
@@ -177,7 +177,7 @@ func Test_handler(t *testing.T) {
 			mockUpsertDocumentsError:          nil,
 			mockDeleteDocumentsByBucketsError: nil,
 			statusCode:                        500,
-			body:                              `{"error": "mock list files error"}`,
+			body:                              `{"error":"mock list files error"}`,
 		},
 		{
 			description: "parse error",
@@ -196,7 +196,7 @@ func Test_handler(t *testing.T) {
 			mockUpsertDocumentsError:          nil,
 			mockDeleteDocumentsByBucketsError: nil,
 			statusCode:                        500,
-			body:                              `{"error": "mock parse error"}`,
+			body:                              `{"error":"mock parse error"}`,
 		},
 		{
 			description: "upsert documents error",
@@ -215,7 +215,7 @@ func Test_handler(t *testing.T) {
 			mockUpsertDocumentsError:          errors.New("mock upsert documents error"),
 			mockDeleteDocumentsByBucketsError: nil,
 			statusCode:                        500,
-			body:                              `{"error": "mock upsert documents error"}`,
+			body:                              `{"error":"mock upsert documents error"}`,
 		},
 		{
 			description: "remove bucket listeners error",
@@ -234,7 +234,7 @@ func Test_handler(t *testing.T) {
 			mockUpsertDocumentsError:          nil,
 			mockDeleteDocumentsByBucketsError: nil,
 			statusCode:                        500,
-			body:                              `{"error": "mock remove bucket listeners error"}`,
+			body:                              `{"error":"mock remove bucket listeners error"}`,
 		},
 		{
 			description: "delete documents by buckets error",
@@ -253,7 +253,7 @@ func Test_handler(t *testing.T) {
 			mockUpsertDocumentsError:          nil,
 			mockDeleteDocumentsByBucketsError: errors.New("mock delete documents by buckets error"),
 			statusCode:                        500,
-			body:                              `{"error": "mock delete documents by buckets error"}`,
+			body:                              `{"error":"mock delete documents by buckets error"}`,
 		},
 		{
 			description: "successful invocation",
@@ -272,7 +272,7 @@ func Test_handler(t *testing.T) {
 			mockUpsertDocumentsError:          nil,
 			mockDeleteDocumentsByBucketsError: nil,
 			statusCode:                        200,
-			body:                              `{"message": "success", "buckets_added": 1, "buckets_removed": 1}`,
+			body:                              `{"message":"success","buckets_added":1,"buckets_removed":1}`,
 		},
 	}
 
