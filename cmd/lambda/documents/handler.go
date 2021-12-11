@@ -27,10 +27,10 @@ func handler(
 		}
 
 		if httpSecurityKeyReceived != httpSecurityKey {
-			util.Log("SECURITY_KEY_VALUE_ERROR", fmt.Sprintf("security key %q incorrect", httpSecurityKeyReceived))
+			util.Log("SECURITY_KEY_VALUE_ERROR", fmt.Sprintf("security key '%s' incorrect", httpSecurityKeyReceived))
 			return sendResponse(
 				http.StatusBadRequest,
-				fmt.Sprintf(`{"error": "security key %q incorrect"}`, httpSecurityKeyReceived),
+				fmt.Sprintf(`{"error": "security key '%s' incorrect"}`, httpSecurityKeyReceived),
 			)
 		}
 

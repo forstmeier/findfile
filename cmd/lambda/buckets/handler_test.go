@@ -120,7 +120,7 @@ func Test_handler(t *testing.T) {
 			mockUpsertDocumentsError:          nil,
 			mockDeleteDocumentsByBucketsError: nil,
 			statusCode:                        400,
-			body:                              `{"error": "security key "incorrect-value" incorrect"}`,
+			body:                              `{"error": "security key 'incorrect-value' incorrect"}`,
 		},
 		{
 			description: "unmarshal request body error",
